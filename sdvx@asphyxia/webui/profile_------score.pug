@@ -1,0 +1,39 @@
+//DATA//
+  profile: DB.Find(refid, { collection: 'profile' })
+  score: DB.Find(refid, { collection: 'music' })
+
+-
+  //const padded = _.padStart(profile.id.toString(), 8);
+  //const sdvxid = `${padded.slice(0, 4)}-${padded.slice(4)}`;
+
+link(rel="stylesheet" href="static/asset/css/datatables.css")
+div
+  .card
+    .card-header
+      p.card-header-title
+        span.icon
+          i.mdi.mdi-account-edit
+        | Score
+    .card-content
+      .field
+            label.label Show scores for version:
+            .ver-select
+              .control
+                .select
+                  select(name="version_select" id="version_select")
+      table.table(id="music_score" style="width:100%")
+        thead
+          tr    
+            th ID
+            th Song Name
+            th Difficulty
+            th Score
+            th Exscore
+            th Grade
+            th Clear Medal
+        tbody
+
+div(hidden id='profile-pass') !{JSON.stringify(profile)}
+div(hidden id='score-pass') !{JSON.stringify(score)}
+script(src="static/asset/js/score.js") 
+script(src="static/asset/js/datatables.js")

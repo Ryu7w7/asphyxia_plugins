@@ -1,0 +1,726 @@
+//DATA//
+  scores: DB.Find(refid, { collection: 'music' })
+-
+div
+  #tachi-controller-warning.notification(style="background-color:rgba(183,149,19,0.25);color:#f5e6ab;border-left:4px solid #b79513;")
+    button.delete(onclick="document.getElementById('tachi-controller-warning').style.display='none';localStorage.setItem('tachi-warning-dismissed','1');")
+    p
+      strong Scores must be achieved on an arcade-size controller!
+    p Playing on other input devices (like a keyboard) will get you in trouble.
+    p
+      strong A Pocket-Voltex DOES NOT count as an #[em ARCADE SIZE] controller!
+
+  .card
+    .card-header
+      p.card-header-title
+        span.icon
+          i.mdi.mdi-swap-horizontal
+        | Tachi Score Sync
+    .card-content
+      .content
+        p Synchronize your SDVX scores with #[a(href="https://kamai.tachi.ac" target="_blank") Kamaitachi].
+
+      #tachi-status
+        .notification.is-info.is-light
+          span.icon
+            i.mdi.mdi-loading.mdi-spin
+          |  Checking Tachi authorization status...
+
+      #tachi-not-authorized(style="display:none")
+        .notification(style="background-color:rgba(255,183,77,0.15);color:#ffb74d;")
+          p You are not yet authorized with Tachi. Click the button below to connect your account.
+        .field
+          button.button.is-link#tachi-authorize-btn
+            span.icon
+              i.mdi.mdi-link
+            span Authorize with Tachi
+
+      #tachi-authorized(style="display:none")
+        .level
+          .level-left
+            .level-item
+              span.tag.is-success.is-medium
+                span.icon
+                  i.mdi.mdi-check-circle
+                span Connected to Tachi
+        .field.is-grouped.is-grouped-multiline
+          .control
+            .field.has-addons
+              .control
+                button.button.is-link#tachi-sync-btn(data-tooltip="Import from Tachi, then export local scores to Tachi" data-tooltip-position="right")
+                  span.icon
+                    i.mdi.mdi-sync
+                  span Synchronize
+              .control
+                .dropdown#tachi-sync-dropdown
+                  .dropdown-trigger
+                    button.button.is-link(aria-haspopup="true" id="tachi-dropdown-btn")
+                      span.icon.is-small
+                        i.mdi.mdi-chevron-down
+                  .dropdown-menu(role="menu")
+                    .dropdown-content
+                      a.dropdown-item#tachi-upload-btn(data-tooltip="Send new scores to Tachi since last export" data-tooltip-position="right")
+                        span.icon
+                          i.mdi.mdi-upload
+                        |  Export to Tachi
+                      a.dropdown-item#tachi-upload-all-btn(data-tooltip="Send all scores to Tachi, ignoring last export time" data-tooltip-position="right")
+                        span.icon
+                          i.mdi.mdi-upload-multiple
+                        |  Force Full Export
+                      a.dropdown-item#tachi-import-btn(data-tooltip="Pull personal bests from Tachi into Asphyxia" data-tooltip-position="right")
+                        span.icon
+                          i.mdi.mdi-download
+                        |  Import from Tachi
+          .control
+            button.button.is-danger.is-outlined#tachi-disconnect-btn
+              span.icon
+                i.mdi.mdi-link-off
+              span Disconnect
+        .field.mt-4
+          label.checkbox#tachi-auto-export-label
+            input(type="checkbox" id="tachi-auto-export-check")
+            |  Automatically export scores to Tachi after each play
+
+      #tachi-result(style="display:none")
+        .card.mt-4
+          .card-header
+            p.card-header-title Import Result
+          .card-content
+            #tachi-result-content
+
+  #tachi-pb-lists(style="display:none;margin-top:3rem")
+    .card
+      .card-header
+        p.card-header-title
+          span.icon
+            i.mdi.mdi-format-list-numbered
+          | Best 50 Scores
+      .card-content
+        .columns
+          .column
+            h5.title.is-5 Asphyxia Best 50
+            #asphyxia-pb-table
+              .has-text-centered
+                span.icon
+                  i.mdi.mdi-loading.mdi-spin
+                |  Loading...
+          .column
+            h5.title.is-5 Tachi Best 50
+            #tachi-pb-table
+              .has-text-centered
+                span.icon
+                  i.mdi.mdi-loading.mdi-spin
+                |  Loading...
+
+div(hidden id='data-pass-scores') !{JSON.stringify(scores)}
+
+script.
+  (function() {
+    if (localStorage.getItem('tachi-warning-dismissed') === '1') {
+      var w = document.getElementById('tachi-controller-warning');
+      if (w) w.style.display = 'none';
+    }
+
+    if (typeof isOwner !== 'undefined' && !isOwner) {
+      document.getElementById('tachi-status').style.display = 'none';
+      document.getElementById('tachi-not-authorized').style.display = 'none';
+      document.getElementById('tachi-authorized').style.display = 'none';
+      document.getElementById('tachi-pb-lists').style.display = 'none';
+      var card = document.querySelector('.card-content .content');
+      card.innerHTML = '<div class="notification is-warning is-light"><span class="icon"><i class="mdi mdi-lock"></i></span> Tachi Score Sync is only available on your own profile.</div>';
+      return;
+    }
+
+    var TACHI_CLIENT_ID = '';
+    var TACHI_AUTH_URL = '';
+
+    fetch('/tachi/config')
+      .then(function(r) { return r.json(); })
+      .then(function(cfg) {
+        TACHI_CLIENT_ID = cfg.clientId || '';
+        TACHI_AUTH_URL = 'https://kamai.tachi.ac/oauth/request-auth?clientID=' + TACHI_CLIENT_ID;
+        if (!TACHI_CLIENT_ID) {
+          document.getElementById('tachi-status').style.display = 'none';
+          document.getElementById('tachi-not-authorized').style.display = '';
+          document.getElementById('tachi-not-authorized').innerHTML =
+            '<div class="notification is-warning is-light">Tachi Client ID is not configured. Set it in the Asphyxia settings page.</div>';
+        }
+      });
+
+    var music_db = null;
+    var music_db_loaded = false;
+    var music_db_error = false;
+    $.getJSON("static/asset/json/music_db.json")
+      .done(function(json) {
+        music_db = json;
+        music_db_loaded = true;
+        console.log('music_db loaded, entries:', music_db["mdb"]["music"].length);
+      })
+      .fail(function(jqxhr, textStatus, error) {
+        music_db_error = true;
+        console.error('Failed to load music_db.json:', textStatus, error);
+      });
+
+    function getSongName(musicid) {
+      if (!music_db) return "(DB not loaded)";
+      var result = music_db["mdb"]["music"].filter(function(obj) { return obj["id"] == musicid; });
+      if (result.length == 0) return "Custom Song";
+      return result[0]["info"]["title_name"];
+    }
+
+    // Clear type to Tachi lamp mapping
+    // SDVX EG (version 6): 0=none, 1=played, 2=clear, 3=excessive, 4=uc, 5=puc, 6=mxv
+    // SDVX Nabla (version 7+): 0=none, 1=played, 2=clear, 3=excessive, 4=mxv, 5=uc, 6=puc
+    var CLEAR_TO_LAMP_EG = {
+      1: 'FAILED',
+      2: 'CLEAR',
+      3: 'EXCESSIVE CLEAR',
+      4: 'ULTIMATE CHAIN',
+      5: 'PERFECT ULTIMATE CHAIN',
+      6: 'MAXXIVE CLEAR'
+    };
+    var CLEAR_TO_LAMP_NABLA = {
+      1: 'FAILED',
+      2: 'CLEAR',
+      3: 'EXCESSIVE CLEAR',
+      4: 'MAXXIVE CLEAR',
+      5: 'ULTIMATE CHAIN',
+      6: 'PERFECT ULTIMATE CHAIN'
+    };
+
+
+    function getDifficulty(musicid, type) {
+      if (type === 0) return 'NOV';
+      if (type === 1) return 'ADV';
+      if (type === 2) return 'EXH';
+      if (type === 4) return 'MXM';
+      if (type === 5) return 'ULT';
+      if (type === 3) {
+        if (!music_db) return 'MXM';
+        var result = music_db["mdb"]["music"].filter(function(obj) { return obj["id"] == musicid; });
+        if (result.length == 0) return 'MXM';
+        var inf_ver = String(result[0]["info"]["inf_ver"] || "0");
+        switch (inf_ver) {
+          case "2": return "INF";
+          case "3": return "GRV";
+          case "4": return "HVN";
+          case "5": return "VVD";
+          case "6": return "XCD";
+          case "0": default: return "MXM";
+        }
+      }
+      return null;
+    }
+
+    function checkStatus() {
+      fetch('/tachi/status')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          document.getElementById('tachi-status').style.display = 'none';
+          if (data.authorized) {
+            document.getElementById('tachi-authorized').style.display = '';
+            document.getElementById('tachi-not-authorized').style.display = 'none';
+            loadPBLists();
+            loadAutoExportState();
+          } else {
+            document.getElementById('tachi-not-authorized').style.display = '';
+            document.getElementById('tachi-authorized').style.display = 'none';
+          }
+        })
+        .catch(function() {
+          document.getElementById('tachi-status').innerHTML =
+            '<div class="notification is-danger is-light">Failed to check Tachi status.</div>';
+        });
+    }
+
+    function loadAutoExportState() {
+      fetch('/tachi/auto-export?refid=' + encodeURIComponent(refid))
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (data.success) {
+            document.getElementById('tachi-auto-export-check').checked = data.enabled;
+          }
+        })
+        .catch(function() {});
+    }
+
+    document.getElementById('tachi-auto-export-check').addEventListener('change', function() {
+      var enabled = this.checked;
+      fetch('/tachi/auto-export', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refid: refid, enabled: enabled })
+      })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (!data.success) {
+            document.getElementById('tachi-auto-export-check').checked = !enabled;
+          }
+        })
+        .catch(function() {
+          document.getElementById('tachi-auto-export-check').checked = !enabled;
+        });
+    });
+
+    checkStatus();
+
+    // Dropdown toggle
+    var dropdownEl = document.getElementById('tachi-sync-dropdown');
+    document.getElementById('tachi-dropdown-btn').addEventListener('click', function(e) {
+      e.stopPropagation();
+      dropdownEl.classList.toggle('is-active');
+    });
+    document.addEventListener('click', function() {
+      dropdownEl.classList.remove('is-active');
+    });
+
+    // PB list rendering
+    function getDiffLevel(musicid, type) {
+      if (!music_db) return 0;
+      var result = music_db["mdb"]["music"].filter(function(obj) { return obj["id"] == musicid; });
+      if (result.length == 0) return 0;
+      var d = result[0]["difficulty"];
+      if (type === 0) return parseInt(d["novice"]) || 0;
+      if (type === 1) return parseInt(d["advanced"]) || 0;
+      if (type === 2) return parseInt(d["exhaust"]) || 0;
+      if (type === 3) return parseInt(d["infinite"]) || 0;
+      if (type === 4) return parseInt(d["maximum"] || d["infinite"]) || 0;
+      return 0;
+    }
+
+    function computeVF(score, level, clear, version) {
+      var clearFactorsEG = { 1: 0.5, 2: 1.0, 3: 1.02, 6: 1.05, 4: 1.05, 5: 1.10 };
+      var clearFactorsNabla = { 1: 0.5, 2: 1.0, 3: 1.02, 4: 1.04, 5: 1.06, 6: 1.10 };
+      var factors = version === 7 ? clearFactorsNabla : clearFactorsEG;
+      var cf = factors[clear] || 0.5;
+      var gf = 1.0;
+      if (score >= 9900000) gf = 1.05;
+      else if (score >= 9800000) gf = 1.02;
+      else if (score >= 9700000) gf = 1.0;
+      else if (score >= 9500000) gf = 0.97;
+      else if (score >= 9300000) gf = 0.94;
+      else if (score >= 9000000) gf = 0.91;
+      else if (score >= 8700000) gf = 0.88;
+      else gf = 0.85;
+      return (score / 10000000) * level * cf * gf;
+    }
+
+    var CLEAR_NAMES_EG = { 1: 'FAILED', 2: 'CLEAR', 3: 'EXC', 4: 'UC', 5: 'PUC', 6: 'MXV' };
+    var CLEAR_NAMES_NABLA = { 1: 'FAILED', 2: 'CLEAR', 3: 'EXC', 4: 'MXV', 5: 'UC', 6: 'PUC' };
+
+    function renderPBTable(scores) {
+      var html = '<div style="max-height:500px;overflow:auto;">';
+      html += '<table class="table is-narrow is-fullwidth is-striped" style="font-size:0.8em;">';
+      html += '<thead><tr><th>#</th><th>Song</th><th>Diff</th><th>Score</th><th>Lamp</th></tr></thead><tbody>';
+      for (var i = 0; i < scores.length; i++) {
+        var s = scores[i];
+        html += '<tr><td>' + (i + 1) + '</td><td>' + s.name + '</td><td>' + s.diff + ' ' + s.level + '</td><td>' + s.score.toLocaleString() + '</td><td>' + s.lamp + '</td></tr>';
+      }
+      html += '</tbody></table></div>';
+      return html;
+    }
+
+    function loadPBLists() {
+      document.getElementById('tachi-pb-lists').style.display = '';
+
+      // Asphyxia PBs
+      function loadAsphyxiaPBs() {
+        if (!music_db_loaded) {
+          setTimeout(loadAsphyxiaPBs, 500);
+          return;
+        }
+        var scoresRaw = JSON.parse(document.getElementById('data-pass-scores').textContent);
+        var supported = scoresRaw.filter(function(s) { return s.version === 6 || s.version === 7; });
+        var enriched = supported.map(function(s) {
+          var diff = getDifficulty(s.mid, s.type) || '?';
+          var level = getDiffLevel(s.mid, s.type);
+          var vf = computeVF(s.score, level, s.clear, s.version);
+          var clearNames = s.version === 7 ? CLEAR_NAMES_NABLA : CLEAR_NAMES_EG;
+          return { mid: s.mid, type: s.type, name: getSongName(s.mid), diff: diff, level: level, score: s.score, lamp: clearNames[s.clear] || String(s.clear), vf: vf };
+        });
+        // Deduplicate by (mid, type) keeping the entry with higher VF
+        var bestByChart = {};
+        for (var i = 0; i < enriched.length; i++) {
+          var key = enriched[i].mid + '_' + enriched[i].type;
+          if (!bestByChart[key] || enriched[i].vf > bestByChart[key].vf) {
+            bestByChart[key] = enriched[i];
+          }
+        }
+        var deduped = [];
+        for (var k in bestByChart) deduped.push(bestByChart[k]);
+        deduped.sort(function(a, b) { return b.vf - a.vf; });
+        var top50 = deduped.slice(0, 50);
+        document.getElementById('asphyxia-pb-table').innerHTML = top50.length > 0 ? renderPBTable(top50) : '<p class="has-text-grey">No scores found.</p>';
+      }
+      loadAsphyxiaPBs();
+
+      // Tachi PBs (sorted by VF6 from the API)
+      fetch('/tachi/pbs/best')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (!data.success || !data.scores || data.scores.length === 0) {
+            document.getElementById('tachi-pb-table').innerHTML = '<p class="has-text-grey">No scores found on Tachi.</p>';
+            return;
+          }
+          var scores = data.scores.slice(0, 50).map(function(s) {
+            return { name: s.songName, diff: s.difficulty, level: s.level, score: s.score, lamp: s.lamp, vf: s.vf };
+          });
+          document.getElementById('tachi-pb-table').innerHTML = renderPBTable(scores);
+        })
+        .catch(function() {
+          document.getElementById('tachi-pb-table').innerHTML = '<p class="has-text-danger">Failed to load Tachi PBs.</p>';
+        });
+    }
+
+    window.addEventListener('message', function(event) {
+      if (event.data && event.data.type === 'tachi-auth' && event.data.code) {
+        fetch('/tachi/exchange', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code: event.data.code })
+        })
+          .then(function(r) { return r.json(); })
+          .then(function(data) {
+            if (data.success) {
+              checkStatus();
+            } else {
+              document.getElementById('tachi-status').style.display = '';
+              document.getElementById('tachi-status').innerHTML =
+                '<div class="notification is-danger is-light">Authorization failed: ' + (data.description || 'Unknown error') + '</div>';
+            }
+          });
+      }
+    });
+
+    document.getElementById('tachi-authorize-btn').addEventListener('click', function() {
+      window.open(TACHI_AUTH_URL, 'tachi_auth', 'width=600,height=700');
+    });
+
+    document.getElementById('tachi-disconnect-btn').addEventListener('click', function() {
+      if (!confirm('Disconnect from Tachi?')) return;
+      fetch('/tachi/disconnect', { method: 'POST' })
+        .then(function() { checkStatus(); });
+    });
+
+    function parseTimestamp(ts) {
+      if (!ts) return null;
+      if (typeof ts === 'number') return ts;
+      if (typeof ts === 'string') { var d = new Date(ts).getTime(); return isNaN(d) ? null : d; }
+      if (ts.$$date != null) return ts.$$date;
+      if (ts instanceof Date || (typeof ts === 'object' && ts.getTime)) { var d = ts.getTime(); return isNaN(d) ? null : d; }
+      return null;
+    }
+
+    function buildTachiScores(since) {
+      var scoresRaw = JSON.parse(document.getElementById('data-pass-scores').textContent);
+      var versionCounts = {};
+      var skippedCount = 0;
+      for (var i = 0; i < scoresRaw.length; i++) {
+        var v = scoresRaw[i].version;
+        versionCounts[v] = (versionCounts[v] || 0) + 1;
+      }
+
+      var tachiScores = [];
+      for (var i = 0; i < scoresRaw.length; i++) {
+        var s = scoresRaw[i];
+        if (s.version !== 6 && s.version !== 7) continue;
+        var lampMap = s.version === 7 ? CLEAR_TO_LAMP_NABLA : CLEAR_TO_LAMP_EG;
+        var lamp = lampMap[s.clear];
+        if (!lamp) continue;
+        var diff = getDifficulty(s.mid, s.type);
+        if (!diff) continue;
+
+        var timeAchieved = parseTimestamp(s.updatedAt || s.createdAt);
+
+        if (since && timeAchieved && timeAchieved <= since) {
+          skippedCount++;
+          continue;
+        }
+
+        tachiScores.push({
+          score: s.score,
+          lamp: lamp,
+          matchType: 'sdvxInGameID',
+          identifier: String(s.mid),
+          difficulty: diff,
+          timeAchieved: timeAchieved,
+          _songName: getSongName(s.mid)
+        });
+      }
+      return { tachiScores: tachiScores, totalRaw: scoresRaw.length, versionCounts: versionCounts, skippedCount: skippedCount };
+    }
+
+    var previewBtn = document.getElementById('tachi-preview-btn');
+    if (previewBtn) previewBtn.addEventListener('click', function() {
+      if (music_db_error) {
+        showResult('danger', '<strong>Failed to load song database (music_db.json).</strong> Song names will not be available. Check the browser console for details.');
+      } else if (!music_db_loaded) {
+        showResult('warning', '<strong>Song database is still loading...</strong> Please wait a moment and try again.');
+        return;
+      }
+      var result = buildTachiScores();
+      var html = '<p><strong>Raw scores in DB:</strong> ' + result.totalRaw + '</p>';
+      html += '<p><strong>Scores per version:</strong> ';
+      for (var v in result.versionCounts) {
+        html += 'v' + v + ': ' + result.versionCounts[v] + ' ';
+      }
+      html += '</p>';
+      html += '<p><strong>Scores to send:</strong> ' + result.tachiScores.length + '</p>';
+      if (result.tachiScores.length > 0) {
+        html += '<details open><summary>First 20 scores</summary>';
+        html += '<div style="max-height:400px;overflow:auto;">';
+        html += '<table class="table is-narrow is-fullwidth is-striped" style="font-size:0.8em;">';
+        html += '<thead><tr><th>ID</th><th>Song Name</th><th>Difficulty</th><th>Score</th><th>Lamp</th><th>Time</th></tr></thead><tbody>';
+        var preview = result.tachiScores.slice(0, 20);
+        for (var i = 0; i < preview.length; i++) {
+          var s = preview[i];
+          var timeStr = s.timeAchieved ? new Date(s.timeAchieved).toLocaleString() : '-';
+          html += '<tr><td>' + s.identifier + '</td><td>' + s._songName + '</td><td>' + s.difficulty + '</td><td>' + s.score + '</td><td>' + s.lamp + '</td><td>' + timeStr + '</td></tr>';
+        }
+        html += '</tbody></table></div></details>';
+        html += '<details><summary>All ' + result.tachiScores.length + ' scores (JSON)</summary>';
+        html += '<pre style="max-height:400px;overflow:auto;font-size:0.75em;background:#1a1a1e;color:#ddd;padding:0.5em;border-radius:4px;white-space:pre-wrap;">';
+        var exportData = result.tachiScores.map(function(s) { var c = Object.assign({}, s); delete c._songName; return c; });
+        html += JSON.stringify({ meta: { game: "sdvx", playtype: "Single", service: "Asphyxia" }, scores: exportData }, null, 2);
+        html += '</pre></details>';
+      }
+      showResult('info', html);
+    });
+
+    function exportToTachi(forceAll) {
+      var btn = document.getElementById('tachi-sync-btn');
+      btn.classList.add('is-loading');
+      btn.disabled = true;
+
+      return fetch('/tachi/export-ts?refid=' + encodeURIComponent(refid))
+        .then(function(r) { return r.json(); })
+        .then(function(tsData) {
+          var since = (!forceAll && tsData.success && tsData.timestamp) ? tsData.timestamp : null;
+          var result = buildTachiScores(since);
+          var tachiScores = result.tachiScores;
+
+          if (tachiScores.length === 0) {
+            btn.classList.remove('is-loading');
+            btn.disabled = false;
+            var msg = 'No scores to upload.';
+            if (since) msg = 'No new scores since last export (' + new Date(since).toLocaleString() + '). ' + result.skippedCount + ' scores already exported.';
+            return { success: true, _skipped: true, _message: msg, _result: result };
+          }
+
+          var cleanScores = tachiScores.map(function(s) { var c = Object.assign({}, s); delete c._songName; return c; });
+
+          console.log('Sending ' + cleanScores.length + ' scores to Tachi' + (result.skippedCount > 0 ? ' (skipped ' + result.skippedCount + ' already exported)' : ''));
+
+          return fetch('/tachi/import', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ scores: cleanScores })
+          })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+              console.log('Tachi response:', JSON.stringify(data));
+              if (data.success) {
+                // Save export timestamp
+                return fetch('/tachi/save-export-ts', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ refid: refid })
+                }).then(function() { return data; });
+              }
+              return data;
+            })
+            .then(function(data) {
+              btn.classList.remove('is-loading');
+              btn.disabled = false;
+              return { success: data.success, data: data, scoresSent: tachiScores.length, skippedCount: result.skippedCount, _result: result };
+            });
+        })
+        .catch(function(err) {
+          btn.classList.remove('is-loading');
+          btn.disabled = false;
+          throw err;
+        });
+    }
+
+    function showExportResult(exportResult) {
+      if (exportResult._skipped) {
+        showResult('info', exportResult._message);
+        return;
+      }
+      var data = exportResult.data;
+      var html = '';
+      if (data.success) {
+        var body = data.body || {};
+        html += '<p class="has-text-success"><strong>Import successful!</strong></p>';
+        html += '<p>Scores sent: ' + exportResult.scoresSent + '</p>';
+        if (exportResult.skippedCount > 0) html += '<p>Skipped (already exported): ' + exportResult.skippedCount + '</p>';
+        if (body.scoreIDs) html += '<p>Scores imported: ' + body.scoreIDs.length + '</p>';
+        if (body.errors) html += '<p>Errors: ' + body.errors.length + '</p>';
+        if (body.errors && body.errors.length > 0) {
+          html += '<details><summary>Error details</summary><ul>';
+          for (var j = 0; j < Math.min(body.errors.length, 50); j++) {
+            html += '<li>' + (body.errors[j].message || JSON.stringify(body.errors[j])) + '</li>';
+          }
+          if (body.errors.length > 50) html += '<li>... and ' + (body.errors.length - 50) + ' more</li>';
+          html += '</ul></details>';
+        }
+      } else {
+        html += '<p class="has-text-danger"><strong>Import failed</strong></p>';
+        html += '<p>' + (data.description || 'Unknown error') + '</p>';
+      }
+      html += '<details class="mt-3"><summary>Raw API Response</summary>';
+      html += '<pre style="max-height:300px;overflow:auto;font-size:0.75em;background:#1a1a1e;color:#ddd;padding:0.5em;border-radius:4px;white-space:pre-wrap;">' + JSON.stringify(data, null, 2) + '</pre>';
+      html += '</details>';
+      showResult(data.success ? 'success' : 'danger', html);
+    }
+
+    document.getElementById('tachi-upload-btn').addEventListener('click', function(e) {
+      e.preventDefault();
+      dropdownEl.classList.remove('is-active');
+      exportToTachi(false).then(showExportResult).catch(function(err) {
+        showResult('danger', '<strong>Error:</strong> ' + err.message);
+      });
+    });
+
+    document.getElementById('tachi-upload-all-btn').addEventListener('click', function(e) {
+      e.preventDefault();
+      dropdownEl.classList.remove('is-active');
+      exportToTachi(true).then(showExportResult).catch(function(err) {
+        showResult('danger', '<strong>Error:</strong> ' + err.message);
+      });
+    });
+
+    // Import from Tachi: fetch best 50 PBs and save to Asphyxia DB
+    function importFromTachi() {
+      return fetch('/tachi/pbs')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (!data.success) {
+            return { success: false, description: data.description || 'Failed to fetch PBs from Tachi' };
+          }
+          if (!data.scores || data.scores.length === 0) {
+            return { success: true, imported: 0, skipped: 0, message: 'No scores found on Tachi.' };
+          }
+
+          // Save all scores from Tachi
+          return fetch('/tachi/save-scores', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ refid: refid, scores: data.scores.map(function(s) {
+              return { mid: s.mid, type: s.type, score: s.score, clear: s.clear, grade: s.grade, exscore: s.exscore, timeAchieved: s.timeAchieved || null, version: 6 };
+            })})
+          })
+            .then(function(r) { return r.json(); })
+            .then(function(saveResult) {
+              if (!saveResult.success) {
+                return { success: false, description: saveResult.description || 'Failed to save scores' };
+              }
+              return { success: true, imported: saveResult.saved, skipped: saveResult.skipped, scores: data.scores };
+            });
+        });
+    }
+
+    document.getElementById('tachi-import-btn').addEventListener('click', function(e) {
+      e.preventDefault();
+      dropdownEl.classList.remove('is-active');
+      var btn = document.getElementById('tachi-sync-btn');
+      btn.classList.add('is-loading');
+      btn.disabled = true;
+
+      importFromTachi()
+        .then(function(result) {
+          btn.classList.remove('is-loading');
+          btn.disabled = false;
+
+          if (!result.success) {
+            showResult('danger', '<strong>Import failed:</strong> ' + (result.description || 'Unknown error'));
+            return;
+          }
+
+          var html = '<p class="has-text-success"><strong>Import from Tachi complete!</strong></p>';
+          html += '<p>Scores imported: ' + (result.imported || 0) + '</p>';
+          if (result.skipped) html += '<p>Skipped (already in DB): ' + result.skipped + '</p>';
+          if (result.message) html += '<p>' + result.message + '</p>';
+          if (result.scores && result.scores.length > 0) {
+            html += '<details><summary>Tachi PBs fetched (' + result.scores.length + ')</summary>';
+            html += '<div style="max-height:300px;overflow:auto;">';
+            html += '<table class="table is-narrow is-fullwidth is-striped" style="font-size:0.8em;">';
+            html += '<thead><tr><th>ID</th><th>Song</th><th>Diff</th><th>Score</th><th>Lamp</th></tr></thead><tbody>';
+            for (var i = 0; i < result.scores.length; i++) {
+              var s = result.scores[i];
+              html += '<tr><td>' + s.mid + '</td><td>' + s.songName + '</td><td>' + s.difficulty + '</td><td>' + s.score + '</td><td>' + s.lamp + '</td></tr>';
+            }
+            html += '</tbody></table></div></details>';
+          }
+          if (result.imported > 0) html += '<p class="mt-2"><em>Reload the page to see updated scores.</em></p>';
+          showResult('success', html);
+        })
+        .catch(function(err) {
+          btn.classList.remove('is-loading');
+          btn.disabled = false;
+          showResult('danger', '<strong>Error:</strong> ' + err.message);
+        });
+    });
+
+    // Synchronize: import from Tachi + export new scores to Tachi
+    document.getElementById('tachi-sync-btn').addEventListener('click', function() {
+      var btn = this;
+      btn.classList.add('is-loading');
+      btn.disabled = true;
+
+      showResult('info', '<p><strong>Synchronizing...</strong></p>');
+
+      // Step 1: Import from Tachi
+      importFromTachi()
+        .then(function(importResult) {
+          // Step 2: Export to Tachi (only new scores)
+          btn.classList.remove('is-loading');
+          btn.disabled = false;
+          return exportToTachi(false).then(function(exportResult) {
+            var html = '<p class="has-text-success"><strong>Synchronization complete!</strong></p>';
+            html += '<hr>';
+
+            // Import summary
+            html += '<p><strong>Import from Tachi:</strong></p>';
+            if (!importResult.success) {
+              html += '<p class="has-text-danger">Import failed: ' + (importResult.description || 'Unknown error') + '</p>';
+            } else {
+              html += '<p>Scores imported: ' + (importResult.imported || 0) + '</p>';
+              if (importResult.skipped) html += '<p>Skipped (already in DB): ' + importResult.skipped + '</p>';
+              if (importResult.message) html += '<p>' + importResult.message + '</p>';
+            }
+
+            html += '<hr>';
+
+            // Export summary
+            html += '<p><strong>Export to Tachi:</strong></p>';
+            if (exportResult._skipped) {
+              html += '<p>' + exportResult._message + '</p>';
+            } else if (exportResult.data.success) {
+              var ebody = exportResult.data.body || {};
+              html += '<p>Scores sent: ' + exportResult.scoresSent + '</p>';
+              if (exportResult.skippedCount > 0) html += '<p>Skipped (already exported): ' + exportResult.skippedCount + '</p>';
+              if (ebody.scoreIDs) html += '<p>New scores on Tachi: ' + ebody.scoreIDs.length + '</p>';
+              if (ebody.errors && ebody.errors.length > 0) html += '<p>Errors: ' + ebody.errors.length + '</p>';
+            } else {
+              html += '<p class="has-text-danger">Export failed: ' + (exportResult.data.description || 'Unknown error') + '</p>';
+            }
+
+            if (importResult.imported > 0) html += '<p class="mt-2"><em>Reload the page to see updated scores.</em></p>';
+            showResult('success', html);
+          });
+        })
+        .catch(function(err) {
+          btn.classList.remove('is-loading');
+          btn.disabled = false;
+          showResult('danger', '<strong>Sync error:</strong> ' + err.message);
+        });
+    });
+
+    function showResult(type, html) {
+      var resultDiv = document.getElementById('tachi-result');
+      var contentDiv = document.getElementById('tachi-result-content');
+      resultDiv.style.display = '';
+      contentDiv.innerHTML = '<div class="notification is-' + type + ' is-light">' + html + '</div>';
+    }
+  })();

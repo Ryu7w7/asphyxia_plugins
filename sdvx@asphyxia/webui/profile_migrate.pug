@@ -1,0 +1,305 @@
+div
+  .card
+    .card-header
+      p.card-header-title
+        span.icon
+          i.mdi.mdi-database-import
+        | Migrate Scores from Another Server
+    .card-content
+      .content
+        p Import scores from another Asphyxia server's savedata folder. Select the folder containing #[code core.db] and #[code sdvx@asphyxia.db].
+
+      #migrate-step-1
+        .field
+          .file.has-name.is-fullwidth
+            label.file-label
+              input.file-input(type="file" id="migrate-folder-input" webkitdirectory directory multiple)
+              span.file-cta
+                span.file-icon
+                  i.mdi.mdi-folder-open
+                span.file-label Choose savedata folder...
+              span.file-name#migrate-folder-name No folder selected
+
+      #migrate-parse-error(style="display:none")
+
+      #migrate-step-2(style="display:none")
+        .notification.is-success.is-light#migrate-files-found
+
+        .field
+          label.label Source Profile
+          .control
+            .select.is-fullwidth
+              select#migrate-profile-select
+                option(value="" disabled selected) Select a profile...
+
+        #migrate-preview(style="display:none")
+          .box
+            h5.title.is-5 Import Preview
+            #migrate-preview-content
+
+          .field
+            button.button.is-link#migrate-import-btn
+              span.icon
+                i.mdi.mdi-database-import
+              span Import Scores
+
+      #migrate-result(style="display:none")
+
+  .card(style="margin-top: 1.5rem;")
+    .card-header
+      p.card-header-title
+        span.icon
+          i.mdi.mdi-database-export
+        | Migrate Scores to Another Server
+    .card-content
+      .content
+        p Export your profile and scores as a #[code savedata.zip] file that can be imported on another Asphyxia server. The zip contains only your data.
+
+      #export-section
+        .field
+          button.button.is-link#export-savedata-btn
+            span.icon
+              i.mdi.mdi-download
+            span Download savedata.zip
+
+script.
+  (function() {
+    if (typeof isOwner !== 'undefined' && !isOwner) {
+      var card = document.querySelector('.card-content .content');
+      card.innerHTML = '<div class="notification is-warning is-light"><span class="icon"><i class="mdi mdi-lock"></i></span> Score migration is only available on your own profile.</div>';
+      document.getElementById('migrate-step-1').style.display = 'none';
+      return;
+    }
+
+    var profileMap = {};
+    var scoresByRefid = {};
+
+    function parseNeDB(text) {
+      var docs = [];
+      var lines = text.split('\n');
+      for (var i = 0; i < lines.length; i++) {
+        var line = lines[i].trim();
+        if (!line) continue;
+        try {
+          docs.push(JSON.parse(line));
+        } catch (e) {}
+      }
+      return docs;
+    }
+
+    function showError(msg) {
+      var el = document.getElementById('migrate-parse-error');
+      el.style.display = '';
+      el.innerHTML = '<div class="notification is-danger is-light">' + msg + '</div>';
+      document.getElementById('migrate-step-2').style.display = 'none';
+    }
+
+    function showResult(type, html) {
+      var el = document.getElementById('migrate-result');
+      el.style.display = '';
+      el.innerHTML = '<div class="notification is-' + type + ' is-light">' + html + '</div>';
+    }
+
+    document.getElementById('migrate-folder-input').addEventListener('change', function(e) {
+      var files = e.target.files;
+      if (!files || files.length === 0) return;
+
+      document.getElementById('migrate-parse-error').style.display = 'none';
+      document.getElementById('migrate-step-2').style.display = 'none';
+      document.getElementById('migrate-result').style.display = 'none';
+
+      var coreFile = null;
+      var sdvxFile = null;
+
+      for (var i = 0; i < files.length; i++) {
+        var name = files[i].name;
+        if (name === 'core.db') coreFile = files[i];
+        else if (name === 'sdvx@asphyxia.db') sdvxFile = files[i];
+      }
+
+      var folderName = files[0].webkitRelativePath.split('/')[0] || 'selected folder';
+      document.getElementById('migrate-folder-name').textContent = folderName;
+
+      if (!coreFile || !sdvxFile) {
+        var missing = [];
+        if (!coreFile) missing.push('core.db');
+        if (!sdvxFile) missing.push('sdvx@asphyxia.db');
+        showError('<strong>Missing files:</strong> ' + missing.join(', ') + '. Make sure you selected the correct savedata folder.');
+        return;
+      }
+
+      Promise.all([
+        coreFile.text(),
+        sdvxFile.text()
+      ]).then(function(results) {
+        var coreDocs = parseNeDB(results[0]);
+        var sdvxDocs = parseNeDB(results[1]);
+
+        profileMap = {};
+        scoresByRefid = {};
+
+        // Build a map that resolves each _id to its latest version (NeDB append-only format)
+        var latestById = {};
+        for (var i = 0; i < coreDocs.length; i++) {
+          var doc = coreDocs[i];
+          if (doc._id) latestById[doc._id] = doc;
+        }
+        var resolvedCore = [];
+        for (var id in latestById) {
+          resolvedCore.push(latestById[id]);
+        }
+
+        for (var i = 0; i < resolvedCore.length; i++) {
+          var doc = resolvedCore[i];
+          if (doc.__s === 'profile' && doc.__refid && doc.name) {
+            profileMap[doc.__refid] = doc.name;
+          }
+        }
+
+        // Resolve sdvx docs the same way
+        var sdvxLatest = {};
+        for (var i = 0; i < sdvxDocs.length; i++) {
+          var doc = sdvxDocs[i];
+          if (doc._id) sdvxLatest[doc._id] = doc;
+        }
+
+        for (var id in sdvxLatest) {
+          var doc = sdvxLatest[id];
+          if (doc.__s === 'plugins_profile' && doc.collection === 'music' && doc.__refid) {
+            if (!scoresByRefid[doc.__refid]) scoresByRefid[doc.__refid] = [];
+            scoresByRefid[doc.__refid].push(doc);
+          }
+        }
+
+        var profileCount = Object.keys(profileMap).length;
+        var totalScores = 0;
+        for (var r in scoresByRefid) totalScores += scoresByRefid[r].length;
+
+        if (profileCount === 0) {
+          showError('<strong>No profiles found</strong> in the core.db file.');
+          return;
+        }
+
+        document.getElementById('migrate-files-found').innerHTML =
+          '<strong>Found ' + profileCount + ' profile(s)</strong> and <strong>' + totalScores + ' score(s)</strong> in the selected folder.';
+
+        var select = document.getElementById('migrate-profile-select');
+        select.innerHTML = '<option value="" disabled selected>Select a profile...</option>';
+        for (var rid in profileMap) {
+          var count = scoresByRefid[rid] ? scoresByRefid[rid].length : 0;
+          var opt = document.createElement('option');
+          opt.value = rid;
+          opt.textContent = profileMap[rid] + ' (' + count + ' scores)';
+          select.appendChild(opt);
+        }
+
+        document.getElementById('migrate-step-2').style.display = '';
+        document.getElementById('migrate-preview').style.display = 'none';
+      }).catch(function(err) {
+        showError('<strong>Failed to read files:</strong> ' + err.message);
+      });
+    });
+
+    document.getElementById('migrate-profile-select').addEventListener('change', function() {
+      var selectedRefid = this.value;
+      var scores = scoresByRefid[selectedRefid] || [];
+      var preview = document.getElementById('migrate-preview');
+      var content = document.getElementById('migrate-preview-content');
+
+      if (scores.length === 0) {
+        content.innerHTML = '<p class="has-text-grey">No scores found for this profile.</p>';
+        preview.style.display = '';
+        return;
+      }
+
+      var v6Count = 0;
+      var v7Count = 0;
+      var otherCount = 0;
+      for (var i = 0; i < scores.length; i++) {
+        if (scores[i].version === 6) v6Count++;
+        else if (scores[i].version === 7) v7Count++;
+        else otherCount++;
+      }
+
+      var html = '<table class="table is-narrow">';
+      html += '<tbody>';
+      html += '<tr><td><strong>Total scores</strong></td><td>' + scores.length + '</td></tr>';
+      if (v6Count > 0) html += '<tr><td>EXCEED GEAR (v6)</td><td>' + v6Count + '</td></tr>';
+      if (v7Count > 0) html += '<tr><td>Nabla (v7)</td><td>' + v7Count + '</td></tr>';
+      if (otherCount > 0) html += '<tr><td>Other versions</td><td>' + otherCount + '</td></tr>';
+      html += '</tbody></table>';
+      html += '<p class="is-size-7 has-text-grey">Existing scores that are already better will not be overwritten.</p>';
+
+      content.innerHTML = html;
+      preview.style.display = '';
+      document.getElementById('migrate-result').style.display = 'none';
+    });
+
+    document.getElementById('migrate-import-btn').addEventListener('click', function() {
+      var selectedRefid = document.getElementById('migrate-profile-select').value;
+      if (!selectedRefid) return;
+
+      var scores = scoresByRefid[selectedRefid] || [];
+      if (scores.length === 0) return;
+
+      var btn = this;
+      btn.classList.add('is-loading');
+      btn.disabled = true;
+
+      var mappedScores = scores.map(function(s) {
+        return {
+          mid: s.mid,
+          type: s.type,
+          score: s.score || 0,
+          clear: s.clear || 0,
+          grade: s.grade || 0,
+          exscore: s.exscore || 0,
+          version: s.version || 6,
+          buttonRate: s.buttonRate || 0,
+          longRate: s.longRate || 0,
+          volRate: s.volRate || 0,
+          volforce: s.volforce || 0,
+        };
+      });
+
+      fetch('/migrate/import-scores', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refid: refid, scores: mappedScores })
+      })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        btn.classList.remove('is-loading');
+        btn.disabled = false;
+
+        if (data.success) {
+          var html = '<strong>Import complete!</strong>';
+          html += '<br>Scores imported: ' + (data.saved || 0);
+          if (data.skipped) html += '<br>Skipped (existing score is equal or better): ' + data.skipped;
+          html += '<br><br><em>Reload the page to see updated scores.</em>';
+          showResult('success', html);
+        } else {
+          showResult('danger', '<strong>Import failed:</strong> ' + (data.description || 'Unknown error'));
+        }
+      })
+      .catch(function(err) {
+        btn.classList.remove('is-loading');
+        btn.disabled = false;
+        showResult('danger', '<strong>Error:</strong> ' + err.message);
+      });
+    });
+
+    // Export savedata handler
+    document.getElementById('export-savedata-btn').addEventListener('click', function() {
+      var btn = this;
+      btn.classList.add('is-loading');
+      btn.disabled = true;
+
+      window.location.href = '/migrate/export-savedata?refid=' + encodeURIComponent(refid);
+
+      setTimeout(function() {
+        btn.classList.remove('is-loading');
+        btn.disabled = false;
+      }, 3000);
+    });
+  })();

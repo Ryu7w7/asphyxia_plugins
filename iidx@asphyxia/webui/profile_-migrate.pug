@@ -1,0 +1,417 @@
+div
+  .card
+    .card-header
+      p.card-header-title
+        span.icon
+          i.mdi.mdi-database-import
+        | Migrate IIDX Scores from Another Server
+    .card-content
+      .content
+        p Import ONLY your IIDX scores from another Asphyxia server's #[code savedata] folder.
+        p Select the folder that contains #[code core.db] and #[code iidx@asphyxia.db].
+
+      #iidx-migrate-step-1
+        .field
+          .file.has-name.is-fullwidth
+            label.file-label
+              input.file-input(type="file" id="iidx-migrate-folder-input" webkitdirectory directory multiple)
+              span.file-cta
+                span.file-icon
+                  i.mdi.mdi-folder-open
+                span.file-label Choose savedata folder...
+              span.file-name#iidx-migrate-folder-name No folder selected
+
+      #iidx-migrate-parse-error(style="display:none")
+      #iidx-migrate-step-2(style="display:none")
+        .notification.is-success.is-light#iidx-migrate-files-found
+
+        .field
+          label.label Source Profile
+          .control
+            .select.is-fullwidth
+              select#iidx-migrate-profile-select
+                option(value="" disabled selected) Select a profile...
+
+        #iidx-migrate-preview(style="display:none")
+          .box
+            h5.title.is-5 Import Preview
+            #iidx-migrate-preview-content
+
+          .field
+            button.button.is-link#iidx-migrate-import-btn
+              span.icon
+                i.mdi.mdi-database-import
+              span Import Scores
+
+      #iidx-migrate-result(style="display:none")
+
+  .card(style="margin-top: 1.5rem;")
+    .card-header
+      p.card-header-title
+        span.icon
+          i.mdi.mdi-database-export
+        | Migrate IIDX Scores to Another Server
+    .card-content
+      .content
+        p Export ONLY your IIDX scores as #[code savedata.zip] (contains #[code core.db] and #[code iidx@asphyxia.db]).
+        p The zip contains only your data.
+
+      .field
+        button.button.is-link#iidx-export-savedata-btn
+          span.icon
+            i.mdi.mdi-download
+          span Download savedata.zip
+
+script.
+  (function() {
+    // Owner guard
+    if (typeof isOwner !== 'undefined' && !isOwner) {
+      var card = document.querySelector('.card-content .content');
+      if (card) {
+        card.innerHTML =
+          '<div class="notification is-warning is-light">' +
+          '<span class="icon"><i class="mdi mdi-lock"></i></span> ' +
+          'Migration is only available on your own profile.' +
+          '</div>';
+      }
+      var s1 = document.getElementById('iidx-migrate-step-1');
+      if (s1) s1.style.display = 'none';
+      return;
+    }
+
+    var profileMap = {};     // { refid: name }
+    var scoresByRefid = {};  // { refid: [scoreDocs...] }
+
+    function parseNeDB(text) {
+      var docs = [];
+      if (!text) return docs;
+      var lines = text.split('\n');
+      for (var i = 0; i < lines.length; i++) {
+        var line = lines[i].trim();
+        if (!line) continue;
+        try { docs.push(JSON.parse(line)); } catch (e) {}
+      }
+      return docs;
+    }
+
+    // NeDB append-only: quedarnos con el último doc por _id
+    function resolveLatest(docs) {
+      var latestById = {};
+      var noId = [];
+      for (var i = 0; i < docs.length; i++) {
+        var d = docs[i];
+        if (!d) continue;
+        if (d._id) latestById[d._id] = d;
+        else noId.push(d);
+      }
+      var out = [];
+      for (var id in latestById) out.push(latestById[id]);
+      return out.concat(noId);
+    }
+
+    function hide(elId) {
+      var el = document.getElementById(elId);
+      if (el) el.style.display = 'none';
+    }
+    function show(elId) {
+      var el = document.getElementById(elId);
+      if (el) el.style.display = '';
+    }
+
+    function showError(msgHtml) {
+      var el = document.getElementById('iidx-migrate-parse-error');
+      if (!el) return;
+      el.style.display = '';
+      el.innerHTML = '<div class="notification is-danger is-light">' + msgHtml + '</div>';
+      hide('iidx-migrate-step-2');
+    }
+
+    function showResult(type, html) {
+      var el = document.getElementById('iidx-migrate-result');
+      if (!el) return;
+      el.style.display = '';
+      el.innerHTML = '<div class="notification is-' + type + ' is-light">' + html + '</div>';
+    }
+
+    // Cuenta charts reales dentro de score docs (10 charts por canción)
+    function countCharts(scoreDocs) {
+      var total = 0;
+      for (var j = 0; j < scoreDocs.length; j++) {
+        var s = scoreDocs[j];
+        var arr = (s && Array.isArray(s.esArray)) ? s.esArray : [];
+        for (var k = 0; k < 10; k++) {
+          var v = arr[k];
+          if (typeof v === 'number' && v > -1) total++;
+        }
+      }
+      return total;
+    }
+
+    // RefID helper (soporta variantes)
+    function getRefid(d) {
+      if (!d) return null;
+      return (
+        d.__refid ||
+        d.__refId ||
+        d.__refID ||
+        d.refid ||
+        d.refId ||
+        d.refID ||
+        null
+      );
+    }
+
+    // Detecta si un doc de core.db "parece profile"
+    function looksLikeProfile(d) {
+      if (!d) return false;
+
+      // Caso normal
+      if (d.__s === 'profile' || d.__s === 'profiles') return true;
+
+      // Heurística (para forks/exports donde __s no viene):
+      // - tiene name string
+      // - y tiene algo típico de profile (pin / cards / createdAt / updatedAt)
+      if (typeof d.name === 'string' && d.name.trim().length > 0) {
+        if (
+          typeof d.pin !== 'undefined' ||
+          typeof d.cards !== 'undefined' ||
+          typeof d.createdAt !== 'undefined' ||
+          typeof d.updatedAt !== 'undefined'
+        ) {
+          return true;
+        }
+      }
+
+      return false;
+    }
+
+    var input = document.getElementById('iidx-migrate-folder-input');
+    if (!input) return;
+
+    input.addEventListener('change', function(e) {
+      var files = e.target.files;
+      if (!files || files.length === 0) return;
+
+      hide('iidx-migrate-parse-error');
+      hide('iidx-migrate-step-2');
+      hide('iidx-migrate-result');
+      hide('iidx-migrate-preview');
+
+      var coreFile = null;
+      var iidxFile = null;
+
+      for (var i = 0; i < files.length; i++) {
+        var name = files[i].name;
+        if (name === 'core.db') coreFile = files[i];
+        else if (name === 'iidx@asphyxia.db') iidxFile = files[i];
+      }
+
+      var folderName = (files[0].webkitRelativePath || '').split('/')[0] || 'selected folder';
+      var folderLabel = document.getElementById('iidx-migrate-folder-name');
+      if (folderLabel) folderLabel.textContent = folderName;
+
+      if (!coreFile || !iidxFile) {
+        var missing = [];
+        if (!coreFile) missing.push('core.db');
+        if (!iidxFile) missing.push('iidx@asphyxia.db');
+        showError('<strong>Missing files:</strong> ' + missing.join(', ') + '. Make sure you selected the correct savedata folder.');
+        return;
+      }
+
+      Promise.all([coreFile.text(), iidxFile.text()])
+        .then(function(results) {
+          // -----------------------
+          // CORE: parse + detectar profiles (robusto)
+          // -----------------------
+          var coreDocsRaw = parseNeDB(results[0]);
+
+          // DEBUG (te ayuda a ver por qué antes quedaba en 0)
+          console.log('[IIDX MIGRATE] core docs:', coreDocsRaw.length);
+          console.log('[IIDX MIGRATE] core sample:', coreDocsRaw.slice(0, 10));
+          console.log('[IIDX MIGRATE] core __s counts:', coreDocsRaw.reduce(function(a, d){
+            var k = (d && d.__s) ? d.__s : '(none)';
+            a[k] = (a[k] || 0) + 1;
+            return a;
+          }, {}));
+
+          // Tomar el ÚLTIMO profile por refid (sin depender de _id)
+          var latestProfileByRefid = {};
+          for (var i = 0; i < coreDocsRaw.length; i++) {
+            var d = coreDocsRaw[i];
+            if (!d) continue;
+
+            var rid = getRefid(d);
+            if (!rid) continue;
+
+            if (looksLikeProfile(d)) {
+              latestProfileByRefid[rid] = d; // último gana
+            }
+          }
+
+          profileMap = {};
+          for (var rid in latestProfileByRefid) {
+            var p = latestProfileByRefid[rid];
+            var nm = (p && typeof p.name === 'string' && p.name.trim().length > 0) ? p.name.trim() : '(no name)';
+            profileMap[rid] = nm;
+          }
+
+          // -----------------------
+          // IIDX DB: score docs (append-only => resolveLatest)
+          // -----------------------
+          var iidxDocs = resolveLatest(parseNeDB(results[1]));
+
+          console.log('[IIDX MIGRATE] iidx docs:', iidxDocs.length);
+          console.log('[IIDX MIGRATE] iidx sample:', iidxDocs.slice(0, 10));
+          console.log('[IIDX MIGRATE] iidx __s counts:', iidxDocs.reduce(function(a, d){
+            var k = (d && d.__s) ? d.__s : '(none)';
+            a[k] = (a[k] || 0) + 1;
+            return a;
+          }, {}));
+
+          scoresByRefid = {};
+          for (var i = 0; i < iidxDocs.length; i++) {
+            var d = iidxDocs[i];
+            if (!d) continue;
+
+            // más robusto: basta que sea collection:"score" y tenga refid
+            if (d.collection === 'score') {
+              var rid = getRefid(d) || d.__refid; // por si acaso
+              if (!rid) continue;
+              if (!scoresByRefid[rid]) scoresByRefid[rid] = [];
+              scoresByRefid[rid].push(d);
+            }
+          }
+
+          var profileCount = Object.keys(profileMap).length;
+          if (profileCount === 0) {
+            showError(
+              '<strong>No profiles found</strong> in core.db.<br>' +
+              'Abre la consola (F12) y mira <code>[IIDX MIGRATE] core __s counts</code> para ver el formato real.'
+            );
+            return;
+          }
+
+          var totalSongDocs = 0;
+          var totalCharts = 0;
+          for (var rid in scoresByRefid) {
+            totalSongDocs += scoresByRefid[rid].length;
+            totalCharts += countCharts(scoresByRefid[rid]);
+          }
+
+          var found = document.getElementById('iidx-migrate-files-found');
+          if (found) {
+            found.innerHTML =
+              '<strong>Found ' + profileCount + ' profile(s)</strong> and <strong>' +
+              totalCharts + ' score(s)</strong> (' + totalSongDocs + ' song doc(s)).';
+          }
+
+          var select = document.getElementById('iidx-migrate-profile-select');
+          if (!select) return;
+
+          select.innerHTML = '<option value="" disabled selected>Select a profile...</option>';
+
+          // Ordenar por nombre
+          var refids = Object.keys(profileMap).sort(function(a, b) {
+            return String(profileMap[a]).localeCompare(String(profileMap[b]));
+          });
+
+          for (var x = 0; x < refids.length; x++) {
+            var rid = refids[x];
+            var docs = scoresByRefid[rid] ? scoresByRefid[rid].length : 0;
+            var charts = scoresByRefid[rid] ? countCharts(scoresByRefid[rid]) : 0;
+
+            var opt = document.createElement('option');
+            opt.value = rid;
+            opt.textContent = profileMap[rid] + ' (' + charts + ' scores, ' + docs + ' songs)';
+            select.appendChild(opt);
+          }
+
+          show('iidx-migrate-step-2');
+          hide('iidx-migrate-preview');
+        })
+        .catch(function(err) {
+          showError('<strong>Failed to read files:</strong> ' + err.message);
+        });
+    });
+
+    var sel = document.getElementById('iidx-migrate-profile-select');
+    if (sel) {
+      sel.addEventListener('change', function() {
+        var rid = this.value;
+        var docs = scoresByRefid[rid] || [];
+
+        var preview = document.getElementById('iidx-migrate-preview');
+        var content = document.getElementById('iidx-migrate-preview-content');
+        if (!preview || !content) return;
+
+        var html = '<table class="table is-narrow"><tbody>';
+        html += '<tr><td><strong>Song docs</strong></td><td>' + docs.length + '</td></tr>';
+        html += '<tr><td><strong>Scores</strong></td><td>' + countCharts(docs) + '</td></tr>';
+        html += '</tbody></table>';
+        html += '<p class="is-size-7 has-text-grey">Only better EXSCORE per chart will overwrite existing data.</p>';
+
+        content.innerHTML = html;
+        preview.style.display = '';
+        hide('iidx-migrate-result');
+      });
+    }
+
+    var importBtn = document.getElementById('iidx-migrate-import-btn');
+    if (importBtn) {
+      importBtn.addEventListener('click', function() {
+        var selectedRefid = document.getElementById('iidx-migrate-profile-select').value;
+        if (!selectedRefid) return;
+
+        var docs = scoresByRefid[selectedRefid] || [];
+        if (docs.length === 0) return;
+
+        var btn = this;
+        btn.classList.add('is-loading');
+        btn.disabled = true;
+
+        fetch('/migrate/iidx/import-scores', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refid: refid, scores: docs })
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          btn.classList.remove('is-loading');
+          btn.disabled = false;
+
+          if (data && data.success) {
+            var html = '<strong>Import complete!</strong>';
+            html += '<br>Inserted song docs: ' + (data.inserted || 0);
+            html += '<br>Updated songs: ' + (data.updated || 0);
+            html += '<br>Merged chart scores: ' + (data.mergedCharts || 0);
+            html += '<br>Skipped (no improvement): ' + (data.skipped || 0);
+            html += '<br><br><em>Reload the page to see updated scores.</em>';
+            showResult('success', html);
+          } else {
+            showResult('danger', '<strong>Import failed:</strong> ' + ((data && data.description) || 'Unknown error'));
+          }
+        })
+        .catch(function(err) {
+          btn.classList.remove('is-loading');
+          btn.disabled = false;
+          showResult('danger', '<strong>Error:</strong> ' + err.message);
+        });
+      });
+    }
+
+    var exportBtn = document.getElementById('iidx-export-savedata-btn');
+    if (exportBtn) {
+      exportBtn.addEventListener('click', function() {
+        var btn = this;
+        btn.classList.add('is-loading');
+        btn.disabled = true;
+
+        window.location.href = '/migrate/iidx/export-savedata?refid=' + encodeURIComponent(refid);
+
+        setTimeout(function() {
+          btn.classList.remove('is-loading');
+          btn.disabled = false;
+        }, 3000);
+      });
+    }
+  })();
