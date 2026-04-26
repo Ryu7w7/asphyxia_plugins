@@ -1,0 +1,10 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "target": "es2017",
+    "noImplicitAny": false,
+    "moduleResolution": "node",
+    "types": ["./asphyxia-core"],
+    "sourceMap": false
+  }
+}

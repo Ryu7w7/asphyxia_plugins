@@ -1,0 +1,41 @@
+-
+link(rel="stylesheet" href="static/asset/css/datatables.css")
+div
+  .card
+    .card-header
+      p.card-header-title
+        span.icon
+          i.mdi.mdi-account-edit
+        | Songs List
+    .card-content
+      .field
+            label.label Show music db for version:
+            .ver-select
+              .control
+                .select
+                  select(name="version_select" id="version_select")
+                    option(value=1) BOOTH
+                    option(value=2) infinite infection
+                    option(value=3) GRAVITY WARS
+                    option(value=4) HEAVENLY HAVEN
+                    option(value=5) VIVID WAVE
+                    option(value=6 selected) EXCEED GEAR
+                    option(value=7) ∇
+      table.table(id="songslist" style="width:100%")
+        thead
+          tr    
+            th ID
+            th Song Name
+            th Omnimix
+            th Release Date
+            th Novice
+            th Advanced
+            th Exhaust
+            th Maximum
+            th Infinite
+            th Ultimate
+        tbody
+
+//div(hidden id='data-pass') !{JSON.stringify(profile)}
+script(src="static/asset/js/songslist.js") 
+script(src="static/asset/js/datatables.js")
