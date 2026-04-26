@@ -1,0 +1,159 @@
+//DATA//
+  profile: DB.FindOne(refid, { collection: 'profile' })
+
+-
+  const getLeague = (p) => {
+    if (!p || !p.leaguedata) return null;
+    return p.leaguedata['0'] || p.leaguedata['noSlot'] || null;
+  };
+  const getStats = (p) => {
+    if (!p || !p.UserStatsData) return null;
+    return p.UserStatsData['0'] || p.UserStatsData['noSlot'] || null;
+  };
+  const league = getLeague(profile);
+  const stats = getStats(profile);
+  const rank = (league && league.currentMatchingRank) || 1;
+  const exp = (league && league.currentMatchingRankExp) || 0;
+  
+  // Rank Mapping Logic
+  const grades = ["D", "C", "B", "A", "S", "SS", "SSS", "JOKER"];
+  const gradeIdx = Math.floor((rank - 1) / 3);
+  const subRank = 3 - ((rank - 1) % 3);
+  const currentGrade = grades[gradeIdx] || "JOKER";
+  
+  const nextRankGradeIdx = Math.floor(rank / 3);
+  const nextSubRank = 3 - (rank % 3);
+  const nextGrade = grades[nextRankGradeIdx] || "JOKER";
+
+div.section
+  div.container
+    if !profile
+      div.notification.is-danger
+        p Profile not found (RefID: #{refid})
+        button.button.is-light.mt-3(onclick="location.href='ranking'") Back to Ranking
+    else
+      div.level.mb-4
+        div.level-left
+          div.level-item
+            button.button.is-light.is-small(onclick="location.href='ranking'")
+              span.icon: i.mdi.mdi-arrow-left
+              span Back to Ranking
+        div.level-right
+          div.level-item: div.is-size-7.has-text-grey RefID: #{refid}
+
+      //- Main Profile Header
+      div.columns.is-variable.is-2
+        div.column.is-4
+          div.card(style="height: 100%; display: flex; flex-direction: column;")
+            div.card-content.has-text-centered(style="flex-grow: 1; display: flex; flex-direction: column; justify-content: center;")
+              div.box.mb-4(style="width: 100px; height: 100px; margin: 0 auto; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.05) !important; border-radius: 50%; border: 3px solid var(--info); box-shadow: 0 0 15px rgba(0,209,255,0.3);")
+                i.mdi.mdi-account.is-size-1.has-text-info
+              
+              form(method="post" action="/emit/ccj_update_name")
+                input(type="hidden" name="refid" value=refid)
+                div.field.has-addons.is-centered
+                  div.control.is-expanded
+                    input.input.is-small.has-text-centered(type="text" name="name" value=profile.name style="background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.1); color: white; border-top-right-radius: 0; border-bottom-right-radius: 0; min-width: 120px;")
+                  div.control
+                    button.button.is-small.is-info(type="submit" style="border-top-left-radius: 0; border-bottom-left-radius: 0;") Save
+              
+              div.mt-4(style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1rem;")
+                - const d = (profile.UserCustomize && profile.UserCustomize.description) || {}
+                div.columns.is-mobile.is-vcentered
+                  div.column.is-6.has-text-centered(style="border-right: 1px solid rgba(255,255,255,0.1);")
+                    p.heading.mb-1 Weapon
+                    p.is-size-6.has-text-weight-semibold #{(d.Weapon && d.Weapon.key && d.Weapon.key[0]) || 'Default'}
+                  div.column.is-6.has-text-centered
+                    p.heading.mb-1 Title
+                    p.is-size-6.has-text-weight-semibold #{(d.Shogo && d.Shogo.key && d.Shogo.key[0]) || 'Default'}
+
+        div.column.is-8
+          //- League Rank Visual Bar
+          div.card(style="height: 100%; background: linear-gradient(180deg, rgba(45,45,45,1) 0%, rgba(30,30,30,1) 100%); border: 1px solid #444; display: flex; flex-direction: column;")
+            div.card-header(style="border-bottom: 2px solid #ff7700;")
+              p.card-header-title.has-text-white.is-uppercase.is-size-7
+                span.icon.has-text-warning: i.mdi.mdi-trophy-variant
+                | League Rank
+            div.card-content(style="padding: 2rem; flex-grow: 1; display: flex; flex-direction: column; justify-content: center;")
+              div.columns.is-vcentered.is-mobile
+                div.column.is-narrow.has-text-centered(style="padding-right: 3rem;")
+                  div.rank-icon-container(style="position: relative;")
+                    span.rank-letter(style="font-size: 6rem; font-weight: 900; color: #ff7700; text-shadow: 0 0 25px rgba(255,119,0,0.6); font-style: italic; display: block; line-height: 0.8;") #{currentGrade}
+                    span.rank-sub(style="position: absolute; bottom: 0; right: -20px; font-size: 2.5rem; font-weight: 700; color: #fff; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);") #{subRank}
+                
+                div.column
+                  div.level.is-mobile.mb-2
+                    div.level-left: span.is-size-7.is-uppercase.has-text-grey-light(style="letter-spacing: 2px;") Rank Gauge
+                    div.level-right: span.is-size-5.has-text-weight-bold(style="color: #ff7700; text-shadow: 0 0 10px rgba(255,119,0,0.3);") #{exp} 
+                      span.has-text-grey-light.is-size-7(style="font-weight: normal;") / 1000
+                  
+                  div.progress-container(style="background: #1a1a1a; border-radius: 20px; height: 18px; position: relative; box-shadow: inset 0 2px 8px rgba(0,0,0,0.7); border: 1px solid #333; overflow: hidden;")
+                    div.progress-bar(style=`width: ${exp/10}%; height: 100%; background: linear-gradient(90deg, #ff4400 0%, #ffaa00 100%); box-shadow: 0 0 20px rgba(255,119,0,0.4); border-radius: 20px; transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);`)
+                  
+                  div.mt-4.has-text-right
+                    span.is-size-7.has-text-grey-light(style="margin-right: 0.5rem;") NEXT RANK
+                    span.tag.is-dark(style="background: #252525; color: #fff; border: 1px solid #ff7700; font-weight: bold; padding: 0.5rem 0.8rem; height: auto;") #{nextGrade}#{nextSubRank}
+
+      //- Bottom Stats Dashboard
+      div.columns.is-variable.is-2.mt-2
+        div.column.is-6
+          div.card(style="height: 100%;")
+            div.card-header: p.card-header-title Performance
+            div.card-content
+              div.columns.is-mobile.has-text-centered
+                div.column
+                  p.heading.mb-2 Plays
+                  p.title.is-3 #{(stats && stats.playCount) || 0}
+                div.column
+                  p.heading.mb-2 Kills
+                  p.title.is-3 #{(stats && stats.killCount) || 0}
+                div.column
+                  p.heading.mb-2 MVP
+                  p.title.is-3 #{(stats && stats.mvpCount) || 0}
+        
+        div.column.is-6
+          div.card(style="height: 100%;")
+            div.card-header: p.card-header-title Winning Rate
+            div.card-content
+              - const win = (stats && stats.firstRankCount) || 0
+              - const total = (stats && stats.playCount) || 1
+              - const rate = Math.floor((win / total) * 100)
+              div.columns.is-mobile.has-text-centered
+                div.column
+                  p.heading.mb-2 First Place
+                  p.title.is-3 #{win}
+                div.column
+                  p.heading.mb-2 Win Rate
+                  p.title.is-3 #{rate}%
+
+      div.card.mt-4
+        div.card-header: p.card-header-title Stage History
+        div.card-content(style="padding: 0;")
+          table.table.is-fullwidth.is-hoverable.is-narrow.is-striped(style="background: transparent;")
+            thead
+              tr
+                th.pl-4 Stage
+                th.has-text-centered Plays
+                th.has-text-centered Win/Lose
+                th.has-text-centered Kills
+            tbody
+              if profile.UserStatsData
+                each sData, sId in profile.UserStatsData
+                  if sId !== '0' && sId !== 'noSlot'
+                    tr
+                      td.pl-4.has-text-weight-semibold #{sId}
+                      td.has-text-centered #{sData.play || 0}
+                      td.has-text-centered
+                        span.has-text-success(style="font-weight: bold;") #{sData.win || 0}W 
+                        | / 
+                        span.has-text-danger(style="font-weight: bold;") #{sData.lose || 0}L
+                      td.has-text-centered #{sData.kill || 0}
+
+style.
+  .heading { color: #999 !important; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 1.5px; font-weight: 600; }
+  .box { border: 1px solid rgba(255,255,255,0.1); }
+  .card { border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.05); }
+  .progress-bar { position: relative; }
+  .progress-bar::after { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(rgba(255,255,255,0.2), transparent); }
+  .table thead th { border-bottom: 2px solid rgba(255,255,255,0.1); color: #888; text-transform: uppercase; font-size: 0.7rem; }
+  .table td { border-bottom: 1px solid rgba(255,255,255,0.05); vertical-align: middle; }

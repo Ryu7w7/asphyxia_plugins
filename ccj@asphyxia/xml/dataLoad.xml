@@ -1,0 +1,216 @@
+<system status="0">
+	<sdata>
+
+		<json>
+			<sysdataid __type="s64">122</sysdataid>
+			<sysdatatype __type="str">game_config</sysdatatype>
+			<id_type __type="str">any</id_type>
+			<id __type="str">any</id>
+			<slotid __type="str">0</slotid>
+			<starttime __type="s64">-9223372036832400000</starttime>
+			<endtime __type="s64">4102444799000</endtime>
+			<jsondata __type="str">{"syncTimeout": 30, "matchiWinExp": [0, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 5, 5], "matchExpTable": [{"values": [{"add": 25, "dev": 0}, {"add": 25, "dev": 40}, {"add": 25, "dev": 42.5}, {"add": 25, "dev": 45}, {"add": 25, "dev": 47.5}, {"add": 25, "dev": 50}, {"add": 25, "dev": 52.5}, {"add": 25, "dev": 55}, {"add": 25, "dev": 57.5}, {"add": 50, "dev": 60}, {"add": 50, "dev": 62.5}], "matchingRank": [1]}, {"values": [{"add": 15, "dev": 0}, {"add": 15, "dev": 40}, {"add": 15, "dev": 42.5}, {"add": 15, "dev": 45}, {"add": 15, "dev": 47.5}, {"add": 20, "dev": 50}, {"add": 20, "dev": 52.5}, {"add": 25, "dev": 55}, {"add": 25, "dev": 57.5}, {"add": 30, "dev": 60}, {"add": 30, "dev": 62.5}], "matchingRank": [2, 3]}, {"values": [{"add": 0, "dev": 0}, {"add": 0, "dev": 40}, {"add": 0, "dev": 42.5}, {"add": 5, "dev": 45}, {"add": 5, "dev": 47.5}, {"add": 5, "dev": 50}, {"add": 10, "dev": 52.5}, {"add": 10, "dev": 55}, {"add": 10, "dev": 57.5}, {"add": 15, "dev": 60}, {"add": 15, "dev": 62.5}], "matchingRank": [4]}, {"values": [{"add": -8, "dev": 0}, {"add": -5, "dev": 40}, {"add": -5, "dev": 42.5}, {"add": -5, "dev": 45}, {"add": 0, "dev": 47.5}, {"add": 5, "dev": 50}, {"add": 5, "dev": 52.5}, {"add": 5, "dev": 55}, {"add": 7, "dev": 57.5}, {"add": 8, "dev": 60}, {"add": 10, "dev": 62.5}], "matchingRank": [5, 6]}, {"values": [{"add": -10, "dev": 0}, {"add": -9, "dev": 40}, {"add": -8, "dev": 42.5}, {"add": -8, "dev": 45}, {"add": 0, "dev": 47.5}, {"add": 8, "dev": 50}, {"add": 8, "dev": 52.5}, {"add": 10, "dev": 55}, {"add": 12, "dev": 57.5}, {"add": 14, "dev": 60}, {"add": 16, "dev": 62.5}], "matchingRank": [7, 8, 9]}, {"values": [{"add": -10, "dev": 0}, {"add": -9, "dev": 40}, {"add": -8, "dev": 42.5}, {"add": -8, "dev": 45}, {"add": 0, "dev": 47.5}, {"add": 6, "dev": 50}, {"add": 6, "dev": 52.5}, {"add": 8, "dev": 55}, {"add": 10, "dev": 57.5}, {"add": 12, "dev": 60}, {"add": 14, "dev": 62.5}], "matchingRank": [10, 11, 12]}, {"values": [{"add": -10, "dev": 0}, {"add": -4, "dev": 40}, {"add": -3, "dev": 42.5}, {"add": -2, "dev": 45}, {"add": -2, "dev": 47.5}, {"add": 0, "dev": 50}, {"add": 0, "dev": 52.5}, {"add": 3, "dev": 55}, {"add": 4, "dev": 57.5}, {"add": 5, "dev": 60}, {"add": 6, "dev": 62.5}], "matchingRank": [13, 14]}], "matchiLoseExp": [0, 0, 0, 0, 0, -4, -4, -4, -4, -4, -5, -5, -5, -6, -6], "hideMatchingRank": false, "matchingRankLimit": 12, "matchingRankToPower": [0, 0, 1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000, 11000, 12000, 13000], "matchingRankExpLimit": 50, "lowRankMatchingThreshold": 6}</jsondata>
+			<data_ev __type="s32">0</data_ev>
+			<updatetime __type="s64">1682315310183</updatetime>
+			<version __type="s32">4</version>
+			<targettime __type="s64">1688424979130</targettime>
+		</json>
+		<json>
+			<sysdataid __type="s64">115</sysdataid>
+			<sysdatatype __type="str">game_config</sysdatatype>
+			<id_type __type="str">any</id_type>
+			<id __type="str">any</id>
+			<slotid __type="str">battle_item</slotid>
+			<starttime __type="s64">-9223372036832400000</starttime>
+			<endtime __type="s64">4102444799000</endtime>
+			<jsondata __type="str">{"datas": [{"datas": [{"prob": 1, "max_num": 0, "battleitem_id": 1}, {"prob": 1, "max_num": 0, "battleitem_id": 2}, {"prob": 1, "max_num": 0, "battleitem_id": 3}, {"prob": 1, "max_num": 0, "battleitem_id": 4}, {"prob": 1, "max_num": 0, "battleitem_id": 5}, {"prob": 1, "max_num": 0, "battleitem_id": 6}, {"prob": 1, "max_num": 0, "battleitem_id": 7}]}, {"datas": [{"prob": 1, "max_num": 0, "battleitem_id": 1}, {"prob": 1, "max_num": 0, "battleitem_id": 2}, {"prob": 1, "max_num": 0, "battleitem_id": 3}, {"prob": 1, "max_num": 0, "battleitem_id": 4}]}, {"datas": [{"prob": 1, "max_num": 0, "battleitem_id": 1}, {"prob": 1, "max_num": 0, "battleitem_id": 2}, {"prob": 1, "max_num": 0, "battleitem_id": 3}, {"prob": 1, "max_num": 0, "battleitem_id": 4}, {"prob": 1, "max_num": 0, "battleitem_id": 5}, {"prob": 1, "max_num": 0, "battleitem_id": 6}, {"prob": 1, "max_num": 0, "battleitem_id": 7}, {"prob": 1, "max_num": 2, "battleitem_id": 8}]}, {"datas": [{"prob": 1, "max_num": 0, "battleitem_id": 1}, {"prob": 1, "max_num": 0, "battleitem_id": 2}, {"prob": 1, "max_num": 0, "battleitem_id": 3}, {"prob": 1, "max_num": 0, "battleitem_id": 4}, {"prob": 1, "max_num": 0, "battleitem_id": 5}, {"prob": 1, "max_num": 0, "battleitem_id": 6}, {"prob": 1, "max_num": 0, "battleitem_id": 7}]}, {"datas": [{"prob": 1, "max_num": 0, "battleitem_id": 1}, {"prob": 1, "max_num": 0, "battleitem_id": 2}, {"prob": 1, "max_num": 0, "battleitem_id": 3}, {"prob": 1, "max_num": 0, "battleitem_id": 4}, {"prob": 1, "max_num": 0, "battleitem_id": 5}, {"prob": 1, "max_num": 0, "battleitem_id": 6}, {"prob": 1, "max_num": 0, "battleitem_id": 7}]}, {"datas": [{"prob": 1, "max_num": 0, "battleitem_id": 2}]}, {"datas": [{"prob": 1, "max_num": 0, "battleitem_id": 4}]}]}</jsondata>
+			<data_ev __type="s32">0</data_ev>
+			<updatetime __type="s64">1678848396325</updatetime>
+			<version __type="s32">3</version>
+			<targettime __type="s64">1688424979130</targettime>
+		</json>
+		<json>
+			<sysdataid __type="s64">159</sysdataid>
+			<sysdatatype __type="str">game_config</sysdatatype>
+			<id_type __type="str">any</id_type>
+			<id __type="str">any</id>
+			<slotid __type="str">contribution</slotid>
+			<starttime __type="s64">1684198800000</starttime>
+			<endtime __type="s64">4102444799000</endtime>
+			<jsondata __type="str">{"KillScoreRate": 20, "ChainScoreRate": 4, "ChargeScoreRate": 2, "DefeatedScoreRate": 10, "ContributionScoreRate": 1.65, "MultipleDangerPointRate": 1.5}</jsondata>
+			<data_ev __type="s32">0</data_ev>
+			<updatetime __type="s64">1684138236138</updatetime>
+			<version __type="s32">5</version>
+			<targettime __type="s64">1688424979130</targettime>
+		</json>
+		<json>
+			<sysdataid __type="s64">144</sysdataid>
+			<sysdatatype __type="str">game_config</sysdatatype>
+			<id_type __type="str">any</id_type>
+			<id __type="str">any</id>
+			<slotid __type="str">sakasama</slotid>
+			<starttime __type="s64">1685581200000</starttime>
+			<endtime __type="s64">4102444799000</endtime>
+			<jsondata __type="str">{"enableLastFloorId": 125}</jsondata>
+			<data_ev __type="s32">0</data_ev>
+			<updatetime __type="s64">1682405845679</updatetime>
+			<version __type="s32">5</version>
+			<targettime __type="s64">1688424979130</targettime>
+		</json>
+
+		<json>
+			<sysdataid __type="s64">176</sysdataid>
+			<sysdatatype __type="str">kakera_view</sysdatatype>
+			<id_type __type="str">any</id_type>
+			<id __type="str">any</id>
+			<slotid __type="str">0</slotid>
+			<starttime __type="s64">1686186000000</starttime>
+			<endtime __type="s64">4102444799000</endtime>
+			<jsondata __type="str">{"chara_list": [11, 10]}</jsondata>
+			<data_ev __type="s32">0</data_ev>
+			<updatetime __type="s64">1685500807605</updatetime>
+			<version __type="s32">6</version>
+			<targettime __type="s64">1688424979130</targettime>
+		</json>
+		<json>
+			<sysdataid __type="s64">130</sysdataid>
+			<sysdatatype __type="str">league</sysdatatype>
+			<id_type __type="str">any</id_type>
+			<id __type="str">any</id>
+			<slotid __type="str"/>
+			<starttime __type="s64">1681779600000</starttime>
+			<endtime __type="s64">4102444799000</endtime>
+			<jsondata __type="str">{"title": "シーズン１開催！！", "season_id": 1}</jsondata>
+			<data_ev __type="s32">0</data_ev>
+			<updatetime __type="s64">1680683876821</updatetime>
+			<version __type="s32">4</version>
+			<targettime __type="s64">1688424979130</targettime>
+		</json>
+		<json>
+			<sysdataid __type="s64">177</sysdataid>
+			<sysdatatype __type="str">login_bonus</sysdatatype>
+			<id_type __type="str">any</id_type>
+			<id __type="str">any</id>
+			<slotid __type="str">1</slotid>
+			<starttime __type="s64">1686531600000</starttime>
+			<endtime __type="s64">4102444799000</endtime>
+			<jsondata __type="str">{"title": "&lt;color=#02c2fd&gt;ロ&lt;/color&gt;&lt;color=#f7ff00&gt;グ&lt;/color&gt;イ&lt;color=#f7ff00&gt;ン&lt;/color&gt;&lt;color=#ff3e9f&gt;ボ&lt;/color&gt;ー&lt;color=#f7ff00&gt;ナ&lt;/color&gt;ス", "left_character": {"id": 1, "role": "hito"}, "right_character": {"id": 2, "role": "hito"}, "login_bonus_id_list": [{"base_id": "GEAR00000001", "gachaid": "login_bonusg3_01", "quantity": 3}, {"base_id": "GEAR00000001", "gachaid": "login_bonusg3_02", "quantity": 1}, {"base_id": "GEAR00000001", "gachaid": "login_bonusg3_03", "quantity": 2}, {"base_id": "GEAR00000001", "gachaid": "login_bonusg3_04", "quantity": 1}, {"base_id": "GEAR00000001", "gachaid": "login_bonusg3_05", "quantity": 2}, {"base_id": "GEAR00000001", "gachaid": "login_bonusg3_06", "quantity": 1}, {"base_id": "GEAR00000001", "gachaid": "login_bonusg3_07", "quantity": 2}, {"base_id": "GEAR00000001", "gachaid": "login_bonusg3_08", "quantity": 1}, {"base_id": "GEAR00000001", "gachaid": "login_bonusg3_09", "quantity": 2}, {"base_id": "GEAR00000001", "gachaid": "login_bonusg3_10", "quantity": 1}, {"base_id": "GEAR00000001", "gachaid": "login_bonusg3_11", "quantity": 2}, {"base_id": "GEAR00000001", "gachaid": "login_bonusg3_12", "quantity": 1}, {"base_id": "GEAR00000001", "gachaid": "login_bonusg3_13", "quantity": 1}, {"base_id": "GEAR00000001", "gachaid": "login_bonusg3_14", "quantity": 1}, {"base_id": "GEAR00000001", "gachaid": "login_bonusg3_15", "quantity": 1}]}</jsondata>
+			<data_ev __type="s32">0</data_ev>
+			<updatetime __type="s64">1685501047941</updatetime>
+			<version __type="s32">2</version>
+			<targettime __type="s64">1688424979130</targettime>
+		</json>
+		<json>
+			<sysdataid __type="s64">72</sysdataid>
+			<sysdatatype __type="str">mode_select_config</sysdatatype>
+			<id_type __type="str">any</id_type>
+			<id __type="str">any</id>
+			<slotid __type="str"/>
+			<starttime __type="s64">1674003600000</starttime>
+			<endtime __type="s64">4102444799000</endtime>
+			<jsondata __type="str">{"disables": 0}</jsondata>
+			<data_ev __type="s32">0</data_ev>
+			<updatetime __type="s64">1673573156839</updatetime>
+			<version __type="s32">1</version>
+			<targettime __type="s64">1688424979130</targettime>
+		</json>
+		<json>
+			<sysdataid __type="s64">171</sysdataid>
+			<sysdatatype __type="str">play_stage</sysdatatype>
+			<id_type __type="str">any</id_type>
+			<id __type="str">any</id>
+			<slotid __type="str">1</slotid>
+			<starttime __type="s64">1687827600000</starttime>
+			<endtime __type="s64">4102444799000</endtime>
+			<jsondata __type="str">{"stage_data": [{"stage_id": "Shibuya03", "stage_battleitem_list_id": [2, 3, 4]}, {"stage_id": "Shibuya01", "stage_battleitem_list_id": [2, 3, 4]}], "beginner_stage_id": "Shibuya01", "beginner_battleitem_list_id": 1}</jsondata>
+			<data_ev __type="s32">0</data_ev>
+			<updatetime __type="s64">1685500408157</updatetime>
+			<version __type="s32">5</version>
+			<targettime __type="s64">1688424979130</targettime>
+		</json>
+		<json>
+			<sysdataid __type="s64">53</sysdataid>
+			<sysdatatype __type="str">rankingdata</sysdatatype>
+			<id_type __type="str">any</id_type>
+			<id __type="str">any</id>
+			<slotid __type="str">1</slotid>
+			<starttime __type="s64">1688137200000</starttime>
+			<endtime __type="s64">4102444799000</endtime>
+			<jsondata __type="str">{"ranking_id": "202307"}</jsondata>
+			<data_ev __type="s32">0</data_ev>
+			<updatetime __type="s64">1670911125069</updatetime>
+			<version __type="s32">0</version>
+			<targettime __type="s64">1688424979130</targettime>
+		</json>
+		<json>
+			<sysdataid __type="s64">175</sysdataid>
+			<sysdatatype __type="str">shop_item</sysdatatype>
+			<id_type __type="str">any</id_type>
+			<id __type="str">any</id>
+			<slotid __type="str">1</slotid>
+			<starttime __type="s64">1686790800000</starttime>
+			<endtime __type="s64">4102444799000</endtime>
+			<jsondata __type="str">{{SHOP_DATA_JSON}}</jsondata>
+			<data_ev __type="s32">0</data_ev>
+			<updatetime __type="s64">1685599811533</updatetime>
+			<version __type="s32">6</version>
+			<targettime __type="s64">1688424979130</targettime>
+		</json>
+		<json>
+			<sysdataid __type="s64">20</sysdataid>
+			<sysdatatype __type="str">skill</sysdatatype>
+			<id_type __type="str">any</id_type>
+			<id __type="str">any</id>
+			<slotid __type="str">1</slotid>
+			<starttime __type="s64">-9223372036832400000</starttime>
+			<endtime __type="s64">4102444799000</endtime>
+			<jsondata __type="str">{}</jsondata>
+			<data_ev __type="s32">0</data_ev>
+			<updatetime __type="s64">1661144148000</updatetime>
+			<version __type="s32">0</version>
+			<targettime __type="s64">1688424979130</targettime>
+		</json>
+		<json>
+			<sysdataid __type="s64">94</sysdataid>
+			<sysdatatype __type="str">verification</sysdatatype>
+			<id_type __type="str">any</id_type>
+			<id __type="str">any</id>
+			<slotid __type="str"/>
+			<starttime __type="s64">-9223372036832400000</starttime>
+			<endtime __type="s64">4102444799000</endtime>
+			<jsondata __type="str">{"loadStageWait1": 0, "loadStageWait2": 0, "battleSyncTimeoutHost": 10, "matchingAllApplyedHost": 20, "matchingPhaseWait1Host": 10, "matchingPhaseWait2Host": 10, "matchingTeamSyncClient": 10, "battleSyncTimeoutClient": 20, "matchingAllApplyedClient": 20, "matchingPhaseWait1Client": 10, "matchingNextPhaseCountHost": 10, "disconnectNoLoadedModelHost": true, "matchingAllClientLoadedHost": 20, "matchingFinishTimeoutClient": 30, "disconnectInvalidCommandHost": true, "disconnectNoFixCustomizeHost": true, "matchingAllClientApplyedHost": 20, "disconnectInvalidCommandClient": false, "matchingLoadedAllCharaModelClient": 20, "disconnectNoReachCustomizeDataHost": true}</jsondata>
+			<data_ev __type="s32">0</data_ev>
+			<updatetime __type="s64">1682407508614</updatetime>
+			<version __type="s32">2</version>
+			<targettime __type="s64">1688424979130</targettime>
+		</json>
+		<json>
+			<sysdataid __type="s64">999</sysdataid>
+			<sysdatatype __type="str">game_config</sysdatatype>
+			<id_type __type="str">any</id_type>
+			<id __type="str">any</id>
+			<slotid __type="str">practice</slotid>
+			<starttime __type="s64">1685581200000</starttime>
+			<endtime __type="s64">4102444799000</endtime>
+			<jsondata __type="str">{"stage": ["Shibuya01", "Shibuya02", "Shibuya03", "Osaka02", "Okinawa01", "Okinawa02"]}</jsondata>
+			<data_ev __type="s32">0</data_ev>
+			<updatetime __type="s64">1682405845679</updatetime>
+			<version __type="s32">5</version>
+			<targettime __type="s64">1688424979130</targettime>
+		</json>
+		<json>
+			<sysdataid __type="s64">999</sysdataid>
+			<sysdatatype __type="str">game_config</sysdatatype>
+			<id_type __type="str">any</id_type>
+			<id __type="str">any</id>
+			<slotid __type="str">character</slotid>
+			<starttime __type="s64">1685581200000</starttime>
+			<endtime __type="s64">4102444799000</endtime>
+			<jsondata __type="str">{"limitLevel": 40}</jsondata>
+			<data_ev __type="s32">0</data_ev>
+			<updatetime __type="s64">1682405845679</updatetime>
+			<version __type="s32">5</version>
+			<targettime __type="s64">1688424979130</targettime>
+		</json>
+	</sdata>
+</system>

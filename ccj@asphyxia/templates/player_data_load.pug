@@ -1,0 +1,85 @@
+player(status=status || "0")
+  pdata
+    // Characters Unlocks
+    each char in characters
+      json
+        dataid(__type="s64") 1
+        datatype(__type="str") CharaCustomize
+        slotid(__type="str")= char.id.toString()
+        data_ev(__type="s32") 0
+        jsondata(__type="str")!= JSON.stringify(char.jsondata || { unlock: true, level: 1 })
+        updatetime(__type="s64") 1682315310183
+        version(__type="s32") 231218
+
+    // Global Possessions (Accessories, Skills, Music, etc.)
+    // Note: Typo 'UserPossesionData' is intentional to match game source
+    each val, key in possession
+      json
+        dataid(__type="s64") 2
+        datatype(__type="str") UserPossesionData
+        slotid(__type="str")= key
+        data_ev(__type="s32") 0
+        jsondata(__type="str")!= JSON.stringify(val)
+        updatetime(__type="s64") 1682315310183
+        version(__type="s32") 230605
+
+    // Player Customization/Profile
+    json
+      dataid(__type="s64") 3
+      datatype(__type="str") UserCustomize
+      slotid(__type="str") noSlot
+      data_ev(__type="s32") 0
+      jsondata(__type="str")!= JSON.stringify((profile.UserCustomize && (profile.UserCustomize['0'] || profile.UserCustomize['noSlot'])) ? (profile.UserCustomize['0'] || profile.UserCustomize['noSlot']) : { userName: profile.name })
+      updatetime(__type="s64") 1682315310183
+      version(__type="s32") 231213
+
+    // Game Progress / Play Data
+    json
+      dataid(__type="s64") 4
+      datatype(__type="str") UserPlayData
+      slotid(__type="str") noSlot
+      data_ev(__type="s32") 0
+      jsondata(__type="str")!= JSON.stringify((profile.UserPlayData && (profile.UserPlayData['0'] || profile.UserPlayData['noSlot'])) ? (profile.UserPlayData['0'] || profile.UserPlayData['noSlot']) : { playCount: 0, lastPlayTime: 0 })
+      updatetime(__type="s64") 1682315310183
+      version(__type="s32") 240524
+
+    // League Data
+    json
+      dataid(__type="s64") 5
+      datatype(__type="str") leaguedata
+      slotid(__type="str") 0
+      data_ev(__type="s32") 0
+      jsondata(__type="str")!= JSON.stringify((profile.leaguedata && (profile.leaguedata['0'] || profile.leaguedata['noSlot'])) ? (profile.leaguedata['0'] || profile.leaguedata['noSlot']) : { season_id: 1, maxMatchingRank: leagueRank, maxMatchingRankExp: 0, currentMatchingRank: leagueRank, currentMatchingRankExp: 0 })
+      updatetime(__type="s64") 1682315310183
+      version(__type="s32") 230317
+
+    // User Stats Data
+    json
+      dataid(__type="s64") 6
+      datatype(__type="str") UserStatsData
+      slotid(__type="str") 0
+      data_ev(__type="s32") 0
+      jsondata(__type="str")!= JSON.stringify((profile.UserStatsData && (profile.UserStatsData['0'] || profile.UserStatsData['noSlot'])) ? (profile.UserStatsData['0'] || profile.UserStatsData['noSlot']) : {})
+      updatetime(__type="s64") 1682315310183
+      version(__type="s32") 230704
+
+    // Event Data
+    json
+      dataid(__type="s64") 7
+      datatype(__type="str") Event
+      slotid(__type="str") 0
+      data_ev(__type="s32") 0
+      jsondata(__type="str")!= JSON.stringify((profile.Event && (profile.Event['0'] || profile.Event['noSlot'])) ? (profile.Event['0'] || profile.Event['noSlot']) : {})
+      updatetime(__type="s64") 1682315310183
+      version(__type="s32") 230217
+
+    // User Mission Data
+    json
+      dataid(__type="s64") 8
+      datatype(__type="str") UserMissionData
+      slotid(__type="str") noSlot
+      data_ev(__type="s32") 0
+      jsondata(__type="str")!= JSON.stringify((profile.UserMissionData && (profile.UserMissionData['0'] || profile.UserMissionData['noSlot'])) ? (profile.UserMissionData['0'] || profile.UserMissionData['noSlot']) : {})
+      updatetime(__type="s64") 1682315310183
+      version(__type="s32") 230807
+

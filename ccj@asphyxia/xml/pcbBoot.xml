@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="shift-jis"?>
+<system status="0">
+    <param>
+        <mode __type="str">default</mode>
+        <timestamp __type="str">2024-01-05 01:01:01.12345</timestamp>
+        <timestamp_adjust __type="bool">0</timestamp_adjust>
+    </param>
+    <boot_id __type="s64">1</boot_id>
+</system>
