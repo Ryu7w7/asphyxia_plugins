@@ -89,7 +89,23 @@ export const dataLoad = async (info: any, data: any, send: any) => {
   // ------------------------------------
 
   const initialLeagueRank = U.GetConfig('ccj_initial_league_rank');
-  const leagueRank = (typeof initialLeagueRank === 'number') ? initialLeagueRank : 1;
+  let leagueRank = (typeof initialLeagueRank === 'number') ? initialLeagueRank : 9;
+  if (leagueRank < 9) leagueRank = 9;
+
+  // FORCE RANK 9 on ALL possible data nodes to ensure menu appears
+  const forceRank = (obj: any) => {
+      if (!obj) return;
+      for (const slot in obj) {
+          if (obj[slot]) {
+              obj[slot].currentMatchingRank = 9;
+              obj[slot].maxMatchingRank = 9;
+              obj[slot].MatchingRank = 9; // Game uses PascalCase in UserPlayData
+          }
+      }
+  };
+
+  forceRank(profile.leaguedata);
+  forceRank(profile.UserPlayData);
 
   return send.pugFile('templates/player_data_load.pug', {
     status: authStatus,

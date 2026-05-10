@@ -1,4 +1,4 @@
-export const getRanking: EPR = async (info, data, send) => {
+export const getRanking = async (info: any, data: any, send: any) => {
   const rankingId = $(data).str('ranking_id') || "202307";
   
   // Fetch all profiles from the DB
@@ -20,9 +20,7 @@ export const getRanking: EPR = async (info, data, send) => {
   // Take top 100
   const topProfiles = profiles.slice(0, 100);
 
-  // Construct XML response manually, because pug may be overkill for a list this dynamic but let's build the elements.
   const rankElements = topProfiles.map((p, index) => {
-    // Default character ID
     let charaId = 1;
     let shogoId = 1;
     let score = (p.leaguedata && p.leaguedata['0'] && p.leaguedata['0'].currentMatchingRankExp) || 
@@ -38,7 +36,6 @@ export const getRanking: EPR = async (info, data, send) => {
   });
 
   if (rankElements.length === 0) {
-    // Fallback if DB is empty
     rankElements.push({
       shogo_id: K.ITEM('s32', 1),
       chara_id: K.ITEM('s32', 1),
@@ -49,34 +46,11 @@ export const getRanking: EPR = async (info, data, send) => {
 
   return send.object({
     ranking_id: K.ITEM('str', rankingId),
-    gettime: K.ITEM('s64', Math.floor(Date.now() / 1000) as any),
+    gettime: K.ITEM('s64', BigInt(Math.floor(Date.now() / 1000))),
     rank: rankElements
   });
 };
 
-export const getRankUpData: EPR = async (info, data, send) => {
-  return send.object({
-    season_border: K.ITEM('s32', 2189),
-    season_id: K.ITEM('s32', 1),
-    data: [
-      {
-        rank: K.ITEM('str', '0'),
-        cont_avg: K.ITEM('str', '166.666667'),
-        cont_stddev: K.ITEM('str', '80.000000'),
-        count: K.ITEM('s32', 0)
-      },
-      {
-        rank: K.ITEM('str', '1'),
-        cont_avg: K.ITEM('str', '166.666667'),
-        cont_stddev: K.ITEM('str', '80.000000'),
-        count: K.ITEM('s32', 0)
-      },
-      {
-        rank: K.ITEM('str', '2'),
-        cont_avg: K.ITEM('str', '166.666667'),
-        cont_stddev: K.ITEM('str', '80.000000'),
-        count: K.ITEM('s32', 0)
-      }
-    ]
-  });
+export const getRankUpData = async (info: any, data: any, send: any) => {
+  return send.xmlFile('xml/getRankUpData.xml');
 };

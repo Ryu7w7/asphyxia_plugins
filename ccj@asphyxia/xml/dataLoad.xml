@@ -178,7 +178,7 @@
 			<slotid __type="str"/>
 			<starttime __type="s64">-9223372036832400000</starttime>
 			<endtime __type="s64">4102444799000</endtime>
-			<jsondata __type="str">{"loadStageWait1": 0, "loadStageWait2": 0, "battleSyncTimeoutHost": 10, "matchingAllApplyedHost": 20, "matchingPhaseWait1Host": 10, "matchingPhaseWait2Host": 10, "matchingTeamSyncClient": 10, "battleSyncTimeoutClient": 20, "matchingAllApplyedClient": 20, "matchingPhaseWait1Client": 10, "matchingNextPhaseCountHost": 10, "disconnectNoLoadedModelHost": true, "matchingAllClientLoadedHost": 20, "matchingFinishTimeoutClient": 30, "disconnectInvalidCommandHost": true, "disconnectNoFixCustomizeHost": true, "matchingAllClientApplyedHost": 20, "disconnectInvalidCommandClient": false, "matchingLoadedAllCharaModelClient": 20, "disconnectNoReachCustomizeDataHost": true}</jsondata>
+			<jsondata __type="str">{"loadStageWait1": 0, "loadStageWait2": 0, "battleSyncTimeoutHost": 350, "matchingAllApplyedHost": 250, "matchingPhaseWait1Host": 5, "matchingPhaseWait2Host": 5, "matchingTeamSyncClient": 10, "battleSyncTimeoutClient": 350, "matchingAllApplyedClient": 20, "matchingPhaseWait1Client": 5, "matchingNextPhaseCountHost": 5, "disconnectNoLoadedModelHost": false, "matchingAllClientLoadedHost": 20, "matchingFinishTimeoutClient": 350, "disconnectInvalidCommandHost": false, "disconnectNoFixCustomizeHost": false, "matchingAllClientApplyedHost": 20, "disconnectInvalidCommandClient": false, "matchingLoadedAllCharaModelClient": 20, "disconnectNoReachCustomizeDataHost": false}</jsondata>
 			<data_ev __type="s32">0</data_ev>
 			<updatetime __type="s64">1682407508614</updatetime>
 			<version __type="s32">2</version>
@@ -210,6 +210,20 @@
 			<data_ev __type="s32">0</data_ev>
 			<updatetime __type="s64">1682405845679</updatetime>
 			<version __type="s32">5</version>
+			<targettime __type="s64">1688424979130</targettime>
+		</json>
+		<json>
+			<sysdataid __type="s64">200</sysdataid>
+			<sysdatatype __type="str">battle_event</sysdatatype>
+			<id_type __type="str">any</id_type>
+			<id __type="str">any</id>
+			<slotid __type="str">battleEvent</slotid>
+			<starttime __type="s64">-9223372036832400000</starttime>
+			<endtime __type="s64">4102444799000</endtime>
+			<jsondata __type="str">{"active": true, "title": "National Match Active", "matching_ver": 4}</jsondata>
+			<data_ev __type="s32">0</data_ev>
+			<updatetime __type="s64">1685500408157</updatetime>
+			<version __type="s32">1</version>
 			<targettime __type="s64">1688424979130</targettime>
 		</json>
 	</sdata>

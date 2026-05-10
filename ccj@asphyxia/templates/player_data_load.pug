@@ -39,7 +39,7 @@ player(status=status || "0")
       datatype(__type="str") UserPlayData
       slotid(__type="str") noSlot
       data_ev(__type="s32") 0
-      jsondata(__type="str")!= JSON.stringify((profile.UserPlayData && (profile.UserPlayData['0'] || profile.UserPlayData['noSlot'])) ? (profile.UserPlayData['0'] || profile.UserPlayData['noSlot']) : { playCount: 0, lastPlayTime: 0 })
+      jsondata(__type="str")!= JSON.stringify((profile.UserPlayData && (profile.UserPlayData['0'] || profile.UserPlayData['noSlot'])) ? (profile.UserPlayData['0'] || profile.UserPlayData['noSlot']) : { playCount: 10, lastPlayTime: Date.now(), MatchingRank: 9, MatchExp: 500 })
       updatetime(__type="s64") 1682315310183
       version(__type="s32") 240524
 

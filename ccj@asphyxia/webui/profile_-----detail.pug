@@ -67,6 +67,21 @@ div.section
                     p.heading.mb-1 Title
                     p.is-size-6.has-text-weight-semibold #{(d.Shogo && d.Shogo.key && d.Shogo.key[0]) || 'Default'}
 
+              div.mt-4(style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1rem;")
+                p.heading.mb-2 Matchmaking Region
+                form(method="post" action="/emit/ccj_update_region")
+                  input(type="hidden" name="refid" value=refid)
+                  div.field.has-addons
+                    div.control.is-expanded
+                      div.select.is-small.is-fullwidth
+                        select(name="region" style="background: rgba(45,45,45,1); color: white; border-color: rgba(255,255,255,0.1);")
+                          option(value="Auto" selected=(profile.preferred_region === 'Auto' || !profile.preferred_region)) 🌐 Automatic
+                          option(value="Chile" selected=(profile.preferred_region === 'Chile')) 📍 Chile
+                          option(value="USA" selected=(profile.preferred_region === 'USA')) 📍 USA
+                          option(value="Japan" selected=(profile.preferred_region === 'Japan')) 📍 Japan
+                    div.control
+                      button.button.is-small.is-info(type="submit") Set
+
         div.column.is-8
           //- League Rank Visual Bar
           div.card(style="height: 100%; background: linear-gradient(180deg, rgba(45,45,45,1) 0%, rgba(30,30,30,1) 100%); border: 1px solid #444; display: flex; flex-direction: column;")

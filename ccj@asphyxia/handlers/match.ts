@@ -1,121 +1,273 @@
-// Removed Relay Imports
-let activeMatchId = 1;
+import { RelayManager } from './relay';
+import { sendDiscordAnnouncement, sendDiscordJoinAnnouncement } from './discord';
+
+// ============================================================
+// CCJ Matchmaking Handler
+// ============================================================
+// Two modes (from MatchingConfig.MatchingMode):
+//   - In-Store (Local): Players find each other via LAN/Radmin using
+//     UJKCircleMatch (FindCircle UDP). They share the same teamid.
+//     teamnum=2, teamid="ea_<guid>"
+//
+//   - Online (Global): Players are matched by the server using matchtype.
+//     teamnum=1, teamid=""
+//
+// CRITICAL: The client ParseHandler (UjkXrpcModule.XrpcMethodMatchMake)
+// reads exactly these XML fields from the response:
+//   - matchid      (s32)
+//   - jointype     (s32)  -> 1=you are host, 0=you connect to host
+//   - globalip     (str)  -> IP the joiner should connect to
+//   - globalport   (s32)  -> Port to connect to
+//   - hostouttime  (s64)  -> Expiry time (milliseconds, Unix timestamp)
+// ============================================================
+
+interface LobbyMember {
+    pcbid: string;
+    localIp: string;   // LAN / Radmin VPN IP (from request "localip")
+    globalIp: string;  // Public-facing IP (from request "globalip")
+    port: number;
+}
 
 interface Lobby {
     matchid: number;
-    host_ip: string;
+    matchtype: string;
+    teamid: string;        // in-store grouping key (empty = online)
+    host_pcbid: string;
+    host_local_ip: string;
+    host_global_ip: string;
     host_port: number;
-    local_ip: string;
-    local_port: number;
-    hostouttime: number;
-    players_joined: number;
-    matchnum: number;
+    hostouttime: number;   // ms Unix timestamp
+    members: LobbyMember[];
+    relay_port?: number;   // Port assigned for the UDP relay
+    relay_ip?: string;     // Remote IP of the assigned relay node
+    relay_region?: string; // Human-readable region name
 }
 
-const lobbies: Record<string, Lobby> = {};
+const lobbies: Map<string, Lobby> = new Map();
+let activeMatchId = Math.floor(Math.random() * 5000) + 1000;
 
-export const matchMake: EPR = async (info, data, send) => {
-    const matchtype = $(data).str('matchtype');
-    const matchnum = $(data).number('matchnum', 6);
-    const reqMatchId = $(data).number('matchid', 0);
-    const reqJoinType = $(data).number('jointype', 0);
-    const BI = Function('return BigInt')();
+export const matchMake = async (info: any, data: any, send: any) => {
+    const pcbid    = (info as any).pcbid || 'unknown';
+    const matchtype  = $(data).str('matchtype') || 'normal';
+    const teamid     = $(data).str('teamid')    || '';
+    const reqLocalIp = $(data).str('localip')   || '127.0.0.1';
+    const reqGlobalIp = $(data).str('globalip') || '127.0.0.1';
+    const now = Date.now();
+    const MATCH_TIME_MS = 350000; // 350 seconds
 
-    const hostTimeSecs = U.GetConfig('ccj_host_matching_time');
-    const durationMs = (typeof hostTimeSecs === 'number' && hostTimeSecs > 0) ? hostTimeSecs * 1000 : 300000;
+    const isInStore = teamid.length > 0;
+    const relayEnabled = U.GetConfig('ccj_relay_enabled') === true;
+    const relayPublicIp = U.GetConfig('ccj_relay_public_ip') || '127.0.0.1';
+    const discordWebhook = U.GetConfig('ccj_discord_webhook');
+    const discordIcon = U.GetConfig('ccj_discord_icon');
 
-    let localip = $(data).str('localip') || '';
-    let globalip_xml = $(data).str('globalip') || '';
-    
-    // Auto-detect if the game is being forced to a Virtual LAN (Radmin/ZeroTier/Hamachi) or Physical LAN via -network
-    let isVirtualLan = localip.startsWith('26.') || localip.startsWith('25.') || localip.startsWith('10.') || localip.startsWith('192.168.');
-    
-    // If Virtual LAN, prioritize the localip. Otherwise, prioritize the globalip (Public IP) for port forwarding.
-    let globalip = (isVirtualLan ? localip : (globalip_xml || localip)) || '127.0.0.1';
-    let globalport = $(data).number('globalport', 10000);
-    console.log(`[XRPC] game.matchMake - Requested globalport is: ${globalport}`);
-
-    let lobby = lobbies[matchtype];
-    const currentTimeMs = Date.now();
-
-    // Clean up if lobby is expired
-    if (lobby && currentTimeMs > lobby.hostouttime) {
-        console.log(`[XRPC] game.matchMake - Queue ${matchtype} is expired. Clearing...`);
-        lobby = undefined;
-        delete lobbies[matchtype];
-    }
-
-    // Polling for updates
-    if (reqMatchId > 0 && lobby && reqMatchId === lobby.matchid) {
-        // If Host uses the relay, we must tell the Host to bind locally (127.0.0.1) 
-        // while we tell Clients to connect to the Relay IP.
-        const isHost = reqJoinType === 1;
+    // --- Helper to get relay node for a player ---
+    const getRelayNode = async (pcbid: string) => {
+        const profile = await DB.FindOne<any>(pcbid, { collection: 'profile' });
+        const preferred = profile?.preferred_region || 'Auto';
         
-        return send.object({
-            matchid: K.ITEM('s32', lobby.matchid),
-            jointype: K.ITEM('s32', reqJoinType), // Send back their current role
-            globalip: K.ITEM('str', lobby.host_ip),
-            globalport: K.ITEM('s32', lobby.host_port),
-            localip: K.ITEM('str', lobby.local_ip),
-            localport: K.ITEM('s32', lobby.local_port),
-            hostouttime: K.ITEM('s64', BI(lobby.hostouttime) as any),
-            waitcount: K.ITEM('s32', lobby.players_joined),
-            matchnum: K.ITEM('s32', lobby.matchnum),
-            result: K.ITEM('s32', 0)
-        });
+        const nodesRaw = U.GetConfig('ccj_relay_nodes') || '';
+        const nodes = nodesRaw.split(';').map(n => {
+            const parts = n.trim().split(':');
+            return { ip: parts[0], region: parts[1] || 'Unknown' };
+        }).filter(n => n.ip);
+
+        if (nodes.length === 0) return { ip: relayPublicIp, region: 'Default' };
+
+        if (preferred !== 'Auto') {
+            const found = nodes.find(n => n.region.toLowerCase() === preferred.toLowerCase());
+            if (found) return found;
+        }
+        return nodes[0]; // Default to first node (e.g. Chile)
+    };
+
+    // --- Cleanup expired lobbies ---
+    for (const [key, l] of lobbies.entries()) {
+        if (now > l.hostouttime) {
+            if (l.relay_port) {
+                RelayManager.getInstance().releasePort(l.relay_port);
+            }
+            lobbies.delete(key);
+            console.log(`[CCJ P2P] Lobby ${l.matchid} expired, removed.`);
+        }
     }
 
-    // Create new lobby (Host)
+    // --- Find or create lobby ---
+    let lobby: Lobby | undefined;
+
+    // 1. Check if this player is already in a lobby (re-poll)
+    for (const l of lobbies.values()) {
+        if (l.members.some(m => m.pcbid === pcbid)) {
+            lobby = l;
+            break;
+        }
+    }
+
     if (!lobby) {
-        activeMatchId++;
-        
-        lobbies[matchtype] = {
-            matchid: activeMatchId,
-            host_ip: globalip,
-            host_port: globalport,
-            local_ip: localip, // The original local IP sent by the Host
-            local_port: globalport, // The original port used by the Host
-            hostouttime: currentTimeMs + durationMs,
-            players_joined: 1,
-            matchnum: matchnum
-        };
-        lobby = lobbies[matchtype];
+        if (isInStore) {
+            // In-Store: find lobby with same teamid (LAN/Radmin group)
+            for (const l of lobbies.values()) {
+                if (l.teamid === teamid && l.members.length < 6) {
+                    lobby = l;
+                    break;
+                }
+            }
+        } else {
+            // Online: find open lobby with same matchtype
+            for (const l of lobbies.values()) {
+                if (l.teamid === '' && l.matchtype === matchtype && l.members.length < 6) {
+                    lobby = l;
+                    break;
+                }
+            }
+        }
+    }
 
-        console.log(`[XRPC] game.matchMake - Created Lobby [${lobby.matchid}] as HOST with Public IP ${lobby.host_ip}:${lobby.host_port} for queue ${matchtype}`);
-        return send.object({
-            matchid: K.ITEM('s32', lobby.matchid),
-            jointype: K.ITEM('s32', 1), // 1 = Host
-            globalip: K.ITEM('str', lobby.host_ip),
-            globalport: K.ITEM('s32', lobby.host_port),
-            localip: K.ITEM('str', lobby.local_ip),
-            localport: K.ITEM('s32', lobby.local_port),
-            hostouttime: K.ITEM('s64', BI(lobby.hostouttime) as any),
-            waitcount: K.ITEM('s32', lobby.players_joined),
-            matchnum: K.ITEM('s32', lobby.matchnum),
-            result: K.ITEM('s32', 0)
-        });
+    if (lobby) {
+        // Join existing lobby if not already a member
+        if (!lobby.members.some(m => m.pcbid === pcbid)) {
+            lobby.members.push({ pcbid, localIp: reqLocalIp, globalIp: reqGlobalIp, port: 5700 });
+            const mode = isInStore ? 'InStore' : 'Online';
+            console.log(`[CCJ P2P][${mode}] Player ${pcbid} joined lobby ${lobby.matchid} (Local: ${reqLocalIp}, Global: ${reqGlobalIp})`);
+
+            // --- Discord Join Announcement ---
+            if (!isInStore && discordWebhook) {
+                (async () => {
+                    try {
+                        const refid = (info as any).refid || $(data).str('ref_id') || $(data).attr().ref_id || $(data).str('refid') || $(data).attr().refid || pcbid;
+                        const profile = await DB.FindOne<any>(refid, { collection: 'profile' });
+                        const playerName = profile ? profile.name : "Guest Player";
+                        const connectionText = lobby!.relay_port ? `Via relay (${lobby!.relay_region})` : "Direct";
+
+                        await sendDiscordJoinAnnouncement(
+                            discordWebhook,
+                            playerName,
+                            lobby!.matchid,
+                            lobby!.matchtype,
+                            !!lobby!.relay_port,
+                            lobby!.members.length,
+                            discordIcon,
+                            connectionText
+                        );
+                    } catch (e) {
+                        console.error(`[CCJ Discord] Failed to fetch player name or send join webhook: ${e.message}`);
+                    }
+                })();
+            }
+        }
     } else {
-        // Join existing lobby (Client)
-        lobby.players_joined++;
-        console.log(`[XRPC] game.matchMake - User joined Lobby [${lobby.matchid}] as CLIENT for queue ${matchtype} [${lobby.players_joined}/${lobby.matchnum}]`);
+        // Auto-detect if Host has the CCJ Relay Mod (BepInEx)
+        // The mod sends "0.0.0.0" to signal it wants a relay session.
+        const hasRelayMod = reqGlobalIp === '0.0.0.0';
+        const useRelay = !isInStore && relayEnabled && hasRelayMod;
 
-        const currentLobby = { ...lobby };
-        // Close lobby immediately if full so next queue searchers make a new lobby
-        if (lobby.players_joined >= lobby.matchnum) {
-            delete lobbies[matchtype];
+        const matchid = activeMatchId++;
+        let relay_port: number | undefined;
+        let relay_node = { ip: relayPublicIp, region: 'Default' };
+
+        // Allocate relay port if Online mode and relay is enabled
+        if (useRelay) {
+            relay_node = await getRelayNode(pcbid);
+            relay_port = await RelayManager.getInstance().allocatePort();
+            if (!relay_port) {
+                console.error(`[CCJ P2P] Failed to allocate relay port for match ${matchid}`);
+            }
         }
 
-        return send.object({
-            matchid: K.ITEM('s32', currentLobby.matchid),
-            jointype: K.ITEM('s32', 0), // 0 = Client
-            globalip: K.ITEM('str', currentLobby.host_ip),
-            globalport: K.ITEM('s32', currentLobby.host_port),
-            localip: K.ITEM('str', currentLobby.local_ip),
-            localport: K.ITEM('s32', currentLobby.local_port),
-            hostouttime: K.ITEM('s64', BI(currentLobby.hostouttime) as any),
-            waitcount: K.ITEM('s32', currentLobby.players_joined),
-            matchnum: K.ITEM('s32', currentLobby.matchnum),
-            result: K.ITEM('s32', 0)
-        });
+        lobby = {
+            matchid,
+            matchtype,
+            teamid,
+            host_pcbid: pcbid,
+            host_local_ip: reqLocalIp,
+            host_global_ip: hasRelayMod ? '0.0.0.0' : reqGlobalIp,
+            host_port: relay_port || 5700,
+            hostouttime: now + MATCH_TIME_MS,
+            members: [{ pcbid, localIp: reqLocalIp, globalIp: reqGlobalIp, port: 5700 }],
+            relay_port,
+            relay_ip: relay_node.ip,
+            relay_region: relay_node.region
+        };
+
+        const lobbyKey = isInStore ? `INSTORE_${teamid}` : `ONLINE_${matchtype}_${pcbid}`;
+        lobbies.set(lobbyKey, lobby);
+        const mode = isInStore ? 'InStore' : 'Online';
+        console.log(`[CCJ P2P][${mode}] Player ${pcbid} created lobby ${matchid} (Local: ${reqLocalIp}, Global: ${reqGlobalIp}, RelayPort: ${relay_port || 'N/A'})`);
+
+        // --- Discord Announcement ---
+        if (!isInStore && discordWebhook) {
+            (async () => {
+                try {
+                    // Exhaustive search for refid (matching profile.ts logic)
+                    const refid = (info as any).refid || $(data).str('ref_id') || $(data).attr().ref_id || $(data).str('refid') || $(data).attr().refid || pcbid;
+                    
+                    const profile = await DB.FindOne<any>(refid, { collection: 'profile' });
+                    const hostName = profile ? profile.name : "Guest Player";
+                    
+                    console.log(`[CCJ Discord] Announcing lobby for ${hostName} (ID: ${refid})`);
+                    const connectionText = lobby!.relay_port ? `Via relay (${lobby!.relay_region})` : "Direct";
+
+                    await sendDiscordAnnouncement(
+                        discordWebhook,
+                        hostName,
+                        lobby!.matchid,
+                        matchtype,
+                        !!relay_port,
+                        1,
+                        lobby!.hostouttime,
+                        discordIcon,
+                        connectionText
+                    );
+                } catch (e) {
+                    console.error(`[CCJ Discord] Failed to fetch host name or send webhook: ${e.message}`);
+                }
+            })();
+        }
     }
+
+    const isHost = lobby.host_pcbid === pcbid;
+
+    // --- Determine the IP and Port to give the client for P2P connection ---
+    let connectIp: string;
+    let connectPort: number;
+
+    if (!isInStore && relayEnabled && lobby.relay_port) {
+        // ONLINE + Relay: Always use server's public IP and the allocated relay port
+        connectIp = lobby.relay_ip || relayPublicIp;
+        connectPort = lobby.relay_port;
+        console.log(`[CCJ P2P][Online/Relay] Routing ${pcbid} → Relay: ${connectIp}:${connectPort}`);
+    } else {
+        // Fallback to legacy P2P logic
+        connectPort = 5700;
+        if (isHost) {
+            connectIp = reqGlobalIp;
+        } else if (isInStore && reqGlobalIp === lobby.host_global_ip) {
+            connectIp = lobby.host_local_ip;
+            console.log(`[CCJ P2P][InStore] LAN/Radmin detected for ${pcbid} → host local IP: ${connectIp}`);
+        } else {
+            connectIp = lobby.host_global_ip;
+            const mode = isInStore ? 'InStore/Internet' : 'Online';
+            console.log(`[CCJ P2P][${mode}] Routing ${pcbid} → host global IP: ${connectIp}`);
+        }
+    }
+
+    console.log(`[CCJ P2P] Response to ${pcbid}: Host=${isHost}, ConnectTo=${connectIp}:${connectPort}, LobbySize=${lobby.members.length}`);
+
+    const hostouttime = lobby.hostouttime;
+
+    const xml = `<game>
+        <matchid __type="s32">${lobby.matchid}</matchid>
+        <jointype __type="s32">${isHost ? 1 : 0}</jointype>
+        <globalip __type="str">${connectIp}</globalip>
+        <globalport __type="s32">${connectPort}</globalport>
+        <hostouttime __type="s64">${hostouttime}</hostouttime>
+        <waitcount __type="s32">${lobby.members.length}</waitcount>
+        <matchnum __type="s32">6</matchnum>
+        <state __type="s32">1</state>
+        <token __type="str">P2P_${lobby.matchid}</token>
+        <result __type="s32">0</result>
+    </game>`;
+
+    return send.xml(xml);
 };
+
