@@ -1,4 +1,5 @@
-import * as dgram from 'dgram';
+const dgram = require('dgram');
+import { Socket } from 'dgram';
 
 interface ClientInfo {
     id: number;

@@ -1,4 +1,4 @@
-import * as https from 'https';
+const https = require('https');
 
 export async function sendDiscordAnnouncement(
     webhookUrl: string,
