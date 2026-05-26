@@ -9,37 +9,50 @@ import { SERIAL3 } from '../data/gw';
 
 var matchRooms = []
 
+const hiscoreCache: Record<number, any> = {};
+const hiscoreLastUpdate: Record<number, number> = {};
+const CACHE_TTL = 1000 * 60 * 10; // 10 minutes
+
 export const hiscore: EPR = async (info, data, send) => {
   const version = Math.abs(getVersion(info));
   const dVersion = parseInt(info.model.split(":")[4].slice(0, -2));
 
-  const records = await DB.Find<MusicRecord>(null, { collection: 'music', version });
+  if (hiscoreCache[version] && (Date.now() - hiscoreLastUpdate[version] < CACHE_TTL)) {
+    return send.object(hiscoreCache[version]);
+  }
+
+  const allRecords = await DB.Find<MusicRecord>(null, { collection: 'music', version });
 
   const profiles = _.groupBy(
     await DB.Find<Profile>(null, { collection: 'profile', version }),
     '__refid'
   );
 
+  // Filter out ghost records before grouping
+  const records = allRecords.filter(r => profiles[r.__refid] && profiles[r.__refid].length > 0);
+
+  let result: any;
+
   if (version === 1) {
-    return send.object({
+    result = {
       hiscore: K.ATTR({ type: "1" }, {
         music: _.map(
           _.groupBy(records, r => `${r.mid}:${r.type}`),
-          r => _.maxBy(r, 'score')
-        ).map(r => (
-          K.ATTR({ id: r.mid.toString() }, {
-          note: K.ATTR({ type: r.type.toString() }, {
-            name: K.ITEM('str', profiles[r.__refid][0].name),
-            score: K.ITEM('u32', r.score)
-          })
-        }))),
+          group => {
+            const r = _.maxBy(group, 'score');
+            return K.ATTR({ id: r.mid.toString() }, {
+              note: K.ATTR({ type: r.type.toString() }, {
+                name: K.ITEM('str', profiles[r.__refid][0].name),
+                score: K.ITEM('u32', r.score),
+              })
+            })
+          }
+        )
       })
-    })
-  }
-
-  if (version === 2 || (version === 3 && dVersion === 20151116)) {
-    let profCnt = await DB.Count<Profile>(null, {collection: 'profile', version})
-    return send.object({
+    };
+  } else if (version === 2 || (version === 3 && dVersion === 20151116)) {
+    let profCnt = Object.keys(profiles).length;
+    result = {
       hiscore_allover: {
         info: _.map(
           _.groupBy(records, r => `${r.mid}:${r.type}`),
@@ -69,7 +82,6 @@ export const hiscore: EPR = async (info, data, send) => {
           _.groupBy(records, r => `${r.mid}:${r.type}`),
           group => {
             const filt = _.filter(group, g => g.clear > 1).length
-
             return {
               id: K.ITEM('u32', group[0].mid),
               type: K.ITEM('u32', group[0].type),
@@ -78,39 +90,34 @@ export const hiscore: EPR = async (info, data, send) => {
           }
         )
       }
-    })
+    };
+  } else {
+    result = {
+      sc: {
+        d: _.map(
+          _.groupBy(records, r => `${r.mid}:${r.type}`),
+          group => {
+            const rScore = _.maxBy(group, 'score');
+            
+            return {
+              id: K.ITEM('u32', rScore.mid),
+              ty: K.ITEM('u32', rScore.type),
+              a_sq: K.ITEM('str', IDToCode(profiles[rScore.__refid][0].id)),
+              a_nm: K.ITEM('str', profiles[rScore.__refid][0].name),
+              a_sc: K.ITEM('u32', rScore.score),
+              l_sq: K.ITEM('str', IDToCode(profiles[rScore.__refid][0].id)),
+              l_nm: K.ITEM('str', profiles[rScore.__refid][0].name),
+              l_sc: K.ITEM('u32', rScore.score),
+            };
+          }
+        )
+      }
+    };
   }
 
-  return send.object({
-    sc: {
-      d: _.map(
-        _.groupBy(records, r => `${r.mid}:${r.type}`),
-        group => {
-          const rScore = _.maxBy(group, 'score')
-          const rExscore = _.maxBy(group, 'exscore')
-          
-          return {
-            id: K.ITEM('u32', rScore.mid),
-            ty: K.ITEM('u32', rScore.type),
-            a_sq: K.ITEM('str', IDToCode(profiles[rScore.__refid][0].id)),
-            a_nm: K.ITEM('str', profiles[rScore.__refid][0].name),
-            a_sc: K.ITEM('u32', rScore.score),
-            l_sq: K.ITEM('str', IDToCode(profiles[rScore.__refid][0].id)),
-            l_nm: K.ITEM('str', profiles[rScore.__refid][0].name),
-            l_sc: K.ITEM('u32', rScore.score),
-            ...(version >= 6 && {
-              ax_sq: K.ITEM('str', IDToCode(profiles[rExscore.__refid][0].id)),
-              ax_nm: K.ITEM('str', profiles[rExscore.__refid][0].name),
-              ax_sc: K.ITEM('u32', rExscore.exscore),
-              lx_sq: K.ITEM('str', IDToCode(profiles[rExscore.__refid][0].id)),
-              lx_nm: K.ITEM('str', profiles[rExscore.__refid][0].name),
-              lx_sc: K.ITEM('u32', rExscore.exscore),
-            })
-          }
-        }
-      )
-    }
-  });
+  hiscoreCache[version] = result;
+  hiscoreLastUpdate[version] = Date.now();
+  return send.object(result);
 };
 
 export const rival: EPR = async (info, data, send) => {
@@ -120,7 +127,7 @@ export const rival: EPR = async (info, data, send) => {
   if (!refid) return send.deny();
 
   const rivals = (
-    await DB.Find<Rival>(refid, { collection: 'rival', mutual: true, version })
+    await DB.Find<Rival>(refid, { collection: 'rival', version })
   ).filter(p => p.refid != refid);
 
   return send.object({

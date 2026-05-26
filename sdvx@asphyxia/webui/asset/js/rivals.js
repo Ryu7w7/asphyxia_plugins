@@ -37,7 +37,8 @@ function populateTable(yourScore, rivalScore, music_db) {
     let table_data = []
     for(let ind in yourScore) {
         let songData = music_db['mdb']['music'].filter((m => parseInt(m['id']) === yourScore[ind].mid))[0]
-        if(!songData) songData = music_db['omni']['music'].filter((m => parseInt(m['id']) === yourScore[ind].mid))[0]
+        if(!songData && music_db['omni']) songData = music_db['omni']['music'].filter((m => parseInt(m['id']) === yourScore[ind].mid))[0]
+        if(!songData) continue; // Skip if song data is completely missing
         let difficulty = getDifficulty(songData, yourScore[ind].type)
         let rivalInd = rivalScore.findIndex((s => s.mid === yourScore[ind].mid && s.type === yourScore[ind].type))
         table_data.push({
@@ -93,14 +94,12 @@ $(document).ready(async function() {
     })
 
     rivals_data = JSON.parse(document.getElementById("rivals-pass").innerText);
-    profiles_data = JSON.parse(document.getElementById("profiles-pass").innerText);
 
     your_profile_data = JSON.parse(document.getElementById("profile-pass").innerText);
     urlParams = new URLSearchParams(window.location.search);
     currentVersion = (urlParams.has('version') && urlParams.get('version') !== "") ? parseInt(urlParams.get('version')) : your_profile_data[your_profile_data.length - 1].version
     currentProfile = your_profile_data.find(p => p.version === currentVersion)
 
-    profiles_data_filtered = profiles_data.filter((p => p.__refid !== refid && p.version === currentVersion && rivals_data.filter((r => refid === p.__refid && r.version === currentVersion)).length === 0))
     for (var p of your_profile_data.filter(p => p.version >= 3).sort((a,b) => a.version - b.version)) {
         $('#version_select').append($('<option>', {
             value: p.version,
@@ -109,30 +108,17 @@ $(document).ready(async function() {
         }));
     }
 
-    for(let ind in profiles_data_filtered) {
-        if(profiles_data_filtered[ind].__refid !== refid) {
-            $('#profilelist').append($('<option>', {
-                value: profiles_data_filtered[ind].__refid,
-                text: profiles_data_filtered[ind].name,
-            }));
-        }
-    }
-
-    for(let ind in rivals_data) {
+    let current_rivals = rivals_data.filter(r => r.version === currentVersion);
+    for(let ind in current_rivals) {
         $('#rivallist').append($('<option>', {
-            value: rivals_data[ind].refid,
-            text: profiles_data.filter((p => p.__refid === rivals_data[ind].refid))[0].name,
+            value: current_rivals[ind].refid,
+            text: current_rivals[ind].name,
+        }));
+        $('#rivallist_manage').append($('<option>', {
+            value: current_rivals[ind].refid,
+            text: current_rivals[ind].name,
         }));
     }
-
-    $('#profilelist').change(async function() {
-        console.log($('#profilelist').val())
-        if(rivals_data.filter((p => p.refid === $('#profilelist').val() && p.version === currentVersion)).length > 0) {
-            $('#rival-button').text('Delete Rival')
-        } else {
-            $('#rival-button').text('Add Rival')
-        }
-    })
 
     $('#rivallist').change(async function() {
         $('#scorecompare').DataTable().clear().destroy()
@@ -146,8 +132,9 @@ $(document).ready(async function() {
     })
 
     $('#addrival').click(async function() {
-        if($('#profilelist').val() !== '0') {
-            await emit('addRival', {rivalId: $('#profilelist').val(), refid: refid, version: currentVersion}).then(
+        let inputId = $('#rival_sdvxid').val();
+        if(inputId !== '') {
+            await emit('addRival', {sdvxId: inputId, refid: refid, version: currentVersion}).then(
                 function(response){
                     alert(response.data.msg)
                     location.reload()
@@ -155,6 +142,60 @@ $(document).ready(async function() {
             )
         }
     })
+
+    $('#deleterival').click(async function() {
+        let rivalId = $('#rivallist_manage').val();
+        if(rivalId !== '0') {
+            await emit('removeRival', {rivalId: rivalId, refid: refid, version: currentVersion}).then(
+                function(response){
+                    alert(response.data.msg)
+                    location.reload()
+                }
+            )
+        }
+    })
+
+    $('#search_button').click(async function() {
+        let query = $('#search_name').val();
+        if(query !== '') {
+            $('#search_button').addClass('is-loading');
+            await emit('searchPlayer', {query: query, version: currentVersion}).then(
+                function(response){
+                    $('#search_button').removeClass('is-loading');
+                    let tbody = $('#search_results_body');
+                    tbody.empty();
+                    let results = response.data.results.filter(p => p.refid !== refid);
+                    if(results.length > 0) {
+                        results.forEach(player => {
+                            let tr = $('<tr>');
+                            tr.append($('<td>').text(player.name));
+                            let sdvxIdStr = player.sdvxId.toString().padStart(8, '0');
+                            let formattedId = sdvxIdStr.slice(0,4) + '-' + sdvxIdStr.slice(4);
+                            tr.append($('<td>').text(formattedId));
+                            let addBtn = $('<button>').addClass('button is-small is-primary').text('Add');
+                            addBtn.click(async function() {
+                                await emit('addRival', {sdvxId: player.sdvxId.toString(), refid: refid, version: currentVersion}).then(
+                                    function(addRes){
+                                        alert(addRes.data.msg);
+                                        location.reload();
+                                    }
+                                )
+                            });
+                            tr.append($('<td>').append(addBtn));
+                            tbody.append(tr);
+                        });
+                        $('#search_results_container').show();
+                    } else {
+                        let tr = $('<tr>').append($('<td colspan="3" class="has-text-centered">').text('No players found.'));
+                        tbody.append(tr);
+                        $('#search_results_container').show();
+                    }
+                }
+            ).catch(err => {
+                $('#search_button').removeClass('is-loading');
+            });
+        }
+    });
 
     $('#version_select').change(function() {
         const urlParams = new URLSearchParams(location.search);

@@ -779,6 +779,15 @@ export const copyResourcesFromGame = async (data: {}, send: WebUISend) => {
 export const getRivalScores = async (data: { rivalId: string; refid: string; version: string; }, send: WebUISend) => {
   let ver = parseInt(data.version)
   let rival = await DB.FindOne<Rival>(data.refid, {collection: 'rival', refid: data.rivalId, version: ver})
+  
+  if (!rival) {
+    return send.json({
+      rival: null,
+      yourScores: await DB.Find<MusicRecord>(data.refid, { collection: 'music', version: ver }),
+      rivalScores: []
+    });
+  }
+
   send.json({
     rival: await DB.FindOne<Profile>(data.rivalId, {collection: 'profile', version: ver}),
     yourScores: await DB.Find<MusicRecord>(data.refid, { collection: 'music', version: ver }),
@@ -786,29 +795,87 @@ export const getRivalScores = async (data: { rivalId: string; refid: string; ver
   })
 }
 
-export const addRival = async (data: { rivalId: string; refid: string; version: string }, send: WebUISend) => {
+export const addRival = async (data: { sdvxId: string; refid: string; version: string }, send: WebUISend) => {
+  let ver = parseInt(data.version)
+  let sdvxIdNum = parseInt(data.sdvxId.replace(/[^0-9]/g, ''));
+  if (isNaN(sdvxIdNum)) {
+    return send.json({ msg: "Invalid SDVX ID provided." })
+  }
+
+  let rival = await DB.FindOne<Profile>(null, {collection: 'profile', id: sdvxIdNum, version: ver})
+  if (!rival) {
+    return send.json({ msg: "Player not found." })
+  }
+  if (rival.__refid === data.refid) {
+    return send.json({ msg: "You cannot add yourself as a rival." })
+  }
+
+  let currentRivalsCount = await DB.Count<Rival>(data.refid, {collection: 'rival', version: ver})
+  if (currentRivalsCount >= 4) {
+    return send.json({ msg: "You have reached the maximum limit of 4 rivals." })
+  }
+
+  let you = await DB.FindOne<Profile>(data.refid, {collection: 'profile', version: ver})
+  let checkMutual = (await DB.Count<Rival>(rival.__refid, {collection: 'rival', refid: data.refid, version: ver}) > 0)
+  
+  if(await DB.Count<Rival>(data.refid, {collection: 'rival', refid: rival.__refid, version: ver}) === 0) {
+    if(checkMutual) {
+      DB.Upsert<Rival>(rival.__refid, {collection: "rival", sdvxID: you.id, refid: data.refid, name: you.name, version: ver}, {$set: {mutual: checkMutual, dbver: DB_VER}})
+    }
+    DB.Insert<Rival>(data.refid, {collection: "rival", sdvxID: rival.id, refid: rival.__refid, name: rival.name, version: ver, mutual: checkMutual, dbver: DB_VER})
+    send.json({
+      "msg": "Successfully added profile as rival."
+    })
+  } else {
+    send.json({
+      "msg": "Profile is already in your rival list."
+    })
+  }
+}
+
+export const removeRival = async (data: { rivalId: string; refid: string; version: string }, send: WebUISend) => {
   let ver = parseInt(data.version)
   let you = await DB.FindOne<Profile>(data.refid, {collection: 'profile', version: ver})
   let rival = await DB.FindOne<Profile>(data.rivalId, {collection: 'profile', version: ver})
 
-  let checkMutual = (await DB.Count<Rival>(data.rivalId, {collection: 'rival', refid: data.refid, version: ver}) > 0)
-  if(await DB.Count<Rival>(data.refid, {collection: 'rival', refid: data.rivalId, version: ver}) === 0) {
-    if(checkMutual) {
-      DB.Upsert<Rival>(data.rivalId, {collection: "rival", sdvxID: you.id, refid: data.refid, name: you.name, version: ver}, {$set: {mutual: checkMutual, dbver: DB_VER}})
-    }
-    DB.Insert<Rival>(data.refid, {collection: "rival", sdvxID: rival.id, refid: data.rivalId, name: rival.name, version: ver, mutual: checkMutual, dbver: DB_VER})
-    send.json({
-      "msg": "Successfully added profile to rival. In order for your rivals to appear in-game, they need to add you as their rival as well."
-    })
-  } else {
-    if(checkMutual) {
-      DB.Upsert<Rival>(data.rivalId, {collection: "rival", sdvxID: you.id, refid: data.refid, name: you.name, version: ver}, {$set: {"mutual": false, dbver: DB_VER}})
-    }
-    DB.Remove<Rival>(data.refid, {collection: "rival", sdvxID: rival.id, refid: data.rivalId, name: rival.name, version: ver, dbver: DB_VER})
-    send.json({
-      "msg": "Successfully removed rival."
-    })
+  if(!rival || !you) {
+    return send.json({ msg: "Profile not found." })
   }
+
+  let checkMutual = (await DB.Count<Rival>(data.rivalId, {collection: 'rival', refid: data.refid, version: ver}) > 0)
+  
+  if(checkMutual) {
+    DB.Upsert<Rival>(data.rivalId, {collection: "rival", sdvxID: you.id, refid: data.refid, name: you.name, version: ver}, {$set: {"mutual": false, dbver: DB_VER}})
+  }
+  DB.Remove<Rival>(data.refid, {collection: "rival", sdvxID: rival.id, refid: data.rivalId, name: rival.name, version: ver, dbver: DB_VER})
+  send.json({
+    "msg": "Successfully removed rival."
+  })
+}
+
+export const searchPlayer = async (data: { query: string; version: string }, send: WebUISend) => {
+  let ver = parseInt(data.version);
+  if (!data.query || data.query.trim() === '') {
+    return send.json({ results: [] });
+  }
+
+  // NeDB regex search for partial name match, case-insensitive
+  let regex = new RegExp(data.query.trim(), 'i');
+  
+  let profiles = await DB.Find<Profile>(null, { 
+    collection: 'profile', 
+    version: ver,
+    name: { $regex: regex }
+  });
+
+  // Limit to top 20 results to avoid UI lag and massive payloads
+  let results = profiles.slice(0, 20).map(p => ({
+    name: p.name,
+    sdvxId: p.id,
+    refid: p.__refid
+  }));
+
+  send.json({ results });
 }
 
 export const preGeneRoll = async (data: { set: number, refid: string, items: [] }, send: WebUISend) => {
@@ -941,8 +1008,8 @@ export const addWeekly = async(data: { mid: number }) => {
     weekly.push({
       weekId: weekly[weekly.length - 1].weekId + 1,
       musicId: data.mid,
-      start: Number(BigInt(newStartDate)),
-      end: Number(BigInt(newEndDate))
+      start: newStartDate.getTime(),
+      end: newEndDate.getTime()
     })
   } else {
     let newEndDate = new Date(curWeekMonday)
@@ -951,8 +1018,8 @@ export const addWeekly = async(data: { mid: number }) => {
     weekly.push({
       weekId: 1,
       musicId: data.mid,
-      start: Number(BigInt(curWeekMonday)),
-      end: Number(BigInt(newEndDate))
+      start: curWeekMonday.getTime(),
+      end: newEndDate.getTime()
     })
   }
 
