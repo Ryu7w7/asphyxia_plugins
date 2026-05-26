@@ -2,7 +2,7 @@ var music_db;
 var urlParams;
 var currentVersion;
 var currentProfile;
-var versionText = ['', 'BOOTH', 'INFINTE INFECTION', 'GRAVITY WARS', 'HEAVENLY HAVEN', 'VIVIDWAVE', 'EXCEED GEAR', '∇']
+var versionText = ['', 'BOOTH', 'infinite infection', 'GRAVITY WARS', 'HEAVENLY HAVEN', 'VIVID WAVE', 'EXCEED GEAR', '∇']
 
 function zeroPad(num, places) {
     var zero = places - num.toString().length + 1;
@@ -31,30 +31,32 @@ function getDifficulty(musicid, type) {
     var inf_ver = result["info"]["inf_ver"] ? result["info"]["inf_ver"] : 5;
     switch (type) {
         case 0:
-            return "NOV";
+            return "NOV"
         case 1:
-            return "ADV";
+            return "ADV"
         case 2:
-            return "EXH";
+            return "EXH"
         case 3:
             {
                 switch (inf_ver) {
                     case "2":
-                        return "INF";
+                        return "INF"
                     case "3":
-                        return "GRV";
+                        return "GRV"
                     case "4":
-                        return "HVN";
+                        return "HVN"
                     case "5":
-                        return "VVD";
+                        return "VVD"
                     case "6":
-                        return "XCD";
+                        return "XCD"
+                    case "7":
+                        return "NBL"
                 }
             }
         case 4:
-            return "MXM";
+            return "MXM"
         case 5:
-            return "ULT";
+            return "ULT"
     }
 }
 
@@ -86,22 +88,14 @@ function getGrade(grade) {
 }
 
 function getMedal(clear, version) {
-    switch (clear) {
-        case 0:
-            return "No Data";
-        case 1:
-            return "PLAYED";
-        case 2:
-            return currentVersion >= 4 ? "EFFECTIVE CLEAR" : "CLEAR";
-        case 3:
-            return currentVersion >= 4 ? "EXCESSIVE CLEAR" : "UC";
-        case 4:
-            return currentVersion >= 6 ? ((version === 6) ? "UC" : "MAXXIVE CLEAR") : "PUC";
-        case 5:
-            return (version === 6) ? "PUC" : "UC";
-        case 6:
-            return (version === 6) ? "MAXXIVE CLEAR" : "PUC"
+    let verLabels = {
+        '1': ["No Data", "PLAYED", "CLEAR", "ULTIMATE CHAIN", "PERFECT ULTIMATE CHAIN"],
+        '2': ["No Data", "PLAYED", "EFFECTIVE CLEAR", "ULTIMATE CHAIN", "PERFECT ULTIMATE CHAIN", "EXCESSIVE CLEAR"],
+        '3': ["No Data", "PLAYED", "EFFECTIVE CLEAR", "EXCESSIVE CLEAR", "ULTIMATE CHAIN", "PERFECT ULTIMATE CHAIN"],
+        '6': ["No Data", "PLAYED", "EFFECTIVE CLEAR", "EXCESSIVE CLEAR", "ULTIMATE CHAIN", "PERFECT ULTIMATE CHAIN", "MAXXIVE CLEAR"],
+        '7': ["No Data", "PLAYED", "EFFECTIVE CLEAR", "EXCESSIVE CLEAR", "MAXXIVE CLEAR", "ULTIMATE CHAIN", "PERFECT ULTIMATE CHAIN"]
     }
+    return verLabels[String(version)][clear]
 }
 
 
@@ -123,10 +117,12 @@ function difficultySort(d) {
             return 7;
         case "XCD":
             return 8;
-        case "MXM":
+        case "NBL":
             return 9;
-        case "ULT":
+        case "MXM":
             return 10;
+        case "ULT":
+            return 11;
     }
     return 0;
 };
@@ -143,9 +139,9 @@ function markSort(d) {
             return 3;
         case "MAXXIVE CLEAR":
             return 4;
-        case "UC":
+        case "ULTIMATE CHAIN":
             return 5;
-        case "PUC":
+        case "PERFECT ULTIMATE CHAIN":
             return 6;
     }
     return 0;

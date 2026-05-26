@@ -18,7 +18,7 @@ export function getVersion(info: EamuseInfo) {
   const dateCode = parseInt(info.model.split(":")[4]);
   if (dateCode <= 2013052900) return 1;
   if (dateCode <= 2014112000) return 2;
-  if (dateCode <= 2016121200) return 3;
+  if (dateCode <= 2016121900) return 3;
   if (info.method.startsWith('sv4')) return 4;
   if (info.method.startsWith('sv5')) return 5;
   if (dateCode <= 2021082400) return 6;
@@ -63,7 +63,10 @@ export async function getDateCodeInit() {
     "697c025d_751898": 20260203,
     "698e6863_753ba8": 20260217,
     "69a00a63_7551f8": 20260303,
-    "69bb5ab5_75b7e8": 20260324
+    "69bb5ab5_75b7e8": 20260324,
+    "69ccbc0e_75b838": 20260407,
+    "69e097b6_770498": 20260421,
+    "69fd4402_772268": 20260512
   }
   let bufOffset = 60
   let gameDir = U.GetConfig('sdvx_eg_root_dir')

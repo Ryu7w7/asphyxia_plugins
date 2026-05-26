@@ -1,5 +1,6 @@
 import { EVENT, SDVX_STATION } from '../data/booth';
 import { EVENT2, MUSIC_LIMITED, COURSES2 } from '../data/ii';
+import { EVENT3, MISSION_EVENT3, MUSIC_LIMITED3, COURSES3, EXTENDS3, SP_APICAGENE3 } from '../data/gw';
 import { EVENT6, COURSES6, EXTENDS6, APRILFOOLSSONGS, VALKYRIE_SONGS, LICENSED_SONGS6, CURRENT_ARENA, ARENA_STATION_ITEMS, VALGENE, INFORMATION6, UNLOCK_EVENTS6, MUSIC_OVERRIDE6 } from '../data/exg';
 import { EVENT7, COURSES7, EXTENDS7, LICENSED_SONGS7, CURRENT_ARENA7, ARENA_STATION_ITEMS7, VALGENE7, APIGENE7, INFORMATION7, UNLOCK_EVENTS7, EGSONGS_LOCKED, MUSIC_OVERRIDE7 } from '../data/nbl';
 import {getVersion, checkVerStart, getRandomIntInclusive} from '../utils';
@@ -13,6 +14,8 @@ export const common: EPR = async (info, data, send) => {
     let information = [];
     let licensedSongs = [];
     let musicLimited = [];
+    let musicOverride = [];
+    let spApica = [];
     let unlockEvents;
     let currentArena;
     let arenaItems;
@@ -24,8 +27,7 @@ export const common: EPR = async (info, data, send) => {
     let songNum = 0;
     const gameVersion = getVersion(info);
 
-    console.log('====================================')
-    console.log("Calling common function");
+    console.log("Retrieving common data");
     
     const version = parseInt(info.model.split(":")[4].slice(0, -2));
 
@@ -45,6 +47,16 @@ export const common: EPR = async (info, data, send) => {
             musicLimited = MUSIC_LIMITED
             courses = COURSES2
             events = EVENT2
+            break
+          }
+          case 'game_3': {
+            console.log('Game: GRAVITY WARS')
+            songNum = 953
+            musicLimited = MUSIC_LIMITED3
+            spApica = SP_APICAGENE3.filter(sp => sp.version <= version)
+            courses = COURSES3.filter(c => version >= c.version)
+            EXTENDS3.filter(ex => checkVerStart(version, ex.version, 0, date)).forEach(val => extend.push(Object.assign({}, val)));
+            events = EVENT3
             break
           }
         }
@@ -75,6 +87,7 @@ export const common: EPR = async (info, data, send) => {
         unlockEvents = UNLOCK_EVENTS6;
         currentArena = CURRENT_ARENA;
         arenaItems = ARENA_STATION_ITEMS;
+        musicOverride = MUSIC_OVERRIDE6;
         valgene = VALGENE;
         songNum = 2342
         break;
@@ -101,7 +114,8 @@ export const common: EPR = async (info, data, send) => {
         licensedSongs = LICENSED_SONGS7;
         unlockEvents = UNLOCK_EVENTS7;
         currentArena = CURRENT_ARENA7;
-        arenaItems = {...ARENA_STATION_ITEMS, ...ARENA_STATION_ITEMS7};
+        arenaItems = ARENA_STATION_ITEMS7;
+        musicOverride = MUSIC_OVERRIDE7;
         valgene = {
           info: [...VALGENE.info, ...VALGENE7.info],
           rarity: {...VALGENE.rarity, ...VALGENE7.rarity},
@@ -165,7 +179,7 @@ export const common: EPR = async (info, data, send) => {
         var foundSongIndex = mdb.mdb.music.map(function(x) {return x['id']; }).indexOf(i.toString());
         if(foundSongIndex != -1) {
           var songData = mdb.mdb.music[foundSongIndex];
-          if(absVersion === 2) {
+          if(absVersion === 2 || absVersion === 3) {
             limitedNo = 2
             var lim = musicLimited.findIndex(m => m.id === i)
             if (lim >= 0) {
@@ -182,7 +196,12 @@ export const common: EPR = async (info, data, send) => {
           }
           else if(absVersion === 6) {
             if ('omnimix' in songData.info) omniList.push(i)
-            if(parseInt(songData.info.version) <= 6 && 'distribution_date' in songData['info'] && parseInt(songData['info']['distribution_date']) > currentYMDDate) {
+            let distributionDate = songData['info']['distribution_date']
+            let ovInd = musicOverride.findIndex(o => o.music_id === i)
+            if(ovInd > 0 && 'date' in musicOverride[ovInd]) {
+              distributionDate = String(musicOverride[ovInd].date)
+            }
+            if(parseInt(songData.info.version) <= 6 && !checkVerStart(0, 0, distributionDate, date)) {
               console.log("Unreleased song: " + songData.info.title_name)
             }
             else {
@@ -208,7 +227,7 @@ export const common: EPR = async (info, data, send) => {
                 }
               }
 
-              // if song has new XCD track
+              // if song has new XCD chart
               else if (songData.info.inf_ver === '6') { 
                 // manual lock charts
                 if (i === 469) limitedNo = 2;
@@ -222,7 +241,12 @@ export const common: EPR = async (info, data, send) => {
           }
           else if(absVersion === 7) {
             if ('omnimix' in songData.info) omniList.push(i)
-            if(parseInt(songData.info.version) <= 7 && 'distribution_date' in songData['info'] && parseInt(songData['info']['distribution_date']) > currentYMDDate) {
+            let distributionDate = songData['info']['distribution_date']
+            let ovInd = musicOverride.findIndex(o => o.music_id === i)
+            if(ovInd > 0 && 'date' in musicOverride[ovInd]) {
+              distributionDate = String(musicOverride[ovInd].date)
+            }
+            if(parseInt(songData.info.version) <= 7 && !checkVerStart(0, 0, distributionDate, date)) {
               console.log("Unreleased song: " + songData.info.title_name)
             }
             else {
@@ -241,6 +265,15 @@ export const common: EPR = async (info, data, send) => {
                     });
                   }
                 }
+              }
+
+              // if song has new NBL chart
+              else if (songData.info.inf_ver === '7') { 
+                songs.push({
+                  music_id: K.ITEM('s32', i),
+                  music_type: K.ITEM('u8', 3),
+                  limited: K.ITEM('u8', limitedNo),
+                });
               }
             }
           }
@@ -276,7 +309,23 @@ export const common: EPR = async (info, data, send) => {
 
     let response = {}
 
-    if(Math.abs(gameVersion) === 2) {
+    if(gameVersion === 2 || gameVersion === 3) {
+      if(gameVersion === 3) {
+        if(U.GetConfig('gw_mission')) events = events.concat(MISSION_EVENT3)
+        if(!U.GetConfig('gw_gene')) events = events.concat([25])
+
+        let sp = spApica[(Math.random() * spApica.length) | 0];
+        extend.push({
+          type: 2,
+          id: 1,
+          params: [
+            1, 0, 0, 0, 0,
+            sp.title,
+            sp.str,
+            '', '', ''
+          ]
+        })
+      }
       response = {
         event: {
           info: events.map(e => ({
@@ -311,21 +360,38 @@ export const common: EPR = async (info, data, send) => {
               ),
             []
           ),
-        }
+        },
+        ...(gameVersion === 3 && {
+          extend: {
+            info: extend.map(e => ({
+              extend_id: K.ITEM('u32', e.id),
+              extend_type: K.ITEM('u32', e.type),
+              param_num_1: K.ITEM('s32', e.params[0]),
+              param_num_2: K.ITEM('s32', e.params[1]),
+              param_num_3: K.ITEM('s32', e.params[2]),
+              param_num_4: K.ITEM('s32', e.params[3]),
+              param_num_5: K.ITEM('s32', e.params[4]),
+              param_str_1: K.ITEM('str', e.params[5]),
+              param_str_2: K.ITEM('str', e.params[6]),
+              param_str_3: K.ITEM('str', e.params[7]),
+              param_str_4: K.ITEM('str', e.params[8]),
+              param_str_5: K.ITEM('str', e.params[9]),
+            })),
+          }
+        })
       }
     }
 
     else if(Math.abs(gameVersion) >= 6) {
-      let musicOverride = []
-      let mList = (Math.abs(gameVersion) === 6) ? MUSIC_OVERRIDE6 : MUSIC_OVERRIDE7
+      let musicOverrideFin = []
       const createItem = (key, val) => {return (typeof val === 'string') ? K.ITEM('str', val) : ((key === 'volume') ? K.ITEM('u16', val) : K.ITEM('u32', val))}
-      for(const music of mList.filter(m => checkVerStart(0, 0, m.start, date))) {
+      for(const music of musicOverride.filter(m => checkVerStart(0, 0, m.start, date))) {
         let mInfKeys = Object.keys(music).filter(m => !['charts', 'start'].includes(m))
         let musicInfo = {}
         mInfKeys.forEach(k => {
           musicInfo[k] = createItem(k, music[k])
         })
-        musicOverride.push(musicInfo)
+        musicOverrideFin.push(musicInfo)
 
         let mChartKeys = Object.keys(music.charts)
         let chartInfo = {}
@@ -339,7 +405,7 @@ export const common: EPR = async (info, data, send) => {
 
           chartInfo[difName[ch]] = ci
         })
-        musicOverride.push(chartInfo)
+        musicOverrideFin.push(chartInfo)
       }
 
       if(information.length > 0) {
@@ -512,11 +578,12 @@ export const common: EPR = async (info, data, send) => {
         }
       }
 
-      let arenaOpen = U.GetConfig('arena_no_endtime') || BigInt(date) < currentArena.time_end
+      let arenaOpen = BigInt(date) >= currentArena.time_start && (BigInt(date) < currentArena.time_end || U.GetConfig('arena_no_endtime'))
       let shopOpen = arenaOpen && U.GetConfig('arena_station') !== 'None'
       let arenaData = {}
 
-      if(arenaOpen && version >= 20220425 && currentArena.season !== 0) {
+      const arenaStart = new Date(Number(currentArena.time_start) * 1000).toISOString().split('T')[0].split('-').join('')
+      if(arenaOpen && checkVerStart(version, 20260421, arenaStart, date) && currentArena.season !== 0) {
         arenaData = {
           season: K.ITEM('s32', currentArena.season),
           rule: K.ITEM('s32', currentArena.rule),
@@ -658,7 +725,7 @@ export const common: EPR = async (info, data, send) => {
             param_str_5: K.ITEM('str', e.params[9]),
           })),
         },
-        music: { info: musicOverride },
+        music: { info: musicOverrideFin },
         music_limited: { info: songs },
         skill_course: {
           info: courses.reduce(
@@ -730,7 +797,6 @@ export const common: EPR = async (info, data, send) => {
       }
     }
 
-    console.log("Sending common objects");
     send.object(
       response,
       { encoding: 'utf8' }

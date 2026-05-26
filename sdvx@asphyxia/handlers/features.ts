@@ -1,44 +1,27 @@
 import { Profile } from '../models/profile';
 import { MusicRecord } from '../models/music_record';
+import { Serial } from '../models/param';
 import { Matchmaker } from '../models/matchmaker';
-import { getVersion, IDToCode, GetCounter } from '../utils';
+import { getVersion, IDToCode, GetCounter, checkVerStart } from '../utils';
 import { Rival } from '../models/rival';
+import { Item } from '../models/item';
+import { SERIAL3 } from '../data/gw';
 
 var matchRooms = []
 
-interface HiscoreCacheEntry {
-  payload: any;
-  expiresAt: number;
-}
-const hiscoreCache = new Map<number, HiscoreCacheEntry>();
-const HISCORE_TTL_MS = 30_000;
-
-export function invalidateHiscoreCache(version: number) {
-  hiscoreCache.delete(version);
-}
-
 export const hiscore: EPR = async (info, data, send) => {
   const version = Math.abs(getVersion(info));
+  const dVersion = parseInt(info.model.split(":")[4].slice(0, -2));
 
-  const cached = hiscoreCache.get(version);
-  if (cached && cached.expiresAt > Date.now()) {
-    return send.object(cached.payload);
-  }
-
-
-  const allRecords = await DB.Find<MusicRecord>(null, { collection: 'music', version });
+  const records = await DB.Find<MusicRecord>(null, { collection: 'music', version });
 
   const profiles = _.groupBy(
     await DB.Find<Profile>(null, { collection: 'profile', version }),
     '__refid'
   );
 
-  const records = allRecords.filter(r => profiles[r.__refid] && profiles[r.__refid].length > 0);
-
-  let payload: any;
-
   if (version === 1) {
-    payload = {
+    return send.object({
       hiscore: K.ATTR({ type: "1" }, {
         music: _.map(
           _.groupBy(records, r => `${r.mid}:${r.type}`),
@@ -51,10 +34,12 @@ export const hiscore: EPR = async (info, data, send) => {
           })
         }))),
       })
-    };
-  } else if (version === 2) {
+    })
+  }
+
+  if (version === 2 || (version === 3 && dVersion === 20151116)) {
     let profCnt = await DB.Count<Profile>(null, {collection: 'profile', version})
-    payload = {
+    return send.object({
       hiscore_allover: {
         info: _.map(
           _.groupBy(records, r => `${r.mid}:${r.type}`),
@@ -93,39 +78,45 @@ export const hiscore: EPR = async (info, data, send) => {
           }
         )
       }
-    };
-  } else {
-    payload = {
-      sc: {
-        d: _.map(
-          _.groupBy(records, r => `${r.mid}:${r.type}`),
-          group => {
-            const rScore = _.maxBy(group, 'score')
-            
-            return {
-              id: K.ITEM('u32', rScore.mid),
-              ty: K.ITEM('u32', rScore.type),
-              a_sq: K.ITEM('str', IDToCode(profiles[rScore.__refid][0].id)),
-              a_nm: K.ITEM('str', profiles[rScore.__refid][0].name),
-              a_sc: K.ITEM('u32', rScore.score),
-              l_sq: K.ITEM('str', IDToCode(profiles[rScore.__refid][0].id)),
-              l_nm: K.ITEM('str', profiles[rScore.__refid][0].name),
-              l_sc: K.ITEM('u32', rScore.score),
-            }
-          }
-        )
-      }
-    };
+    })
   }
 
-  hiscoreCache.set(version, { payload, expiresAt: Date.now() + HISCORE_TTL_MS });
-  return send.object(payload);
+  return send.object({
+    sc: {
+      d: _.map(
+        _.groupBy(records, r => `${r.mid}:${r.type}`),
+        group => {
+          const rScore = _.maxBy(group, 'score')
+          const rExscore = _.maxBy(group, 'exscore')
+          
+          return {
+            id: K.ITEM('u32', rScore.mid),
+            ty: K.ITEM('u32', rScore.type),
+            a_sq: K.ITEM('str', IDToCode(profiles[rScore.__refid][0].id)),
+            a_nm: K.ITEM('str', profiles[rScore.__refid][0].name),
+            a_sc: K.ITEM('u32', rScore.score),
+            l_sq: K.ITEM('str', IDToCode(profiles[rScore.__refid][0].id)),
+            l_nm: K.ITEM('str', profiles[rScore.__refid][0].name),
+            l_sc: K.ITEM('u32', rScore.score),
+            ...(version >= 6 && {
+              ax_sq: K.ITEM('str', IDToCode(profiles[rExscore.__refid][0].id)),
+              ax_nm: K.ITEM('str', profiles[rExscore.__refid][0].name),
+              ax_sc: K.ITEM('u32', rExscore.exscore),
+              lx_sq: K.ITEM('str', IDToCode(profiles[rExscore.__refid][0].id)),
+              lx_nm: K.ITEM('str', profiles[rExscore.__refid][0].name),
+              lx_sc: K.ITEM('u32', rExscore.exscore),
+            })
+          }
+        }
+      )
+    }
+  });
 };
 
 export const rival: EPR = async (info, data, send) => {
-  const refid = $(data).str('refid');
   const version = Math.abs(getVersion(info));
   const dVersion = parseInt(info.model.split(":")[4].slice(0, -2));
+  let refid = $(data).str('refid', ((version === 2 || version === 3) ? $(data).str('dataid') : $(data).attr().dataid));
   if (!refid) return send.deny();
 
   const rivals = (
@@ -143,7 +134,7 @@ export const rival: EPR = async (info, data, send) => {
             await DB.Find<MusicRecord>(p.refid, { collection: 'music', version })
           ).map(r => ({
             // Version 2023042500 added exscore to rival data.
-            param: K.ARRAY('u32', dVersion < 20230425 ? [r.mid, r.type, r.score, r.clear, r.grade] : [r.mid, r.type, r.score, r.exscore || 0, r.clear, r.grade]),
+            param: K.ARRAY('u32', dVersion < 20230425 ? [r.mid, r.type, r.score, r.clear, r.grade] : [r.mid, r.type, r.score, r.exscore, r.clear, r.grade]),
           })),
         };
       })
@@ -336,4 +327,81 @@ export const lounge: EPR = async (info, data, send) => {
       wait: K.ITEM('u32', longestWait)
     })
   }
+}
+
+export const serial: EPR = async (info, data, send) => {
+  const version = Math.abs(getVersion(info));
+  const dVersion = parseInt(info.model.split(":")[4].slice(0, -2));
+  if(version !== 3) return send.deny()
+  let date = new Date()
+  let refid = $(data).str('refid')
+  let serial = SERIAL3.filter(s => checkVerStart(dVersion, s.version, 1, date))
+
+  const code = parseInt($(data).str('code'))
+  let used = await DB.FindOne<Serial>(refid, {collection: 'serial', version})
+  let usedInd = used ? used.list.findIndex(l => l === code) : -1
+  let found = serial.find(s => s.code === code)
+  let result = 0
+  if(!found) result = 2
+  else if(usedInd >= 0 && found.onetime) result = 3 
+
+  let finItems = []
+  if(result === 0) {
+    for(const item of found.items) {
+      await DB.Upsert<Item>(refid, {collection: 'item', version, type: item.type, id: item.id}, {
+        $inc: {
+          param: item.param
+        }
+      })
+      finItems.push({item: await DB.FindOne<Item>(refid, {collection: 'item', version, type: item.type, id: item.id}), param: item.param})
+    }
+
+    if(usedInd < 0) {
+      await DB.Upsert<Serial>(refid, {collection: 'serial', version}, {
+        $push: {
+          list: code
+        }
+      })
+    } 
+
+  } else {
+    return send.object({
+      result: K.ITEM('s8', result),
+      serial_name: K.ITEM('str', "__"),
+      gamecoin_packet: K.ITEM('u32', 0),
+      gamecoin_block: K.ITEM('u32', 0),
+      blaster_energy: K.ITEM('u32', 0),
+    })
+  }
+
+  return send.object({
+    //success, congest, invalid, used
+    result: K.ITEM('s8', result), 
+    serial_name: K.ITEM('str', "__"),
+    item: finItems.map(i => ({
+      type: K.ITEM('u32', i.item.type === 6 ? 3 : i.type),
+      id: K.ITEM('u32', i.item.id),
+      param: K.ITEM('u32', i.param),
+      param_after: K.ITEM('u32', i.item.param),
+    })),
+    gamecoin_packet: K.ITEM('u32', found.pc),
+    gamecoin_block: K.ITEM('u32', found.blc),
+    blaster_energy: K.ITEM('u32', found.energy),
+  })
+
+  // return send.object({
+  //   result: K.ITEM('s8', 0),
+  //   serial_name: K.ITEM('str', "THis are an test"),
+  //   item: [
+  //     {
+  //       type: K.ITEM('u32', 3),
+  //       id: K.ITEM('u32', 1),
+  //       param: K.ITEM('u32', 30),
+  //       param_after: K.ITEM('u32', 35),
+  //     }
+  //   ],
+  //   gamecoin_packet: K.ITEM('u32', 1000),
+  //   gamecoin_block: K.ITEM('u32', 100),
+  //   blaster_energy: K.ITEM('u32', 69),
+  // })
 }
