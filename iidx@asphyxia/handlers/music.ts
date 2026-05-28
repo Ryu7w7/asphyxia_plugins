@@ -7,6 +7,7 @@ import { badge } from "../models/badge";
 import { activity_mybest } from "../models/activity";
 import { djtraining } from "../models/djtraining";
 import { rival } from "../models/rival";
+import * as https from "https";
 
 export const musicgetrank: EPR = async (info, data, send) => {
   const version = GetVersion(info);
@@ -677,6 +678,14 @@ export const musicreg: EPR = async (info, data, send) => {
     }
   );
 
+  tachiAutoExport(refid.toString(), {
+    mid,
+    type: clid,
+    score: exscore,
+    clear: cflg,
+    missCount: mnum
+  });
+
   if (!_.isNil($(data).element("badge"))) {
     if (!_.isNil($(data).attr("badge").djLevel_badge_flg_id)) {
       await DB.Upsert<badge>(
@@ -996,6 +1005,14 @@ export const musicbreg: EPR = async (info, data, send) => {
     }
   );
 
+  tachiAutoExport(refid.toString(), {
+    mid,
+    type: clid,
+    score: exscore,
+    clear: cflg,
+    missCount: -1
+  });
+
   return send.success();
 };
 
@@ -1106,3 +1123,103 @@ export const musicarenacpu: EPR = async (info, data, send) => {
     cpu_score_list,
   })
 }
+
+async function tachiAutoExport(refid: string, scoreData: {
+  mid: number,
+  type: number,
+  score: number,
+  clear: number,
+  missCount: number
+}) {
+  const autoExportDoc = await DB.FindOne<{ token: string }>({ collection: 'tachi_auto_export', refid });
+  if (!autoExportDoc || !autoExportDoc.token) return;
+
+  const token = autoExportDoc.token;
+
+  const LAMP_MAP: Record<number, string> = {
+    0: 'NO PLAY', 1: 'FAILED', 2: 'ASSIST CLEAR', 3: 'EASY CLEAR',
+    4: 'CLEAR', 5: 'HARD CLEAR', 6: 'EX HARD CLEAR', 7: 'FULL COMBO',
+  };
+
+  const TYPE_MAP: Record<number, string> = {
+    0: 'SP BEGINNER', 1: 'SP NORMAL', 2: 'SP HYPER', 3: 'SP ANOTHER', 4: 'SP LEGGENDARIA',
+    6: 'DP NORMAL', 7: 'DP HYPER', 8: 'DP ANOTHER', 9: 'DP LEGGENDARIA',
+  };
+
+  const lamp = LAMP_MAP[scoreData.clear];
+  let diff = TYPE_MAP[scoreData.type];
+  if (!lamp || !diff) return;
+
+  let playtype = 'Single';
+  if (diff.startsWith('DP ')) {
+    playtype = 'Double';
+    diff = diff.replace('DP ', '');
+  } else if (diff.startsWith('SP ')) {
+    playtype = 'Single';
+    diff = diff.replace('SP ', '');
+  }
+
+  const tachiScore = {
+    score: scoreData.score,
+    lamp,
+    matchType: 'inGameID',
+    identifier: String(scoreData.mid),
+    difficulty: diff,
+    timeAchieved: Date.now(),
+    optional: {
+      bp: scoreData.missCount !== -1 ? scoreData.missCount : undefined,
+    }
+  };
+
+  const batchManual = JSON.stringify({
+    meta: { game: 'iidx', playtype, service: 'Asphyxia' },
+    scores: [tachiScore],
+  });
+
+  const boundary = '----AsphyxiaTachi' + Date.now();
+  const bodyParts = [
+    `--${boundary}\r\n`,
+    `Content-Disposition: form-data; name="importType"\r\n\r\n`,
+    `file/batch-manual\r\n`,
+    `--${boundary}\r\n`,
+    `Content-Disposition: form-data; name="scoreData"; filename="scores.json"\r\n`,
+    `Content-Type: application/json\r\n\r\n`,
+    batchManual + '\r\n',
+    `--${boundary}--\r\n`,
+  ];
+  const postData = Buffer.from(bodyParts.join(''));
+
+  try {
+    const req = https.request(
+      'https://kamai.tachi.ac/api/v1/import/file',
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': `multipart/form-data; boundary=${boundary}`,
+          'Content-Length': postData.length,
+          'X-User-Intent': 'true',
+        },
+      },
+      (res: any) => {
+        let body = '';
+        res.on('data', (c: string) => (body += c));
+        res.on('end', () => {
+          try {
+            const result = JSON.parse(body);
+            if (result.success) console.log('Tachi auto-export: sent 1 score(s)');
+            else console.error('Tachi auto-export error: ' + (result.description || 'unknown'));
+          } catch {
+            console.error('Tachi auto-export: failed to parse response');
+          }
+        });
+      }
+    );
+    req.on('error', (err: any) => console.error('Tachi auto-export request error', err));
+    req.write(postData);
+    req.end();
+  } catch (err) {
+    console.error('Tachi auto-export failed', err);
+  }
+}
+
