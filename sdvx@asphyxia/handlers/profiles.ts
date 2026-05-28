@@ -1030,7 +1030,7 @@ export const load: EPR = async (info, data, send) => {
     let currentArena
     if(version === 6) currentArena = CURRENT_ARENA
     else if(version === 7) currentArena = CURRENT_ARENA7 
-    let arenaOpen = U.GetConfig('arena_no_endtime') || BigInt(date) < currentArena.time_end
+    let arenaOpen = U.GetConfig('arena_no_endtime') || BigInt(date.getTime()) < currentArena.time_end
 
     const items = await DB.Find<Item>(refid, { collection: 'item', version: version });
     const courses = await DB.Find<CourseRecord>(refid, { collection: 'course', version: version });
