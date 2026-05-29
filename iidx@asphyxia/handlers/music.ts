@@ -8,7 +8,8 @@ import { activity_mybest } from "../models/activity";
 import { djtraining } from "../models/djtraining";
 import { rival } from "../models/rival";
 import * as https from "https";
-
+import * as fs from "fs";
+import * as path from "path";
 export const musicgetrank: EPR = async (info, data, send) => {
   const version = GetVersion(info);
   const refid = await IDtoRef(Number($(data).attr().iidxid));
@@ -625,6 +626,7 @@ export const musicreg: EPR = async (info, data, send) => {
         names[tmp_clid] = profile.name;
         scores[tmp_clid] = exscore;
         clflgs[tmp_clid] = cflg;
+        discordAutoExport(profile.name, mid, clid, -1, exscore, -1, cflg, "");
       }
     }
     else {
@@ -633,7 +635,9 @@ export const musicreg: EPR = async (info, data, send) => {
       clflgs = score_top.clflgs;
 
       if (exscore > scores[tmp_clid]) {
+        let previousName = names[tmp_clid];
         names[tmp_clid] = profile.name;
+        discordAutoExport(profile.name, mid, clid, scores[tmp_clid], exscore, clflgs[tmp_clid], cflg, previousName);
         scores[tmp_clid] = exscore;
         clflgs[tmp_clid] = cflg;
       }
@@ -1223,3 +1227,94 @@ async function tachiAutoExport(refid: string, scoreData: {
   }
 }
 
+let musicDataCache: any = null;
+function getSongInfo(mid: number) {
+  if (!musicDataCache) {
+    try {
+      musicDataCache = JSON.parse(fs.readFileSync(path.join(__dirname, "../data/music_data.json"), "utf8"));
+    } catch {
+      musicDataCache = {};
+    }
+  }
+  return musicDataCache[mid] || { title: `Song ID: ${mid}`, artist: "Unknown Artist" };
+}
+
+async function discordAutoExport(
+  playerName: string,
+  mid: number,
+  clid: number,
+  oldScore: number,
+  newScore: number,
+  oldClear: number,
+  newClear: number,
+  previousName: string
+) {
+  const webhookUrl = U.GetConfig("DiscordWebhookUrl");
+  if (!webhookUrl || typeof webhookUrl !== "string" || webhookUrl.trim() === "") return;
+
+  const LAMP_MAP: Record<number, string> = {
+    0: 'NOPLAY', 1: 'FAILED', 2: 'A-CLEAR', 3: 'E-CLEAR',
+    4: 'CLEAR', 5: 'H-CLEAR', 6: 'EXH-CLEAR', 7: 'FULL COMBO',
+  };
+
+  const TYPE_MAP: Record<number, string> = {
+    0: 'BGN', 1: 'NRM', 2: 'HYP', 3: 'ANO', 4: 'LEG',
+    6: 'NRM', 7: 'HYP', 8: 'ANO', 9: 'LEG',
+  };
+
+  const PLAY_TYPE = clid < 5 ? 'SP' : 'DP';
+  const diffName = `${PLAY_TYPE} ${TYPE_MAP[clid] || `Unknown`}`;
+  const newLamp = LAMP_MAP[newClear] || 'Unknown';
+  const songInfo = getSongInfo(mid);
+  
+  let exScoreStr = `${newScore}`;
+  if (oldScore !== -1 && oldScore < newScore) {
+    const diff = newScore - oldScore;
+    exScoreStr = `${newScore} (+${diff})`;
+  } else if (oldScore === -1) {
+    exScoreStr = `${newScore}`;
+  }
+
+  let description = `${songInfo.title} - ${songInfo.artist}\n\n`;
+  description += `👤 **Player:** ${playerName}\n`;
+  if (previousName && previousName !== playerName) {
+    description += `👑 **Took #1 from:** ${previousName}\n`;
+  } else if (previousName === playerName) {
+    description += `👑 **Retained #1!**\n`;
+  }
+  
+  description += `\n**Chart** \u200B \u200B \u200B \u200B \u200B \u200B \u200B \u200B **EX Score** \u200B \u200B \u200B \u200B \u200B \u200B \u200B \u200B **Clear Lamp**\n`;
+  description += `**${diffName}** \u200B \u200B \u200B \u200B \u200B \u200B \u200B \u200B **${exScoreStr}** \u200B \u200B \u200B \u200B \u200B \u200B \u200B \u200B **${newLamp}**\n`;
+
+  const payload = {
+    embeds: [{
+      title: `🏆 ${playerName} got #1! • ${newLamp}`,
+      color: 0xFFA500,
+      description: description,
+      footer: {
+        text: "RyuNET IIDX"
+      },
+      timestamp: new Date().toISOString()
+    }]
+  };
+
+  try {
+    const url = new URL(webhookUrl);
+    const postData = JSON.stringify(payload);
+    const req = https.request(
+      url,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(postData)
+        }
+      }
+    );
+    req.on('error', (err: any) => console.error('Discord Webhook request error', err));
+    req.write(postData);
+    req.end();
+  } catch (err) {
+    console.error('Discord Webhook failed', err);
+  }
+}

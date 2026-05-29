@@ -1,4 +1,4 @@
-﻿import { pccommon, pcreg, pcget, pcgetname, pctakeover, pcvisit, pcsave, pcoldget, pcgetlanegacha, pcdrawlanegacha, pcshopregister } from "./handlers/pc";
+import { pccommon, pcreg, pcget, pcgetname, pctakeover, pcvisit, pcsave, pcoldget, pcgetlanegacha, pcdrawlanegacha, pcshopregister } from "./handlers/pc";
 import { shopgetname, shopsavename, shopgetconvention, shopsetconvention } from "./handlers/shop";
 import { musicreg, musicgetrank, musicappoint, musicarenacpu, musiccrate, musicbreg, musicgetralive } from "./handlers/music";
 import { graderaised } from "./handlers/grade";
@@ -25,6 +25,12 @@ export function register() {
   R.GameCode("LDJ");
 
   // common //
+  R.Config("DiscordWebhookUrl", {
+    name: "Discord Webhook URL",
+    desc: "URL for Top 1 Score Tracker Discord Webhook (leave empty to disable)",
+    type: "string",
+    default: "",
+  });
   R.Config("BeatPhase", {
     name: "Beat #",
     desc: "1 / 2 / 3 / FREE", // This can be event phase on old versions //
