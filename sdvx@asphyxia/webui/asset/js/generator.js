@@ -154,7 +154,7 @@ function checkSetReward(geneItems) {
 var datecode = 0
 
 $(document).ready(async function() {
-    if(document.getElementById("data-pass-unlock-all").innerText === 'true') {
+    if(document.getElementById("data-pass-unlock-all").textContent === 'true') {
         $('.card-content').text("The \"Unlock All Valkyrie and Premium Items\" option is enabled. You wouldn't need this.")
         $('#pregene-roll').attr('disabled')
         return 0;
@@ -173,7 +173,7 @@ $(document).ready(async function() {
     datecode = await emit("getDateCode").then(
         function(response) {
             if(!response.data.datecode) {
-                let profiles = JSON.parse(document.getElementById("data-pass-profiles").innerText);
+                let profiles = JSON.parse(document.getElementById("data-pass-profiles").textContent);
                 for(const profile of profiles.sort((a,b) => a.version - b.version)) {
                     if(!('datecode' in profile)) datecode = (profile['version'] === 7 ? 20251226 : 20251209)
                     else if(profile.datecode > datecode) datecode = profile.datecode
@@ -184,14 +184,14 @@ $(document).ready(async function() {
         }
     )
 
-    let items_crew = JSON.parse(document.getElementById("data-pass-crew").innerText);
-    let items_stamp = JSON.parse(document.getElementById("data-pass-stamp").innerText);
-    let items_subbg = JSON.parse(document.getElementById("data-pass-subbg").innerText);
-    let items_bgm = JSON.parse(document.getElementById("data-pass-bgm").innerText);
-    let items_nemsys = JSON.parse(document.getElementById("data-pass-nemsys").innerText);
-    let items_sysbg = JSON.parse(document.getElementById("data-pass-sysbg").innerText);
-    let gene_edition = document.getElementById("generator-edition").innerText;
-    let nblHave = JSON.parse(document.getElementById("nbl-have").innerText);
+    let items_crew = JSON.parse(document.getElementById("data-pass-crew").textContent);
+    let items_stamp = JSON.parse(document.getElementById("data-pass-stamp").textContent);
+    let items_subbg = JSON.parse(document.getElementById("data-pass-subbg").textContent);
+    let items_bgm = JSON.parse(document.getElementById("data-pass-bgm").textContent);
+    let items_nemsys = JSON.parse(document.getElementById("data-pass-nemsys").textContent);
+    let items_sysbg = JSON.parse(document.getElementById("data-pass-sysbg").textContent);
+    let gene_edition = document.getElementById("generator-edition").textContent;
+    let nblHave = JSON.parse(document.getElementById("nbl-have").textContent);
     let currentSet = await loadValgeneData(gene_edition, nblHave.length);
 
     $('#set_select').val(currentSet)

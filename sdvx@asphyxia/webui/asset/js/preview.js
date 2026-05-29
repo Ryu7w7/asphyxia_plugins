@@ -194,8 +194,8 @@ var profile_data, database, databaseext;
 var play_bgm = false;
 var play_sel = false;
 $(document).ready(async function() {
-    profile_data = JSON.parse(document.getElementById("data-pass").innerText);
-    customize_data = JSON.parse(document.getElementById("data-pass-custom").innerText);
+    profile_data = JSON.parse(document.getElementById("data-pass").textContent);
+    customize_data = JSON.parse(document.getElementById("data-pass-custom").textContent);
     let urlParams = new URLSearchParams(window.location.search);
     currentVersion = (urlParams.has('version') && urlParams.get('version') !== "") ? parseInt(urlParams.get('version')) : profile_data[profile_data.length - 1].version
     currentProfile = profile_data.find(p => p.version === currentVersion)

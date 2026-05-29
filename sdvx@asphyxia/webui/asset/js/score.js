@@ -224,8 +224,8 @@ $(document).ready(function() {
         return ((x < y) ? 1 : ((x > y) ? -1 : 0));
     };
 
-    var profile_data = JSON.parse(document.getElementById("profile-pass").innerText);
-    var score_data = JSON.parse(document.getElementById("score-pass").innerText);
+    var profile_data = JSON.parse(document.getElementById("profile-pass").textContent);
+    var score_data = JSON.parse(document.getElementById("score-pass").textContent);
 
     urlParams = new URLSearchParams(window.location.search);
     currentVersion = (urlParams.has('version') && urlParams.get('version') !== "") ? parseInt(urlParams.get('version')) : profile_data[profile_data.length - 1].version

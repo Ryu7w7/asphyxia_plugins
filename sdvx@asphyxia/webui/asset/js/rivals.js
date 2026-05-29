@@ -93,9 +93,9 @@ $(document).ready(async function() {
         music_db = json;
     })
 
-    rivals_data = JSON.parse(document.getElementById("rivals-pass").innerText);
+    rivals_data = JSON.parse(document.getElementById("rivals-pass").textContent);
 
-    your_profile_data = JSON.parse(document.getElementById("profile-pass").innerText);
+    your_profile_data = JSON.parse(document.getElementById("profile-pass").textContent);
     urlParams = new URLSearchParams(window.location.search);
     currentVersion = (urlParams.has('version') && urlParams.get('version') !== "") ? parseInt(urlParams.get('version')) : your_profile_data[your_profile_data.length - 1].version
     currentProfile = your_profile_data.find(p => p.version === currentVersion)

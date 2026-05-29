@@ -836,9 +836,8 @@ export const addRival = async (data: { sdvxId: string; refid: string; version: s
 export const removeRival = async (data: { rivalId: string; refid: string; version: string }, send: WebUISend) => {
   let ver = parseInt(data.version)
   let you = await DB.FindOne<Profile>(data.refid, {collection: 'profile', version: ver})
-  let rival = await DB.FindOne<Profile>(data.rivalId, {collection: 'profile', version: ver})
 
-  if(!rival || !you) {
+  if(!you) {
     return send.json({ msg: "Profile not found." })
   }
 
@@ -847,7 +846,7 @@ export const removeRival = async (data: { rivalId: string; refid: string; versio
   if(checkMutual) {
     DB.Upsert<Rival>(data.rivalId, {collection: "rival", sdvxID: you.id, refid: data.refid, name: you.name, version: ver}, {$set: {"mutual": false, dbver: DB_VER}})
   }
-  DB.Remove<Rival>(data.refid, {collection: "rival", sdvxID: rival.id, refid: data.rivalId, name: rival.name, version: ver, dbver: DB_VER})
+  DB.Remove<Rival>(data.refid, {collection: "rival", refid: data.rivalId, version: ver, dbver: DB_VER})
   send.json({
     "msg": "Successfully removed rival."
   })

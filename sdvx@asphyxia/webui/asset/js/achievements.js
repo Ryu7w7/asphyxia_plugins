@@ -5,7 +5,7 @@ var currentVersion;
 var versionText = ['', 'BOOTH', 'infinite infection', 'GRAVITY WARS', 'HEAVENLY HAVEN', 'VIVID WAVE', 'EXCEED GEAR', '∇']
 
 $(document).ready(async function() {
-	achobt = JSON.parse(document.getElementById("data-pass").innerText);
+	achobt = JSON.parse(document.getElementById("data-pass").textContent);
 	achobt.sort(function(a, b){return a['id'] - b['id']});
 	achdata = await $.getJSON( "static/asset/json/achievements.json", function(data) {
         return data
