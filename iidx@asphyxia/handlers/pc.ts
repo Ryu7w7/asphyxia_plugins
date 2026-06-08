@@ -324,6 +324,7 @@ export const pccommon: EPR = async (info, data, send) => {
         tourism_booster: {},
         fix_framerate: {},
         fix_real: {},
+        disable_cardless: {},
       });
       break;
     case 32:
@@ -582,7 +583,7 @@ export const pcreg: EPR = async (info, data, send) => {
 export const pcget: EPR = async (info, data, send) => {
   const version = GetVersion(info);
   const refid = $(data).attr().rid;
-  
+
   const profile = await DB.FindOne<profile>(refid, { collection: "profile" });
   const pcdata = await DB.FindOne<pcdata>(refid, { collection: "pcdata", version: version });
   const custom = await DB.FindOne<custom>(refid, { collection: "custom", version: version });
@@ -1384,7 +1385,7 @@ export const pcget: EPR = async (info, data, send) => {
         update_date: activity_mybest_sp[0].update_date,
       });
 
-      activity_mybest_sp.sort((a, b) =>b.now_score - a.now_score);
+      activity_mybest_sp.sort((a, b) => b.now_score - a.now_score);
       activityMybest.push({
         play_style: activity_mybest_sp[0].play_style,
         play_side: activity_mybest_sp[0].play_side,
@@ -1959,7 +1960,7 @@ export const pcsave: EPR = async (info, data, send) => {
           lm_settings.assistant_chara = Number($(data).attr("lightning_setting").assistant_chara);
         }
       }
-      
+
       await DB.Upsert<lightning_settings>(
         refid,
         {
@@ -1999,8 +2000,8 @@ export const pcsave: EPR = async (info, data, send) => {
 
     if (!_.isNil($(data).attr().now_g)) {
       pcdata.gold_now = Number($(data).attr().now_g);
-      pcdata.gold_all = Number($(data).attr().all_g); 
-      pcdata.gold_use = Number($(data).attr().use_g); 
+      pcdata.gold_all = Number($(data).attr().all_g);
+      pcdata.gold_use = Number($(data).attr().use_g);
     }
   }
   else if (version == 15) {
@@ -2294,7 +2295,7 @@ export const pcsave: EPR = async (info, data, send) => {
         pcdata.st_sp_level = Number($(data).attr("step").sp_level);
         pcdata.st_sp_round = Number($(data).attr("step").sp_round);
         pcdata.st_sp_mplay = Number($(data).attr("step").sp_mplay);
-        
+
       } else {
         pcdata.st_dp_ach = Number($(data).attr("step").dp_ach);
         pcdata.st_dp_hdpt = Number($(data).attr("step").dp_hdpt);
@@ -2306,7 +2307,7 @@ export const pcsave: EPR = async (info, data, send) => {
       pcdata.st_stamp = $(data).buffer("step").toString("base64"); // TODO:: verify //
       pcdata.st_help = $(data).element("step").buffer("help").toString("base64");
     }
-    
+
     if (!_.isNil($(data).element("achievements"))) {
       // TODO:: achi_packflg, achi_packid, achi_playpack //
       pcdata.achi_lastweekly = Number($(data).attr("achievements").last_weekly);
@@ -2416,7 +2417,7 @@ export const pcsave: EPR = async (info, data, send) => {
         event_data = tricolettepark;
 
         event_data.open_music = Number($(data).attr("tricolettepark").open_music),
-        event_data.boss0_damage += Number($(data).attr("tricolettepark").boss0_damage);
+          event_data.boss0_damage += Number($(data).attr("tricolettepark").boss0_damage);
         event_data.boss1_damage += Number($(data).attr("tricolettepark").boss1_damage);
         event_data.boss2_damage += Number($(data).attr("tricolettepark").boss2_damage);
         event_data.boss3_damage += Number($(data).attr("tricolettepark").boss3_damage);
@@ -2774,7 +2775,7 @@ export const pcsave: EPR = async (info, data, send) => {
         event_data = tricolettepark;
 
         event_data.open_music = Number($(data).attr("tricolettepark").open_music),
-        event_data.boss0_damage += Number($(data).attr("tricolettepark").boss0_damage);
+          event_data.boss0_damage += Number($(data).attr("tricolettepark").boss0_damage);
         event_data.boss1_damage += Number($(data).attr("tricolettepark").boss1_damage);
         event_data.boss2_damage += Number($(data).attr("tricolettepark").boss2_damage);
         event_data.boss3_damage += Number($(data).attr("tricolettepark").boss3_damage);
@@ -4389,9 +4390,9 @@ export const pcsave: EPR = async (info, data, send) => {
               event_data: "myepo_map",
               map_id: res[0].map_id,
             },
-            {
-              $set: res[0],
-            });
+              {
+                $set: res[0],
+              });
 
             // building_data //
             res[1].forEach((res) => {
@@ -4402,9 +4403,9 @@ export const pcsave: EPR = async (info, data, send) => {
                 map_id: res.map_id,
                 pos: res.pos,
               },
-              {
-                $set: res,
-              });
+                {
+                  $set: res,
+                });
             });
 
             // shop_data //
@@ -4416,9 +4417,9 @@ export const pcsave: EPR = async (info, data, send) => {
                 map_id: res.map_id,
                 reward_id: res.reward_id,
               },
-              {
-                $set: res,
-              });
+                {
+                  $set: res,
+                });
             });
 
             // music //
@@ -4428,9 +4429,9 @@ export const pcsave: EPR = async (info, data, send) => {
                 version: version,
                 event_data: "myepo_music",
               },
-              {
-                $set: res,
-              });
+                {
+                  $set: res,
+                });
             });
           });
           break;
@@ -4631,29 +4632,29 @@ export const pcsave: EPR = async (info, data, send) => {
               event_data: "pinkyunderground_hall",
               hall_id: res.attr().hall_id,
             },
-            {
-              $set: {
-                play_num: res.attr().play_num,
-                last_select_skill_index: res.attr().last_select_skill_index,
-                hall_prog: res.attr().hall_prog,
-                defeat_num: res.attr().defeat_num,
-                pp_0: res.attr().pp_0,
-                pp_1: res.attr().pp_1,
-                pp_2: res.attr().pp_2,
-                pp_3: res.attr().pp_3,
-                pp_4: res.attr().pp_4,
-                pp_5: res.attr().pp_5,
-                skill_1: res.attr().skill_1,
-                skill_2: res.attr().skill_2,
-                skill_3: res.attr().skill_3,
-                cool_1: res.attr().cool_1,
-                cool_2: res.attr().cool_2,
-                cool_3: res.attr().cool_3,
-                param_1: res.attr().param_1,
-                param_2: res.attr().param_2,
-                param_3: res.attr().param_3,
-              },
-            });
+              {
+                $set: {
+                  play_num: res.attr().play_num,
+                  last_select_skill_index: res.attr().last_select_skill_index,
+                  hall_prog: res.attr().hall_prog,
+                  defeat_num: res.attr().defeat_num,
+                  pp_0: res.attr().pp_0,
+                  pp_1: res.attr().pp_1,
+                  pp_2: res.attr().pp_2,
+                  pp_3: res.attr().pp_3,
+                  pp_4: res.attr().pp_4,
+                  pp_5: res.attr().pp_5,
+                  skill_1: res.attr().skill_1,
+                  skill_2: res.attr().skill_2,
+                  skill_3: res.attr().skill_3,
+                  cool_1: res.attr().cool_1,
+                  cool_2: res.attr().cool_2,
+                  cool_3: res.attr().cool_3,
+                  param_1: res.attr().param_1,
+                  param_2: res.attr().param_2,
+                  param_3: res.attr().param_3,
+                },
+              });
 
             res.elements("hall_qpro_data").forEach((res2) => {
               DB.Upsert(
@@ -5108,8 +5109,8 @@ export const pcsave: EPR = async (info, data, send) => {
             ...result
           }
         });
-      }
     }
+  }
 
   await DB.Upsert<profile>(
     refid,

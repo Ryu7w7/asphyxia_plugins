@@ -2,7 +2,7 @@
 
 ---
 
-**Plugin Version:** STAGING [ed4f4e]
+**Plugin Version: **STAGING [96ff64]**
 
 ---
 

@@ -5,6 +5,1587 @@
   lm_custom: DB.FindOne(refid, { collection: "lightning_custom" })
 
 -
+  const customData = {
+    "turntable": [
+      "Default",
+      "TRAN / トラン",
+      "JOJO",
+      "Delta / デルタ",
+      "Orange Ball / オレンジディスク",
+      "DistorteD",
+      "GOLD",
+      "DJ TROOPERS",
+      "EMPRESS",
+      "SIRIUS",
+      "Resort Anthem",
+      "Lincle",
+      "tricoro",
+      "SPADA",
+      "灼熱",
+      "Only One Turntable / オンリーワンレコード",
+      "PENDUAL",
+      "copula",
+      "SINOBUZ",
+      "CANNON BALLERS",
+      "Rootage",
+      "HEROIC VERSE",
+      "BEMANI PRO LEAGUE",
+      "BPL ROUND1",
+      "BPL APINA VRAMeS",
+      "BPL SILKHAT",
+      "BPL レジャーランド",
+      "BPL SUPER NOVA Tohoku",
+      "BPL GAME PANIC",
+      "BISTROVER / いちご",
+      "CastHour",
+      "CastHour2",
+      "BEMANI PRO LEAGUE SEASON 2",
+      "BPLS2 APINA VRAMeS",
+      "BPLS2 GiGO",
+      "BPLS2 GAME PANIC",
+      "BPLS2 SILKHAT",
+      "BPLS2 SUPER NOVA Tohoku",
+      "BPLS2 TAITO STATION Tradz",
+      "BPLS2 ROUND1",
+      "BPLS2 LEISURELAND",
+      "RESIDENT",
+      "BEMANI PRO LEAGUE SEASON 3",
+      "EPOLIS",
+      "Pinky Crush",
+      "Sparkle Shower"
+    ],
+    "note_burst": [
+      "Default",
+      "初代",
+      "9th Style",
+      "IIDX RED(オレンジ)",
+      "HAPPY SKY(撃墜)",
+      "DistorteD",
+      "GOLD",
+      "DJ TROOPERS",
+      "EMPRESS",
+      "SIRIUS",
+      "Resort Anthem",
+      "Lincle",
+      "tricoro",
+      "SPADA",
+      "Only One Bomb / オンリーワンボム",
+      "PENDUAL",
+      "copula",
+      "SINOBUZ",
+      "CANNON Spark / キャノンスパーク",
+      "Rootage",
+      "HEROIC VERSE",
+      "BISTROVERボム",
+      "いいねフラッシュ",
+      "RESIDENT",
+      "EPOLIS",
+      "Pinky Crush",
+      "Sparkle Shower"
+    ],
+    "lane_cover": [
+      "Default",
+      "sigsig",
+      "内部フレーム",
+      "空",
+      "KAMAITACHI",
+      "タオル",
+      "コスモス",
+      "度胸兄弟",
+      "Blind Justice",
+      "迷彩",
+      "bloomin\\",
+      "Marie Antoinette",
+      "Elisha",
+      "Kung-fu Empire",
+      "Tune of beat#3",
+      "EMPRESS",
+      "Programmed World",
+      "3y3s",
+      "UMEGIRI",
+      "KANZAKI",
+      "Rock Da House",
+      "THE DOOR INTO RAINBOW",
+      "Aegis",
+      "Vermilion",
+      "Phoenix",
+      "Lucky Days",
+      "Almace",
+      "DIAMOND CROSSING",
+      "Mamonis",
+      "Ashemu",
+      "Bulluvegola",
+      "Beridzebeth",
+      "Llevaslater",
+      "STN",
+      "Rche",
+      "Neulakyussra",
+      "Cybele",
+      "Cuvelia",
+      "Liberation",
+      "Praludium",
+      "少女アリスと箱庭幻想コンチェルト",
+      "Re:GENERATION",
+      "20 system bg",
+      "旋律のドグマ~Miserables~/TYPE A",
+      "旋律のドグマ~Miserables~/TYPE B",
+      "Elektric U-Phoria",
+      "MAGIC ＆ LOVE",
+      "スパーダレリーフ",
+      "S!ck",
+      "CONCEPTUAL",
+      "ΕΛΠΙΣ",
+      "rumrum triplets",
+      "SYNC-ANTHEM",
+      "Thor\\",
+      "Plan 8",
+      "仮想空間の旅人たち",
+      "8bit Pincess",
+      "planarian",
+      "Dynamite",
+      "龍と少女とデコヒーレンス",
+      "トリカゴノ鳳凰",
+      "Proof of the existence",
+      "BRAVE GLOW/機動怪獣リングール",
+      "BRAVE GLOW/トリコロイダー",
+      "VEGA/VEGAうさぎ",
+      "VEGA/中のひと",
+      "カジノファイヤーことみちゃん",
+      "New Lights",
+      "灼熱くんやきそば",
+      "即席!脳直★ミュージックシステム",
+      "キャトられ恋はモ～モク",
+      "オンリーワンカバー",
+      "ジザル",
+      "ジャックティーロ",
+      "ジャックハンス",
+      "イェンス",
+      "アムドゥシアン",
+      "マクスウェリオン",
+      "ラプラシア",
+      "ルシェ",
+      "スモモ",
+      "ファウラ",
+      "ベリゼベス",
+      "エルピス・キラ",
+      "フェリーラ",
+      "オールパトナ",
+      "あいむちゃん",
+      "人魚のPrim",
+      "アヤカシ二人",
+      "SHELTER OF THE MIND",
+      "Acid Pumper",
+      "X",
+      "ハーティー",
+      "Nightmare before oversleep",
+      "Highcharge Divolt",
+      "Godspeed(少年)",
+      "車掌イージス",
+      "GENERATE",
+      "Dynamite",
+      "格闘乙女",
+      "レル DX2300系",
+      "つゆ太",
+      "La dolce primavera",
+      "AO-1",
+      "真 地獄超特急 -HELL or HELL-",
+      "モード",
+      "ミニョンヌ鉄道兄弟",
+      "冬椿",
+      "PAPAYAPA BASS",
+      "鴉",
+      "AsiaN distractive",
+      "TOGAKUSHI",
+      "Modular Technology",
+      "獅子霞麗ノ舞",
+      "Music is The Answer",
+      "¡Viva!",
+      "SINOBUZ UI",
+      "ChaserXX",
+      "Amor De Verao",
+      "エディブルフラワーの独白",
+      "ハイ*ビスカス ft. Kanae Asaba",
+      "Midnight Lady",
+      "FUTURE is Dead",
+      "Break Stasis",
+      "草原の王女-軌跡を辿って-",
+      "Exhaust Hype",
+      "25UI",
+      "焔極OVERKILL",
+      "Breakin\\",
+      "津軽雪",
+      "Yellow Sketch(RX-Ver.S.P.L.)",
+      "Steel Edge",
+      "Go Ahead!!",
+      "Sky High (analyze)",
+      "イザナミノナゲキ",
+      "GuNGNiR",
+      "ディッシュウォッシャー 彡おいわちゃん(analyze)",
+      "BroGamer",
+      "FUZIN RIZIN(analyze)",
+      "Mare Nectaris(analyze)",
+      "Quakes",
+      "Rave Cannon(analyze)",
+      "ECHIDNA",
+      "Snakey Kung-fu",
+      "刃図羅",
+      "忍恋花",
+      "法具「バズラ」",
+      "HADES",
+      "DEATH†ZIGOQ",
+      "東京神話",
+      "INITIATION",
+      "EMERALDAS",
+      "Chemical Cookie",
+      "ナイトシティー・アヴァンチュール",
+      "シムルグの目醒め",
+      "n\\",
+      "ANCHOR",
+      "IIDX AIR RACE",
+      "THE DAY OF JUBILATIONS",
+      "HEISEI",
+      "IDC feat.REVERBEE (Mo\\",
+      "Yum Yum Jelly",
+      "夏の匂い。キミの残像。 ft. Kanae Asaba",
+      "Hurry Hurry",
+      "OVERTIME",
+      "ミストレス・アンに花束を",
+      "Ember Lights",
+      "Rootage",
+      "Urban Constellations",
+      "金野火織の金色提言",
+      "龍王の霊廟",
+      "Painful Fate",
+      "Drastic Dramatic",
+      "抱きしめてモナムール",
+      "Trill auf G",
+      "Lethal Weapon",
+      "HEROIC VERSE",
+      "Primitive Vibes",
+      "Calvados Queen",
+      "Ska-sh All Neurons!!",
+      "Moving on",
+      "Hyper Drive",
+      "THE BRAVE MUST DIE",
+      "曼荼羅恋々",
+      "Silly Love",
+      "Change Yourself",
+      "Virus Funk",
+      "BEMANI PRO LEAGUE",
+      "BPL ROUND1",
+      "BPL APINA VRAMeS",
+      "BPL SILKHAT",
+      "BPL レジャーランド",
+      "BPL SUPER NOVA Tohoku",
+      "BPL GAME PANIC",
+      "涙のテ・エストラーニョ・ムーチョ",
+      "∀",
+      "S-Bahn",
+      "Vitrum",
+      "水無月の雫",
+      "Lovely Howdy Cowboy!!",
+      "WAKE UP NOW",
+      "魔法のかくれんぼ",
+      "POLKAMAИIA",
+      "POLKAMAИIA<2>",
+      "犬に雨傘",
+      "Ah Hah Yeah",
+      "HIGH VOLTAGE",
+      "名称不明",
+      "Chewingood!!!",
+      "がっつり陰キャ!? 怪盗いいんちょの億劫^^;",
+      "がっつり陰キャ!? 怪盗いいんちょの億劫^^;<2>",
+      "魅惑のYUMMYスイーツ",
+      "度胸兄弟",
+      "STOIC HYPOTHESIS",
+      "GHOST",
+      "GIGA VIOLATE",
+      "Crank It",
+      "Horizons of Promise",
+      "Backyard Stars",
+      "Smashing Wedge",
+      "HEROIC VERSE",
+      "LIGHTNING MODEL",
+      "ARENA UI 2.0",
+      "華麗なる大犬円舞曲",
+      "lane 224",
+      "lane 225",
+      "召しませ!BISTROVER",
+      "ピンシェフくん",
+      "バッド・スイーツ、バッド・ドリーム",
+      "Sinus Iridum",
+      "ジェイ君とドゥイさん",
+      "あまいじかん",
+      "リフレナ",
+      "THE PEERLESS UNDER HEAVEN",
+      "二人ノ廃城幽踊宴",
+      "乱膳の舞姫",
+      "ハイテックトキオ",
+      "月とミルク",
+      "Ariah",
+      "LIVE DRIVING!! feat. 花たん",
+      "Wonderful Escape",
+      "GiGaGaHell",
+      "オールトの雲",
+      "Ventriloquist",
+      "DREAM OF SPACE UFO ABDUCTION",
+      "Skreaming for Salvation",
+      "No Day But Today!",
+      "CastHour",
+      "BEMANI PRO LEAGUE SEASON 2",
+      "BPLS2 APINA VRAMeS",
+      "BPLS2 GiGO",
+      "BPLS2 GAME PANIC",
+      "BPLS2 SILKHAT",
+      "BPLS2 SUPER NOVA Tohoku",
+      "BPLS2 TAITO STATION Tradz",
+      "BPLS2 ROUND1",
+      "BPLS2 LEISURELAND",
+      "もにに",
+      "ピカグレ御守",
+      "ふるこんぼ御守",
+      "ANEMONE",
+      "お肉",
+      "WHA",
+      "ABSOLUTE EVIL",
+      "RAGE feat.H14 of LEONAIR",
+      "RESIDENT UI",
+      "B.O.D.Y.",
+      "Shadow World",
+      "TECHNOPHOBIA",
+      "Programmed Genom",
+      "C-C-C-N-N-N",
+      "儚キ戀ノ幻想譚",
+      "きゅんです。",
+      "Summerblue",
+      "罪過の聖堂",
+      "CUE CUE RESCUE",
+      "Sunny Day Vibes",
+      "BEMANI PRO LEAGUE SEASON 3",
+      "BPLS3 APINA VRAMeS",
+      "BPLS3 GiGO",
+      "BPLS3 GAME PANIC",
+      "BPLS3 SILKHAT",
+      "BPLS3 SUPER NOVA Tohoku",
+      "BPLS3 TAITO STATION Tradz",
+      "BPLS3 ROUND1",
+      "BPLS3 レジャーランド",
+      "Beyond Evolution",
+      "AWA AWA",
+      "BIGWAVERS",
+      "ONE AND ONLY",
+      "■□模様",
+      "ちょえちょえまぎか",
+      "栄冠のカンパネラ",
+      "Xerulean",
+      "STRAIGHT TO THE STARS",
+      "JUSTICE/GUILTY",
+      "EPOLIS UI",
+      "Dahlia",
+      "シンデレラ",
+      "れとりば！",
+      "夢縁",
+      "SOLAR ECLIPSE",
+      "Ghost Pulse",
+      "Unknown (303)",
+      "Get Higher",
+      "アタシ完全絶対正義ちゃん！",
+      "dj CELICA (IIDX31)",
+      "dj SHEM (IIDX31)",
+      "dj AMETO (IIDX30)",
+      "BEMANI×東方Project ～幻想郷音樂祭2024～",
+      "BEMANI×東方Project Ultimate MasterPieces",
+      "CUE CUE RESCUE",
+      "Iris",
+      "SOLAR ECLIPSE",
+      "INHERITANCE",
+      "CADENZA",
+      "Cult Invitation",
+      "電子になりたい",
+      "MAXIMUM CHEAT GIRL",
+      "Out of Control",
+      "Glitch N Ride",
+      "惑星鉄道",
+      "COUNTING SHEEP ft. Kanae Asaba",
+      "マイポリスデザイナー",
+      "Pinky Crush",
+      "PIT A PAT",
+      "最強頂戴girl♡",
+      "Vibing! Shake it!",
+      "FERMI♡PARADOX",
+      "灼熱 Lost Summer Days",
+      "get set mind",
+      "Raspberry Potion(feat.あれたん♡ & ぎゃるのしん☆)",
+      "Secret Rouge",
+      "u gotta beat",
+      "爆ぜりゃんせ",
+      "Secret Rouge",
+      "Mare Nectaris",
+      "PIT A PAT",
+      "きみのせかい",
+      "Pinky Crush",
+      "Submerge Serenade",
+      "ABSOLUTE EVIL"
+    ],
+    "note_skin": [
+      "Default",
+      "ゴージャス",
+      "アクア",
+      "ギャル",
+      "フォトン",
+      "パステル",
+      "シンプルカラー",
+      "ライト",
+      "tricoro",
+      "バブル",
+      "tricoro",
+      "バブル"
+    ],
+    "full_combo_splash": [
+      "Default",
+      "IIDX RED",
+      "HAPPY SKY",
+      "DistorteD",
+      "GOLD",
+      "DJ TROOPERS",
+      "EMPRESS",
+      "SIRIUS",
+      "Resort Anthem",
+      "Lincle",
+      "tricoro",
+      "SPADA",
+      "Only One Full Combo / オンリーワンフルコンボ",
+      "PENDUAL",
+      "copula",
+      "SINOBUZ",
+      "CANNON Finish / キャノンフィニッシュ",
+      "Rootage",
+      "HEROIC VERSE",
+      "BISTROVER SLASH",
+      "CastHour",
+      "RESIDENT",
+      "EPOLIS",
+      "Pinky Crush",
+      "Sparkle Shower"
+    ],
+    "note_beam": [
+      "Default",
+      "Orange / オレンジ",
+      "Pink / ピンク",
+      "Monochrome / モノクロ",
+      "Lightning / ライトニング",
+      "Only One Beam / オンリーワンビーム",
+      "Train Spotlight / コピュライト",
+      "CANNON BALLERS / CBビーム",
+      "HEROIC VERSE / HVビーム",
+      "BISTROVER / BISTROVERビーム",
+      "CastHour / CastHourビーム",
+      "RESIDENT / RESIDENTビーム",
+      "EPOLIS",
+      "Pinky Crush",
+      "Sparkle Shower"
+    ],
+    "judge_font": [
+      "Default",
+      "Digital / デジタル",
+      "Smart / スマート",
+      "Metallic Blue / メタリックブルー",
+      "Techno / テクノ",
+      "Wire / ワイヤー",
+      "ABYSS",
+      "SPADA",
+      "ANCIENT",
+      "Only One Judge / オンリーワンジャッジ",
+      "Electronic Board / 電光掲示板風",
+      "SINOBUZ",
+      "Segment / セグメント",
+      "Rootage",
+      "HEROIC VERSE",
+      "BISTROVER JUDGE",
+      "CastHour",
+      "RESIDENT",
+      "EPOLIS",
+      "Pinky Crush",
+      "Sparkle Shower"
+    ],
+    "menu_music": [
+      "Default",
+      "SIRIUS",
+      "Resort Anthem",
+      "Lincle",
+      "tricoro",
+      "SPADA",
+      "PENDUAL(PRESENT)",
+      "PENDUAL(FUTURE)",
+      "copula",
+      "SINOBUZ",
+      "CANNON BALLERS",
+      "IIDXRED",
+      "HAPPY SKY",
+      "DistorteD",
+      "GOLD",
+      "DJ TROOPERS",
+      "EMPRESS",
+      "Rootage",
+      "7th Style",
+      "8th Style",
+      "9th Style",
+      "10th Style",
+      "HEROIC VERSE",
+      "BISTROVER",
+      "CastHour",
+      "RESIDENT",
+      "EPOLIS",
+      "SHADOW REBELLION part 1",
+      "SHADOW REBELLION part 2",
+      "BISTRO LANDING",
+      "CastHour SPACE PLATFORM X",
+      "RESIDENT PARTY SECRET LIVE",
+      "EPOLIS SINGULARITY",
+      "EPOLIS SINGULARITY II"
+    ],
+    "category_vox": [
+      "Default",
+      "Mori Iccho / 森一丁",
+      "SUPER STAR 満-MITSURU-",
+      "Michael a la mode / マイケル・ア・ラ・モード"
+    ],
+    "frame": [
+      "Default",
+      "BPL Season4 APINA VRAMeS",
+      "BPL Season4 GiGO",
+      "BPL Season4 GAME PANIC",
+      "BPL Season4 SILKHAT",
+      "BPL Season4 TAITO STATION Trads",
+      "BPL Season4 ROUND1",
+      "BPL Season4 レジャーランド",
+      "BPL Season3 レジャーランド",
+      "BPL Season2 GAME PANIC",
+      "BPL Season2 SILKHAT",
+      "BPL Season2 SUPER NOVA Tohoku",
+      "BPL Season2 TAITO STATION Trads",
+      "BPL Season2 ROUND1",
+      "BPL Season2 レジャーランド"
+    ],
+    "effect": [
+      "Default",
+      "ECHO/REVERB",
+      "COMPRESSOR/REVERB EX",
+      "CHORUS/FLANGER",
+      "GARGLE/DISTORTION",
+      "EQ ONLY"
+    ],
+    "bomb_size": [
+      "Default (100%)",
+      "70%",
+      "80%",
+      "90%",
+      "110%",
+      "120%",
+      "130%"
+    ],
+    "premium_bg": [
+      "Default",
+      "EPOLIS",
+      "エポリスシティへようこそ！",
+      "Ghost Pulse",
+      "Glitch N Ride",
+      "JUSTICE/GUILTY",
+      "シンデレラ",
+      "Iris",
+      "SOLAR ECLIPSE",
+      "TECHNOPHOBIA",
+      "CUE CUE RESCUE",
+      "STRAIGHT TO THE STARS",
+      "AWA AWA",
+      "ちょえちょえまぎか",
+      "ONE AND ONLY",
+      "クプロがたくさん",
+      "閉塞的フレーション",
+      "残像ニ繋ガレタ追憶ノHIDEAWAY",
+      "弾幕信仰",
+      "SUPER HEROINE!!",
+      "外来電子遊戯スコアアタック！",
+      "びーまにさま",
+      "Scarlet Moon",
+      "取り残された美術(Arranged：HiZuMi)",
+      "妖隠し -あやかしかくし-",
+      "千年ノ理",
+      "GloriosA",
+      "Dahlia",
+      "アタシ完全絶対正義ちゃん！",
+      "惑星鉄道",
+      "COUNTING SHEEP ft. Kanae Asaba",
+      "Out of Control",
+      "MAXIMUM CHEAT GIRL",
+      "CADENZA",
+      "Ambivalent Vermilia",
+      "電子になりたい",
+      "Level 5",
+      "Vulnerability",
+      "Level 4",
+      "Beyond Evolution",
+      "Somnidiscotheque",
+      "最強頂戴girl",
+      "ELYSIUM",
+      "Raspberry Potion",
+      "スパークリング☆彡ハイパーチューン！！",
+      "灼熱 Lost Summer Dayz",
+      "get set mind",
+      "Fiery Stallion",
+      "FERMI PARADOX",
+      "u gotta beat",
+      "RAVE SYNDROME",
+      "Dreamship",
+      "消極的セツナイズム",
+      "Bang-Boo Bumble",
+      "Roar of Chronos",
+      "Pinky Crush",
+      "爆ぜりゃんせ",
+      "ドリムチウ",
+      "Mid-Corner (Magic Maker)",
+      "きみのせかい",
+      "SμG@R RU$#",
+      "Virus Funk",
+      "ABSOLUTE EVIL",
+      "それが、ボクの使命 ～レスキュー隊長 メンキュー～",
+      "From Human Blood",
+      "Bang Bang Dance",
+      "Nyan Nyan University",
+      "ベラ・ベ・カラベラ",
+      "月下繚乱",
+      "百恋ラブラスター",
+      "閃と雷管とロープ"
+    ],
+    "entry_bg": [
+      "Default",
+      "Sparkle Shower",
+      "デラむぅ",
+      "それが、ボクの使命～レスキュー隊長 メンキュー～",
+      "Iris",
+      "SOLAR ECLIPSE",
+      "Substance",
+      "ABSOLUTE EVIL",
+      "Virus Funk",
+      "ROOTS26 神崎士朗＠Rootage",
+      "鴉 IX籠"
+    ],
+    "qpro_head": [
+      "Unknown (0)",
+      "Unknown (1)",
+      "Unknown (2)",
+      "Unknown (3)",
+      "Unknown (4)",
+      "Unknown (5)",
+      "Unknown (6)",
+      "Unknown (7)",
+      "Unknown (8)",
+      "Unknown (9)",
+      "Unknown (10)",
+      "Unknown (11)",
+      "Unknown (12)",
+      "Unknown (13)",
+      "Unknown (14)",
+      "Unknown (15)",
+      "Unknown (16)",
+      "Unknown (17)",
+      "Unknown (18)",
+      "Unknown (19)",
+      "Unknown (20)",
+      "Unknown (21)",
+      "Unknown (22)",
+      "Unknown (23)",
+      "Unknown (24)",
+      "Unknown (25)",
+      "Unknown (26)",
+      "Unknown (27)",
+      "Unknown (28)",
+      "Unknown (29)",
+      "Unknown (30)",
+      "Unknown (31)",
+      "Unknown (32)",
+      "Unknown (33)",
+      "Unknown (34)",
+      "Unknown (35)",
+      "Unknown (36)",
+      "Unknown (37)",
+      "Unknown (38)",
+      "Unknown (39)",
+      "Unknown (40)",
+      "Unknown (41)",
+      "Unknown (42)",
+      "Unknown (43)",
+      "Unknown (44)",
+      "Unknown (45)",
+      "Unknown (46)",
+      "Unknown (47)",
+      "Unknown (48)",
+      "Unknown (49)",
+      "Unknown (50)",
+      "Unknown (51)",
+      "Unknown (52)",
+      "Unknown (53)",
+      "Unknown (54)",
+      "Unknown (55)",
+      "Unknown (56)",
+      "Unknown (57)",
+      "Unknown (58)",
+      "Unknown (59)",
+      "Unknown (60)",
+      "Unknown (61)",
+      "Unknown (62)",
+      "Unknown (63)",
+      "Unknown (64)",
+      "Unknown (65)",
+      "Unknown (66)",
+      "Unknown (67)",
+      "Unknown (68)",
+      "Unknown (69)",
+      "Unknown (70)",
+      "Unknown (71)",
+      "Unknown (72)",
+      "Unknown (73)",
+      "Unknown (74)",
+      "Unknown (75)",
+      "Unknown (76)",
+      "Unknown (77)",
+      "Unknown (78)",
+      "Unknown (79)",
+      "Unknown (80)",
+      "Unknown (81)",
+      "Unknown (82)",
+      "Unknown (83)",
+      "Unknown (84)",
+      "Unknown (85)",
+      "Unknown (86)",
+      "Unknown (87)",
+      "Unknown (88)",
+      "Unknown (89)",
+      "Unknown (90)",
+      "Unknown (91)",
+      "Unknown (92)",
+      "Unknown (93)",
+      "Unknown (94)",
+      "Unknown (95)",
+      "Unknown (96)",
+      "Unknown (97)",
+      "Unknown (98)",
+      "Unknown (99)",
+      "Unknown (100)",
+      "Unknown (101)",
+      "Unknown (102)",
+      "Unknown (103)",
+      "Unknown (104)",
+      "Unknown (105)",
+      "Unknown (106)",
+      "Unknown (107)",
+      "Unknown (108)",
+      "Unknown (109)",
+      "Unknown (110)",
+      "Unknown (111)",
+      "Unknown (112)",
+      "Unknown (113)",
+      "Unknown (114)",
+      "Unknown (115)",
+      "Unknown (116)",
+      "Unknown (117)",
+      "Unknown (118)",
+      "Unknown (119)",
+      "Unknown (120)",
+      "Unknown (121)",
+      "Unknown (122)",
+      "Unknown (123)",
+      "Unknown (124)",
+      "Unknown (125)",
+      "Unknown (126)",
+      "Unknown (127)",
+      "Unknown (128)",
+      "Unknown (129)",
+      "Unknown (130)",
+      "Unknown (131)",
+      "Unknown (132)",
+      "Unknown (133)",
+      "Unknown (134)",
+      "Unknown (135)",
+      "Unknown (136)",
+      "Unknown (137)",
+      "Unknown (138)",
+      "Unknown (139)",
+      "Unknown (140)",
+      "Unknown (141)",
+      "Unknown (142)",
+      "Unknown (143)",
+      "Unknown (144)",
+      "Unknown (145)",
+      "Unknown (146)",
+      "Unknown (147)",
+      "Unknown (148)",
+      "Unknown (149)"
+    ],
+    "qpro_hair": [
+      "Unknown (0)",
+      "Unknown (1)",
+      "Unknown (2)",
+      "Unknown (3)",
+      "Unknown (4)",
+      "Unknown (5)",
+      "Unknown (6)",
+      "Unknown (7)",
+      "Unknown (8)",
+      "Unknown (9)",
+      "Unknown (10)",
+      "Unknown (11)",
+      "Unknown (12)",
+      "Unknown (13)",
+      "Unknown (14)",
+      "Unknown (15)",
+      "Unknown (16)",
+      "Unknown (17)",
+      "Unknown (18)",
+      "Unknown (19)",
+      "Unknown (20)",
+      "Unknown (21)",
+      "Unknown (22)",
+      "Unknown (23)",
+      "Unknown (24)",
+      "Unknown (25)",
+      "Unknown (26)",
+      "Unknown (27)",
+      "Unknown (28)",
+      "Unknown (29)",
+      "Unknown (30)",
+      "Unknown (31)",
+      "Unknown (32)",
+      "Unknown (33)",
+      "Unknown (34)",
+      "Unknown (35)",
+      "Unknown (36)",
+      "Unknown (37)",
+      "Unknown (38)",
+      "Unknown (39)",
+      "Unknown (40)",
+      "Unknown (41)",
+      "Unknown (42)",
+      "Unknown (43)",
+      "Unknown (44)",
+      "Unknown (45)",
+      "Unknown (46)",
+      "Unknown (47)",
+      "Unknown (48)",
+      "Unknown (49)",
+      "Unknown (50)",
+      "Unknown (51)",
+      "Unknown (52)",
+      "Unknown (53)",
+      "Unknown (54)",
+      "Unknown (55)",
+      "Unknown (56)",
+      "Unknown (57)",
+      "Unknown (58)",
+      "Unknown (59)",
+      "Unknown (60)",
+      "Unknown (61)",
+      "Unknown (62)",
+      "Unknown (63)",
+      "Unknown (64)",
+      "Unknown (65)",
+      "Unknown (66)",
+      "Unknown (67)",
+      "Unknown (68)",
+      "Unknown (69)",
+      "Unknown (70)",
+      "Unknown (71)",
+      "Unknown (72)",
+      "Unknown (73)",
+      "Unknown (74)",
+      "Unknown (75)",
+      "Unknown (76)",
+      "Unknown (77)",
+      "Unknown (78)",
+      "Unknown (79)",
+      "Unknown (80)",
+      "Unknown (81)",
+      "Unknown (82)",
+      "Unknown (83)",
+      "Unknown (84)",
+      "Unknown (85)",
+      "Unknown (86)",
+      "Unknown (87)",
+      "Unknown (88)",
+      "Unknown (89)",
+      "Unknown (90)",
+      "Unknown (91)",
+      "Unknown (92)",
+      "Unknown (93)",
+      "Unknown (94)",
+      "Unknown (95)",
+      "Unknown (96)",
+      "Unknown (97)",
+      "Unknown (98)",
+      "Unknown (99)",
+      "Unknown (100)",
+      "Unknown (101)",
+      "Unknown (102)",
+      "Unknown (103)",
+      "Unknown (104)",
+      "Unknown (105)",
+      "Unknown (106)",
+      "Unknown (107)",
+      "Unknown (108)",
+      "Unknown (109)",
+      "Unknown (110)",
+      "Unknown (111)",
+      "Unknown (112)",
+      "Unknown (113)",
+      "Unknown (114)",
+      "Unknown (115)",
+      "Unknown (116)",
+      "Unknown (117)",
+      "Unknown (118)",
+      "Unknown (119)",
+      "Unknown (120)",
+      "Unknown (121)",
+      "Unknown (122)",
+      "Unknown (123)",
+      "Unknown (124)",
+      "Unknown (125)",
+      "Unknown (126)",
+      "Unknown (127)",
+      "Unknown (128)",
+      "Unknown (129)",
+      "Unknown (130)",
+      "Unknown (131)",
+      "Unknown (132)",
+      "Unknown (133)",
+      "Unknown (134)",
+      "Unknown (135)",
+      "Unknown (136)",
+      "Unknown (137)",
+      "Unknown (138)",
+      "Unknown (139)",
+      "Unknown (140)",
+      "Unknown (141)",
+      "Unknown (142)",
+      "Unknown (143)",
+      "Unknown (144)",
+      "Unknown (145)",
+      "Unknown (146)",
+      "Unknown (147)",
+      "Unknown (148)",
+      "Unknown (149)"
+    ],
+    "qpro_hand": [
+      "Unknown (0)",
+      "Unknown (1)",
+      "Unknown (2)",
+      "Unknown (3)",
+      "Unknown (4)",
+      "Unknown (5)",
+      "Unknown (6)",
+      "Unknown (7)",
+      "Unknown (8)",
+      "Unknown (9)",
+      "Unknown (10)",
+      "Unknown (11)",
+      "Unknown (12)",
+      "Unknown (13)",
+      "Unknown (14)",
+      "Unknown (15)",
+      "Unknown (16)",
+      "Unknown (17)",
+      "Unknown (18)",
+      "Unknown (19)",
+      "Unknown (20)",
+      "Unknown (21)",
+      "Unknown (22)",
+      "Unknown (23)",
+      "Unknown (24)",
+      "Unknown (25)",
+      "Unknown (26)",
+      "Unknown (27)",
+      "Unknown (28)",
+      "Unknown (29)",
+      "Unknown (30)",
+      "Unknown (31)",
+      "Unknown (32)",
+      "Unknown (33)",
+      "Unknown (34)",
+      "Unknown (35)",
+      "Unknown (36)",
+      "Unknown (37)",
+      "Unknown (38)",
+      "Unknown (39)",
+      "Unknown (40)",
+      "Unknown (41)",
+      "Unknown (42)",
+      "Unknown (43)",
+      "Unknown (44)",
+      "Unknown (45)",
+      "Unknown (46)",
+      "Unknown (47)",
+      "Unknown (48)",
+      "Unknown (49)",
+      "Unknown (50)",
+      "Unknown (51)",
+      "Unknown (52)",
+      "Unknown (53)",
+      "Unknown (54)",
+      "Unknown (55)",
+      "Unknown (56)",
+      "Unknown (57)",
+      "Unknown (58)",
+      "Unknown (59)",
+      "Unknown (60)",
+      "Unknown (61)",
+      "Unknown (62)",
+      "Unknown (63)",
+      "Unknown (64)",
+      "Unknown (65)",
+      "Unknown (66)",
+      "Unknown (67)",
+      "Unknown (68)",
+      "Unknown (69)",
+      "Unknown (70)",
+      "Unknown (71)",
+      "Unknown (72)",
+      "Unknown (73)",
+      "Unknown (74)",
+      "Unknown (75)",
+      "Unknown (76)",
+      "Unknown (77)",
+      "Unknown (78)",
+      "Unknown (79)",
+      "Unknown (80)",
+      "Unknown (81)",
+      "Unknown (82)",
+      "Unknown (83)",
+      "Unknown (84)",
+      "Unknown (85)",
+      "Unknown (86)",
+      "Unknown (87)",
+      "Unknown (88)",
+      "Unknown (89)",
+      "Unknown (90)",
+      "Unknown (91)",
+      "Unknown (92)",
+      "Unknown (93)",
+      "Unknown (94)",
+      "Unknown (95)",
+      "Unknown (96)",
+      "Unknown (97)",
+      "Unknown (98)",
+      "Unknown (99)",
+      "Unknown (100)",
+      "Unknown (101)",
+      "Unknown (102)",
+      "Unknown (103)",
+      "Unknown (104)",
+      "Unknown (105)",
+      "Unknown (106)",
+      "Unknown (107)",
+      "Unknown (108)",
+      "Unknown (109)",
+      "Unknown (110)",
+      "Unknown (111)",
+      "Unknown (112)",
+      "Unknown (113)",
+      "Unknown (114)",
+      "Unknown (115)",
+      "Unknown (116)",
+      "Unknown (117)",
+      "Unknown (118)",
+      "Unknown (119)",
+      "Unknown (120)",
+      "Unknown (121)",
+      "Unknown (122)",
+      "Unknown (123)",
+      "Unknown (124)",
+      "Unknown (125)",
+      "Unknown (126)",
+      "Unknown (127)",
+      "Unknown (128)",
+      "Unknown (129)",
+      "Unknown (130)",
+      "Unknown (131)",
+      "Unknown (132)",
+      "Unknown (133)",
+      "Unknown (134)",
+      "Unknown (135)",
+      "Unknown (136)",
+      "Unknown (137)",
+      "Unknown (138)",
+      "Unknown (139)",
+      "Unknown (140)",
+      "Unknown (141)",
+      "Unknown (142)",
+      "Unknown (143)",
+      "Unknown (144)",
+      "Unknown (145)",
+      "Unknown (146)",
+      "Unknown (147)",
+      "Unknown (148)",
+      "Unknown (149)"
+    ],
+    "qpro_face": [
+      "Unknown (0)",
+      "Unknown (1)",
+      "Unknown (2)",
+      "Unknown (3)",
+      "Unknown (4)",
+      "Unknown (5)",
+      "Unknown (6)",
+      "Unknown (7)",
+      "Unknown (8)",
+      "Unknown (9)",
+      "Unknown (10)",
+      "Unknown (11)",
+      "Unknown (12)",
+      "Unknown (13)",
+      "Unknown (14)",
+      "Unknown (15)",
+      "Unknown (16)",
+      "Unknown (17)",
+      "Unknown (18)",
+      "Unknown (19)",
+      "Unknown (20)",
+      "Unknown (21)",
+      "Unknown (22)",
+      "Unknown (23)",
+      "Unknown (24)",
+      "Unknown (25)",
+      "Unknown (26)",
+      "Unknown (27)",
+      "Unknown (28)",
+      "Unknown (29)",
+      "Unknown (30)",
+      "Unknown (31)",
+      "Unknown (32)",
+      "Unknown (33)",
+      "Unknown (34)",
+      "Unknown (35)",
+      "Unknown (36)",
+      "Unknown (37)",
+      "Unknown (38)",
+      "Unknown (39)",
+      "Unknown (40)",
+      "Unknown (41)",
+      "Unknown (42)",
+      "Unknown (43)",
+      "Unknown (44)",
+      "Unknown (45)",
+      "Unknown (46)",
+      "Unknown (47)",
+      "Unknown (48)",
+      "Unknown (49)",
+      "Unknown (50)",
+      "Unknown (51)",
+      "Unknown (52)",
+      "Unknown (53)",
+      "Unknown (54)",
+      "Unknown (55)",
+      "Unknown (56)",
+      "Unknown (57)",
+      "Unknown (58)",
+      "Unknown (59)",
+      "Unknown (60)",
+      "Unknown (61)",
+      "Unknown (62)",
+      "Unknown (63)",
+      "Unknown (64)",
+      "Unknown (65)",
+      "Unknown (66)",
+      "Unknown (67)",
+      "Unknown (68)",
+      "Unknown (69)",
+      "Unknown (70)",
+      "Unknown (71)",
+      "Unknown (72)",
+      "Unknown (73)",
+      "Unknown (74)",
+      "Unknown (75)",
+      "Unknown (76)",
+      "Unknown (77)",
+      "Unknown (78)",
+      "Unknown (79)",
+      "Unknown (80)",
+      "Unknown (81)",
+      "Unknown (82)",
+      "Unknown (83)",
+      "Unknown (84)",
+      "Unknown (85)",
+      "Unknown (86)",
+      "Unknown (87)",
+      "Unknown (88)",
+      "Unknown (89)",
+      "Unknown (90)",
+      "Unknown (91)",
+      "Unknown (92)",
+      "Unknown (93)",
+      "Unknown (94)",
+      "Unknown (95)",
+      "Unknown (96)",
+      "Unknown (97)",
+      "Unknown (98)",
+      "Unknown (99)",
+      "Unknown (100)",
+      "Unknown (101)",
+      "Unknown (102)",
+      "Unknown (103)",
+      "Unknown (104)",
+      "Unknown (105)",
+      "Unknown (106)",
+      "Unknown (107)",
+      "Unknown (108)",
+      "Unknown (109)",
+      "Unknown (110)",
+      "Unknown (111)",
+      "Unknown (112)",
+      "Unknown (113)",
+      "Unknown (114)",
+      "Unknown (115)",
+      "Unknown (116)",
+      "Unknown (117)",
+      "Unknown (118)",
+      "Unknown (119)",
+      "Unknown (120)",
+      "Unknown (121)",
+      "Unknown (122)",
+      "Unknown (123)",
+      "Unknown (124)",
+      "Unknown (125)",
+      "Unknown (126)",
+      "Unknown (127)",
+      "Unknown (128)",
+      "Unknown (129)",
+      "Unknown (130)",
+      "Unknown (131)",
+      "Unknown (132)",
+      "Unknown (133)",
+      "Unknown (134)",
+      "Unknown (135)",
+      "Unknown (136)",
+      "Unknown (137)",
+      "Unknown (138)",
+      "Unknown (139)",
+      "Unknown (140)",
+      "Unknown (141)",
+      "Unknown (142)",
+      "Unknown (143)",
+      "Unknown (144)",
+      "Unknown (145)",
+      "Unknown (146)",
+      "Unknown (147)",
+      "Unknown (148)",
+      "Unknown (149)"
+    ],
+    "qpro_body": [
+      "Unknown (0)",
+      "Unknown (1)",
+      "Unknown (2)",
+      "Unknown (3)",
+      "Unknown (4)",
+      "Unknown (5)",
+      "Unknown (6)",
+      "Unknown (7)",
+      "Unknown (8)",
+      "Unknown (9)",
+      "Unknown (10)",
+      "Unknown (11)",
+      "Unknown (12)",
+      "Unknown (13)",
+      "Unknown (14)",
+      "Unknown (15)",
+      "Unknown (16)",
+      "Unknown (17)",
+      "Unknown (18)",
+      "Unknown (19)",
+      "Unknown (20)",
+      "Unknown (21)",
+      "Unknown (22)",
+      "Unknown (23)",
+      "Unknown (24)",
+      "Unknown (25)",
+      "Unknown (26)",
+      "Unknown (27)",
+      "Unknown (28)",
+      "Unknown (29)",
+      "Unknown (30)",
+      "Unknown (31)",
+      "Unknown (32)",
+      "Unknown (33)",
+      "Unknown (34)",
+      "Unknown (35)",
+      "Unknown (36)",
+      "Unknown (37)",
+      "Unknown (38)",
+      "Unknown (39)",
+      "Unknown (40)",
+      "Unknown (41)",
+      "Unknown (42)",
+      "Unknown (43)",
+      "Unknown (44)",
+      "Unknown (45)",
+      "Unknown (46)",
+      "Unknown (47)",
+      "Unknown (48)",
+      "Unknown (49)",
+      "Unknown (50)",
+      "Unknown (51)",
+      "Unknown (52)",
+      "Unknown (53)",
+      "Unknown (54)",
+      "Unknown (55)",
+      "Unknown (56)",
+      "Unknown (57)",
+      "Unknown (58)",
+      "Unknown (59)",
+      "Unknown (60)",
+      "Unknown (61)",
+      "Unknown (62)",
+      "Unknown (63)",
+      "Unknown (64)",
+      "Unknown (65)",
+      "Unknown (66)",
+      "Unknown (67)",
+      "Unknown (68)",
+      "Unknown (69)",
+      "Unknown (70)",
+      "Unknown (71)",
+      "Unknown (72)",
+      "Unknown (73)",
+      "Unknown (74)",
+      "Unknown (75)",
+      "Unknown (76)",
+      "Unknown (77)",
+      "Unknown (78)",
+      "Unknown (79)",
+      "Unknown (80)",
+      "Unknown (81)",
+      "Unknown (82)",
+      "Unknown (83)",
+      "Unknown (84)",
+      "Unknown (85)",
+      "Unknown (86)",
+      "Unknown (87)",
+      "Unknown (88)",
+      "Unknown (89)",
+      "Unknown (90)",
+      "Unknown (91)",
+      "Unknown (92)",
+      "Unknown (93)",
+      "Unknown (94)",
+      "Unknown (95)",
+      "Unknown (96)",
+      "Unknown (97)",
+      "Unknown (98)",
+      "Unknown (99)",
+      "Unknown (100)",
+      "Unknown (101)",
+      "Unknown (102)",
+      "Unknown (103)",
+      "Unknown (104)",
+      "Unknown (105)",
+      "Unknown (106)",
+      "Unknown (107)",
+      "Unknown (108)",
+      "Unknown (109)",
+      "Unknown (110)",
+      "Unknown (111)",
+      "Unknown (112)",
+      "Unknown (113)",
+      "Unknown (114)",
+      "Unknown (115)",
+      "Unknown (116)",
+      "Unknown (117)",
+      "Unknown (118)",
+      "Unknown (119)",
+      "Unknown (120)",
+      "Unknown (121)",
+      "Unknown (122)",
+      "Unknown (123)",
+      "Unknown (124)",
+      "Unknown (125)",
+      "Unknown (126)",
+      "Unknown (127)",
+      "Unknown (128)",
+      "Unknown (129)",
+      "Unknown (130)",
+      "Unknown (131)",
+      "Unknown (132)",
+      "Unknown (133)",
+      "Unknown (134)",
+      "Unknown (135)",
+      "Unknown (136)",
+      "Unknown (137)",
+      "Unknown (138)",
+      "Unknown (139)",
+      "Unknown (140)",
+      "Unknown (141)",
+      "Unknown (142)",
+      "Unknown (143)",
+      "Unknown (144)",
+      "Unknown (145)",
+      "Unknown (146)",
+      "Unknown (147)",
+      "Unknown (148)",
+      "Unknown (149)"
+    ],
+    "qpro_back": [
+      "Unknown (0)",
+      "Unknown (1)",
+      "Unknown (2)",
+      "Unknown (3)",
+      "Unknown (4)",
+      "Unknown (5)",
+      "Unknown (6)",
+      "Unknown (7)",
+      "Unknown (8)",
+      "Unknown (9)",
+      "Unknown (10)",
+      "Unknown (11)",
+      "Unknown (12)",
+      "Unknown (13)",
+      "Unknown (14)",
+      "Unknown (15)",
+      "Unknown (16)",
+      "Unknown (17)",
+      "Unknown (18)",
+      "Unknown (19)",
+      "Unknown (20)",
+      "Unknown (21)",
+      "Unknown (22)",
+      "Unknown (23)",
+      "Unknown (24)",
+      "Unknown (25)",
+      "Unknown (26)",
+      "Unknown (27)",
+      "Unknown (28)",
+      "Unknown (29)",
+      "Unknown (30)",
+      "Unknown (31)",
+      "Unknown (32)",
+      "Unknown (33)",
+      "Unknown (34)",
+      "Unknown (35)",
+      "Unknown (36)",
+      "Unknown (37)",
+      "Unknown (38)",
+      "Unknown (39)",
+      "Unknown (40)",
+      "Unknown (41)",
+      "Unknown (42)",
+      "Unknown (43)",
+      "Unknown (44)",
+      "Unknown (45)",
+      "Unknown (46)",
+      "Unknown (47)",
+      "Unknown (48)",
+      "Unknown (49)",
+      "Unknown (50)",
+      "Unknown (51)",
+      "Unknown (52)",
+      "Unknown (53)",
+      "Unknown (54)",
+      "Unknown (55)",
+      "Unknown (56)",
+      "Unknown (57)",
+      "Unknown (58)",
+      "Unknown (59)",
+      "Unknown (60)",
+      "Unknown (61)",
+      "Unknown (62)",
+      "Unknown (63)",
+      "Unknown (64)",
+      "Unknown (65)",
+      "Unknown (66)",
+      "Unknown (67)",
+      "Unknown (68)",
+      "Unknown (69)",
+      "Unknown (70)",
+      "Unknown (71)",
+      "Unknown (72)",
+      "Unknown (73)",
+      "Unknown (74)",
+      "Unknown (75)",
+      "Unknown (76)",
+      "Unknown (77)",
+      "Unknown (78)",
+      "Unknown (79)",
+      "Unknown (80)",
+      "Unknown (81)",
+      "Unknown (82)",
+      "Unknown (83)",
+      "Unknown (84)",
+      "Unknown (85)",
+      "Unknown (86)",
+      "Unknown (87)",
+      "Unknown (88)",
+      "Unknown (89)",
+      "Unknown (90)",
+      "Unknown (91)",
+      "Unknown (92)",
+      "Unknown (93)",
+      "Unknown (94)",
+      "Unknown (95)",
+      "Unknown (96)",
+      "Unknown (97)",
+      "Unknown (98)",
+      "Unknown (99)",
+      "Unknown (100)",
+      "Unknown (101)",
+      "Unknown (102)",
+      "Unknown (103)",
+      "Unknown (104)",
+      "Unknown (105)",
+      "Unknown (106)",
+      "Unknown (107)",
+      "Unknown (108)",
+      "Unknown (109)",
+      "Unknown (110)",
+      "Unknown (111)",
+      "Unknown (112)",
+      "Unknown (113)",
+      "Unknown (114)",
+      "Unknown (115)",
+      "Unknown (116)",
+      "Unknown (117)",
+      "Unknown (118)",
+      "Unknown (119)",
+      "Unknown (120)",
+      "Unknown (121)",
+      "Unknown (122)",
+      "Unknown (123)",
+      "Unknown (124)",
+      "Unknown (125)",
+      "Unknown (126)",
+      "Unknown (127)",
+      "Unknown (128)",
+      "Unknown (129)",
+      "Unknown (130)",
+      "Unknown (131)",
+      "Unknown (132)",
+      "Unknown (133)",
+      "Unknown (134)",
+      "Unknown (135)",
+      "Unknown (136)",
+      "Unknown (137)",
+      "Unknown (138)",
+      "Unknown (139)",
+      "Unknown (140)",
+      "Unknown (141)",
+      "Unknown (142)",
+      "Unknown (143)",
+      "Unknown (144)",
+      "Unknown (145)",
+      "Unknown (146)",
+      "Unknown (147)",
+      "Unknown (148)",
+      "Unknown (149)"
+    ]
+  };
+
+
+-
   const version = [
     14,
     15,
@@ -37,241 +1618,365 @@ div
         | Settings
     .card-content
       form(method="post" action="/emit/iidxUpdateCustom")
-        .field
-          input(type="text" name="refid", value=refid readonly hidden)
-          label.label IIDX ID
-          .control
-            input.input(type="text" name="iidxid", value=profile.idstr readonly)
-        .field
-          label.label Version
-          .control
-            .select
-              select(name="version", id="version")
-                each i in version
-                  option(selected=(i==pcdata.version)) #{i}
-        .field
-          label.label Name
-          .control
-            input.input(type="text" name="name", id="name", value=profile.name)
-        //- SKIN
-        .field
-          label.label Frame
-          .control
-            input.input(type="number" name="frame", id="frame", value=custom.frame)
-        .field
-          label.label Turntable
-          .control
-            input.input(type="number" name="turntable", id="turntable", value=custom.turntable)
-        .field
-          label.label Note Burst
-          .control
-            input.input(type="number" name="note_burst", id="note_burst", value=custom.note_burst)
-        .field
-          label.label Menu Music
-          .control
-            input.input(type="number" name="menu_music", id="menu_music", value=custom.menu_music)
-        .field
-          label.label Lane Cover
-          .control
-            input.input(type="number" name="lane_cover", id="lane_cover", value=custom.lane_cover)
-        .field
-          label.label Category Voice
-          .control
-            input.input(type="number" name="category_vox", id="category_vox", value=custom.category_vox)
-        .field
-          label.label Note Skin
-          .control
-            input.input(type="number" name="note_skin", id="note_skin", value=custom.note_skin)
-        .field
-          label.label Full Combo Splash
-          .control
-            input.input(type="number" name="full_combo_splash", id="full_combo_splash", value=custom.full_combo_splash)
-        .field
-          label.label Note Beam
-          .control
-            input.input(type="number" name="note_beam", id="note_beam", value=custom.note_beam)
-        .field
-          label.label Judgement Font
-          .control
-            input.input(type="number" name="judge_font", id="judge_font", value=custom.judge_font)
-        .field
-          label.label Disable Music Preview
-          .control
-            input(type="checkbox" name="disable_musicpreview", id="disable_musicpreview", checked=Boolean(custom.disable_musicpreview))
-        .field
-          label.label Pacemaker Cover
-          .control
-            input.input(type="number" name="pacemaker_cover", id="pacemaker_cover", value=custom.pacemaker_cover)
-        .field
-          label.label VEFX Lock
-          .control
-            input(type="checkbox" name="vefx_lock", id="vefx_lock", checked=Boolean(custom.vefx_lock))
-        .field
-          label.label VEFX Lock (Effector)
-          .control
-            input.input(type="number" name="effect", id="effect", value=custom.effect)
-        .field
-          label.label Note Burst Size
-          .control
-            input.input(type="number" name="bomb_size", id="bomb_size", value=custom.bomb_size)
-        .field
-          label.label Disable HCN Color
-          .control
-            input(type="checkbox" name="disable_hcn_color", id="disable_hcn_color", checked=Boolean(custom.disable_hcn_color))
-        .field
-          label.label First Note Preview
-          .control
-            input.input(type="number" name="first_note_preview", id="first_note_preview", value=custom.first_note_preview)
-        .field
-          label.label Note Size
-          .control
-            if custom.note_size === undefined
-              input.input(type="number" name="note_size", id="note_size", value="0")
-            else
-              input.input(type="number" name="note_size", id="note_size", value=custom.note_size)
-        .field
-          label.label Lift Cover
-          .control
-            if custom.lift_cover === undefined
-              input.input(type="number" name="lift_cover", id="lift_cover", value="0")
-            else
-              input.input(type="number" name="lift_cover", id="lift_cover", value=custom.lift_cover)
-        .field
-          label.label Note Beam Size
-          .control
-            if custom.note_beam_size === undefined
-              input.input(type="number" name="note_beam_size", id="note_beam_size", value="0")
-            else
-              input.input(type="number" name="note_beam_size", id="note_beam_size", value=custom.note_beam_size)
-        .field
-          label.label Charge Note Color
-          .control
-            if custom.cn_color === undefined
-              input.input(type="number" name="cn_color", id="cn_color", value="0")
-            else
-              input.input(type="number" name="cn_color", id="cn_color", value=custom.cn_color)
-        .field
-          label.label Charge Note Size
-          .control
-            if custom.cn_size === undefined
-              input.input(type="number" name="cn_size", id="cn_size", value="0")
-            else
-              input.input(type="number" name="cn_size", id="cn_size", value=custom.cn_size)
-        //- APPEND SETTINGS
-        .field
-          label.label Rank Folder
-          .control
-            input(type="checkbox" name="rank_folder", id="rank_folder", checked=Boolean(custom.rank_folder))
-        .field
-          label.label Clear State Folder
-          .control
-            input(type="checkbox" name="clear_folder", id="clear_folder", checked=Boolean(custom.clear_folder))
-        .field
-          label.label Difficulty Folder
-          .control
-            input(type="checkbox" name="diff_folder", id="diff_folder", checked=Boolean(custom.diff_folder))
-        .field
-          label.label Alphabet Folder
-          .control
-            input(type="checkbox" name="alpha_folder", id="alpha_folder", checked=Boolean(custom.alpha_folder))
-        .field
-          label.label Rival Folder
-          .control
-            input(type="checkbox" name="rival_folder", id="rival_folder", checked=Boolean(custom.rival_folder))
-        .field
-          label.label Rival WIN/LOSE Folder
-          .control
-            input(type="checkbox" name="rival_battle_folder", id="rival_battle_folder", checked=Boolean(custom.rival_battle_folder))
-        .field
-          label.label Rival Info / Venue Top Display
-          .control
-            input(type="checkbox" name="rival_info", id="rival_info", checked=Boolean(custom.rival_info))
-        .field
-          label.label Hide Playcount
-          .control
-            input(type="checkbox" name="hide_playcount", id="hide_playcount", checked=Boolean(custom.hide_playcount))
-        .field
-          label.label Disable Pacemaker Cut-In
-          .control
-            input(type="checkbox" name="disable_graph_cutin", id="disable_graph_cutin", checked=Boolean(custom.disable_graph_cutin))
-        .field
-          label.label Classic Hi-SPEED
-          .control
-            input(type="checkbox" name="class_hispeed", id="class_hispeed", checked=Boolean(custom.class_hispeed))
-        .field
-          label.label Rival Played Folder
-          .control
-            input(type="checkbox" name="rival_played_folder", id="rival_played_folder", checked=Boolean(custom.rival_played_folder))
-        .field
-          label.label Hide IIDX ID
-          .control
-            input(type="checkbox" name="hide_iidxid", id="hide_iidxid", checked=Boolean(custom.hide_iidxid))
-        .field
-          label.label Disable Beginner Option
-          .control
-            if custom.disable_beginner_option === undefined
-              input(type="checkbox" name="disable_beginner_option", id="disable_beginner_option", checked=Boolean(false))
-            else
-              input(type="checkbox" name="disable_beginner_option", id="disable_beginner_option", checked=Boolean(custom.disable_beginner_option))
-        //- QPRO
-        .field
-          label.label QPRO Head
-          .control
-            input.input(type="number" name="qpro_head", id="qpro_head", value=custom.qpro_head)
-        .field
-          label.label QPRO Hair
-          .control
-            input.input(type="number" name="qpro_hair", id="qpro_hair", value=custom.qpro_hair)
-        .field
-          label.label QPRO Hand
-          .control
-            input.input(type="number" name="qpro_hand", id="qpro_hand", value=custom.qpro_hand)
-        .field
-          label.label QPRO Face
-          .control
-            input.input(type="number" name="qpro_face", id="qpro_face", value=custom.qpro_face)
-        .field
-          label.label QPRO Body
-          .control
-            input.input(type="number" name="qpro_body", id="qpro_body", value=custom.qpro_body)
-        .field
-          label.label QPRO Back
-          .control
-            if custom.qpro_back === undefined
-              input.input(type="number" name="qpro_back", id="qpro_back", value="0")
-            else
-              input.input(type="number" name="qpro_back", id="qpro_back", value=custom.qpro_back)
-        //- LIGHTNING CUSTOM
+        h3.title.is-4(style="margin-top: 1.5rem; margin-bottom: 0.5rem; border-bottom: 1px solid #dbdbdb; padding-bottom: 0.5rem;") General Settings
+        .columns.is-multiline
+          .column.is-half
+            .field
+              input(type="text" name="refid", value=refid readonly hidden)
+              label.label IIDX ID
+              .control
+                input.input(type="text" name="iidxid", value=profile.idstr readonly)
+          .column.is-half
+            .field
+              label.label Version
+              .control
+                .select
+                  select(name="version", id="version")
+                    each i in version
+                      option(selected=(i==pcdata.version)) #{i}
+          .column.is-half
+            .field
+              label.label Name
+              .control
+                input.input(type="text" name="name", id="name", value=profile.name)
+        h3.title.is-4(style="margin-top: 1.5rem; margin-bottom: 0.5rem; border-bottom: 1px solid #dbdbdb; padding-bottom: 0.5rem;") Visual Customization
+        .columns.is-multiline
+          .column.is-half
+            .field
+              label.label Frame
+              .control
+                .select
+                  select(name="frame", id="frame")
+                    each val, index in customData.frame
+                      option(value=index selected=(index==custom.frame)) #{val}
+          .column.is-half
+            .field
+              label.label Turntable
+              .control
+                .select
+                  select(name="turntable", id="turntable")
+                    each val, index in customData.turntable
+                      option(value=index selected=(index==custom.turntable)) #{val}
+          .column.is-half
+            .field
+              label.label Note Burst
+              .control
+                .select
+                  select(name="note_burst", id="note_burst")
+                    each val, index in customData.note_burst
+                      option(value=index selected=(index==custom.note_burst)) #{val}
+          .column.is-half
+            .field
+              label.label Menu Music
+              .control
+                .select
+                  select(name="menu_music", id="menu_music")
+                    each val, index in customData.menu_music
+                      option(value=index selected=(index==custom.menu_music)) #{val}
+          .column.is-half
+            .field
+              label.label Lane Cover
+              .control
+                .select
+                  select(name="lane_cover", id="lane_cover")
+                    each val, index in customData.lane_cover
+                      option(value=index selected=(index==custom.lane_cover)) #{val}
+          .column.is-half
+            .field
+              label.label Category Voice
+              .control
+                .select
+                  select(name="category_vox", id="category_vox")
+                    each val, index in customData.category_vox
+                      option(value=index selected=(index==custom.category_vox)) #{val}
+          .column.is-half
+            .field
+              label.label Note Skin
+              .control
+                .select
+                  select(name="note_skin", id="note_skin")
+                    each val, index in customData.note_skin
+                      option(value=index selected=(index==custom.note_skin)) #{val}
+          .column.is-half
+            .field
+              label.label Full Combo Splash
+              .control
+                .select
+                  select(name="full_combo_splash", id="full_combo_splash")
+                    each val, index in customData.full_combo_splash
+                      option(value=index selected=(index==custom.full_combo_splash)) #{val}
+          .column.is-half
+            .field
+              label.label Note Beam
+              .control
+                .select
+                  select(name="note_beam", id="note_beam")
+                    each val, index in customData.note_beam
+                      option(value=index selected=(index==custom.note_beam)) #{val}
+          .column.is-half
+            .field
+              label.label Judgement Font
+              .control
+                .select
+                  select(name="judge_font", id="judge_font")
+                    each val, index in customData.judge_font
+                      option(value=index selected=(index==custom.judge_font)) #{val}
+        h3.title.is-4(style="margin-top: 1.5rem; margin-bottom: 0.5rem; border-bottom: 1px solid #dbdbdb; padding-bottom: 0.5rem;") Play Customization
+        .columns.is-multiline
+          .column.is-half
+            .field
+              label.label Disable Music Preview
+              .control
+                input(type="checkbox" name="disable_musicpreview", id="disable_musicpreview", checked=Boolean(custom.disable_musicpreview))
+          .column.is-half
+            .field
+              label.label Pacemaker Cover
+              .control
+                input.input(type="number" name="pacemaker_cover", id="pacemaker_cover", value=custom.pacemaker_cover)
+          .column.is-half
+            .field
+              label.label VEFX Lock
+              .control
+                input(type="checkbox" name="vefx_lock", id="vefx_lock", checked=Boolean(custom.vefx_lock))
+          .column.is-half
+            .field
+              label.label VEFX Lock (Effector)
+              .control
+                .select
+                  select(name="effect", id="effect")
+                    each val, index in customData.effect
+                      option(value=index selected=(index==custom.effect)) #{val}
+          .column.is-half
+            .field
+              label.label Note Burst Size
+              .control
+                .select
+                  select(name="bomb_size", id="bomb_size")
+                    each val, index in customData.bomb_size
+                      option(value=index selected=(index==custom.bomb_size)) #{val}
+          .column.is-half
+            .field
+              label.label Disable HCN Color
+              .control
+                input(type="checkbox" name="disable_hcn_color", id="disable_hcn_color", checked=Boolean(custom.disable_hcn_color))
+          .column.is-half
+            .field
+              label.label First Note Preview
+              .control
+                input.input(type="number" name="first_note_preview", id="first_note_preview", value=custom.first_note_preview)
+          .column.is-half
+            .field
+              label.label Note Size
+              .control
+                if custom.note_size === undefined
+                  input.input(type="number" name="note_size", id="note_size", value="0")
+                else
+                  input.input(type="number" name="note_size", id="note_size", value=custom.note_size)
+          .column.is-half
+            .field
+              label.label Lift Cover
+              .control
+                if custom.lift_cover === undefined
+                  input.input(type="number" name="lift_cover", id="lift_cover", value="0")
+                else
+                  input.input(type="number" name="lift_cover", id="lift_cover", value=custom.lift_cover)
+          .column.is-half
+            .field
+              label.label Note Beam Size
+              .control
+                if custom.note_beam_size === undefined
+                  input.input(type="number" name="note_beam_size", id="note_beam_size", value="0")
+                else
+                  input.input(type="number" name="note_beam_size", id="note_beam_size", value=custom.note_beam_size)
+          .column.is-half
+            .field
+              label.label Charge Note Color
+              .control
+                if custom.cn_color === undefined
+                  input.input(type="number" name="cn_color", id="cn_color", value="0")
+                else
+                  input.input(type="number" name="cn_color", id="cn_color", value=custom.cn_color)
+          .column.is-half
+            .field
+              label.label Charge Note Size
+              .control
+                if custom.cn_size === undefined
+                  input.input(type="number" name="cn_size", id="cn_size", value="0")
+                else
+                  input.input(type="number" name="cn_size", id="cn_size", value=custom.cn_size)
+        h3.title.is-4(style="margin-top: 1.5rem; margin-bottom: 0.5rem; border-bottom: 1px solid #dbdbdb; padding-bottom: 0.5rem;") Folder / Display Options
+        .columns.is-multiline
+          .column.is-half
+            .field
+              label.label Rank Folder
+              .control
+                input(type="checkbox" name="rank_folder", id="rank_folder", checked=Boolean(custom.rank_folder))
+          .column.is-half
+            .field
+              label.label Clear State Folder
+              .control
+                input(type="checkbox" name="clear_folder", id="clear_folder", checked=Boolean(custom.clear_folder))
+          .column.is-half
+            .field
+              label.label Difficulty Folder
+              .control
+                input(type="checkbox" name="diff_folder", id="diff_folder", checked=Boolean(custom.diff_folder))
+          .column.is-half
+            .field
+              label.label Alphabet Folder
+              .control
+                input(type="checkbox" name="alpha_folder", id="alpha_folder", checked=Boolean(custom.alpha_folder))
+          .column.is-half
+            .field
+              label.label Rival Folder
+              .control
+                input(type="checkbox" name="rival_folder", id="rival_folder", checked=Boolean(custom.rival_folder))
+          .column.is-half
+            .field
+              label.label Rival WIN/LOSE Folder
+              .control
+                input(type="checkbox" name="rival_battle_folder", id="rival_battle_folder", checked=Boolean(custom.rival_battle_folder))
+          .column.is-half
+            .field
+              label.label Rival Info / Venue Top Display
+              .control
+                input(type="checkbox" name="rival_info", id="rival_info", checked=Boolean(custom.rival_info))
+          .column.is-half
+            .field
+              label.label Hide Playcount
+              .control
+                input(type="checkbox" name="hide_playcount", id="hide_playcount", checked=Boolean(custom.hide_playcount))
+          .column.is-half
+            .field
+              label.label Disable Pacemaker Cut-In
+              .control
+                input(type="checkbox" name="disable_graph_cutin", id="disable_graph_cutin", checked=Boolean(custom.disable_graph_cutin))
+          .column.is-half
+            .field
+              label.label Classic Hi-SPEED
+              .control
+                input(type="checkbox" name="classic_hispeed", id="classic_hispeed", checked=Boolean(custom.classic_hispeed))
+          .column.is-half
+            .field
+              label.label Rival Played Folder
+              .control
+                input(type="checkbox" name="rival_played_folder", id="rival_played_folder", checked=Boolean(custom.rival_played_folder))
+          .column.is-half
+            .field
+              label.label Hide IIDX ID
+              .control
+                input(type="checkbox" name="hide_iidxid", id="hide_iidxid", checked=Boolean(custom.hide_iidxid))
+          .column.is-half
+            .field
+              label.label Disable Beginner Option
+              .control
+                if custom.disable_beginner_option === undefined
+                  input(type="checkbox" name="disable_beginner_option", id="disable_beginner_option", checked=Boolean(false))
+                else
+                  input(type="checkbox" name="disable_beginner_option", id="disable_beginner_option", checked=Boolean(custom.disable_beginner_option))
+        h3.title.is-4(style="margin-top: 1.5rem; margin-bottom: 0.5rem; border-bottom: 1px solid #dbdbdb; padding-bottom: 0.5rem;") QPRO Customization
+        .columns.is-multiline
+          .column.is-half
+            .field
+              label.label QPRO Head
+              .control
+                .select
+                  select(name="qpro_head", id="qpro_head")
+                    each val, index in customData.qpro_head
+                      option(value=index selected=(index==custom.qpro_head)) #{val}
+          .column.is-half
+            .field
+              label.label QPRO Hair
+              .control
+                .select
+                  select(name="qpro_hair", id="qpro_hair")
+                    each val, index in customData.qpro_hair
+                      option(value=index selected=(index==custom.qpro_hair)) #{val}
+          .column.is-half
+            .field
+              label.label QPRO Hand
+              .control
+                .select
+                  select(name="qpro_hand", id="qpro_hand")
+                    each val, index in customData.qpro_hand
+                      option(value=index selected=(index==custom.qpro_hand)) #{val}
+          .column.is-half
+            .field
+              label.label QPRO Face
+              .control
+                .select
+                  select(name="qpro_face", id="qpro_face")
+                    each val, index in customData.qpro_face
+                      option(value=index selected=(index==custom.qpro_face)) #{val}
+          .column.is-half
+            .field
+              label.label QPRO Body
+              .control
+                .select
+                  select(name="qpro_body", id="qpro_body")
+                    each val, index in customData.qpro_body
+                      option(value=index selected=(index==custom.qpro_body)) #{val}
+          .column.is-half
+            .field
+              label.label QPRO Back
+              .control
+                if custom.qpro_back === undefined
+                  .select
+                    select(name="qpro_back", id="qpro_back")
+                      each val, index in customData.qpro_back
+                        option(value=index selected=(index==0)) #{val}
+                else
+                  .select
+                    select(name="qpro_back", id="qpro_back")
+                      each val, index in customData.qpro_back
+                        option(value=index selected=(index==custom.qpro_back)) #{val}
+
         if lm_custom != null
-          .field
-            label.label Premium Area Skin
-            .control
-              input.input(type="number" name="lm_skin", id="lm_skin", value=lm_custom.premium_skin)
-          .field
-            label.label Premium Area Background
-            .control
-              input.input(type="number" name="lm_bg", id="lm_bg", value=lm_custom.premium_bg)
-          .field
-            label.label Premium Area Background (Concentration Mode)
-            .control
-              if lm_custom.premium_bg_concent === undefined
-                input.input(type="number" name="lm_bg_2", id="lm_bg_2", value="0")
-              else
-                input.input(type="number" name="lm_bg_2", id="lm_bg_2", value=lm_custom.premium_bg_concent)
-          .field
-            label.label Entry BG
-            .control
-              if lm_custom.entry_bg === undefined
-                input.input(type="number" name="lm_entry_bg", id="lm_entry_bg", value="0")
-              else
-                input.input(type="number" name="lm_entry_bg", id="lm_entry_bg", value=lm_custom.entry_bg)
-          .field
-            label.label Entry BG Brightness
-            .control
-              if lm_custom.entry_bg_brightness === undefined
-                input.input(type="number" name="lm_entry_bg_bright", id="lm_entry_bg_bright", value="0")
-              else
-                input.input(type="number" name="lm_entry_bg_bright", id="lm_entry_bg_bright", value=lm_custom.entry_bg_brightness)
+          h3.title.is-4(style="margin-top: 1.5rem; margin-bottom: 0.5rem; border-bottom: 1px solid #dbdbdb; padding-bottom: 0.5rem;") Lightning Model
+          .columns.is-multiline
+            .column.is-half
+              .field
+                label.label Premium Area Skin
+                .control
+                  input.input(type="number" name="lm_skin", id="lm_skin", value=lm_custom.premium_skin)
+            .column.is-half
+              .field
+                label.label Premium Area Background
+                .control
+                  .select
+                    select(name="lm_bg", id="lm_bg")
+                      each val, index in customData.premium_bg
+                        option(value=index selected=(index==lm_custom.premium_bg)) #{val}
+            .column.is-half
+              .field
+                label.label Premium Area Background (Concentration Mode)
+                .control
+                  if lm_custom.premium_bg_concent === undefined
+                    input.input(type="number" name="lm_bg_2", id="lm_bg_2", value="0")
+                  else
+                    input.input(type="number" name="lm_bg_2", id="lm_bg_2", value=lm_custom.premium_bg_concent)
+            .column.is-half
+              .field
+                label.label Entry BG
+                .control
+                  if lm_custom.entry_bg === undefined
+                    .select
+                      select(name="lm_entry_bg", id="lm_entry_bg")
+                        each val, index in customData.entry_bg
+                          option(value=index selected=(index==0)) #{val}
+                  else
+                    .select
+                      select(name="lm_entry_bg", id="lm_entry_bg")
+                        each val, index in customData.entry_bg
+                          option(value=index selected=(index==lm_custom.entry_bg)) #{val}
+            .column.is-half
+              .field
+                label.label Entry BG Brightness
+                .control
+                  if lm_custom.entry_bg_brightness === undefined
+                    input.input(type="number" name="lm_entry_bg_bright", id="lm_entry_bg_bright", value="0")
+                  else
+                    input.input(type="number" name="lm_entry_bg_bright", id="lm_entry_bg_bright", value=lm_custom.entry_bg_brightness)
         .field
           button.button.is-primary(type="submit") 
             span.icon
