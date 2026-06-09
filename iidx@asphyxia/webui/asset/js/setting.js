@@ -8,16 +8,12 @@ function safeSet(selector, val) {
 }
 
 $(document).ready(function() {
-  // Auto-load settings for the currently selected version on page load
   var currentVersion = $("#version").val();
   if (currentVersion) {
     $.ajax({
       type: "post",
       url: "/emit/iidxGetSetting",
-      data: {
-        refid: refid,
-        version: currentVersion,
-      },
+      data: { refid: refid, version: currentVersion },
       dataType: "text",
       success: function (result) {
         var data = JSON.parse(result);
@@ -32,19 +28,14 @@ $("#version").on("change", function () {
   $.ajax({
     type: "post",
     url: "/emit/iidxGetSetting",
-    data: {
-      refid: refid,
-      version: this.value,
-    },
+    data: { refid: refid, version: this.value },
     dataType: "text",
     success: function (result) {
       let data = JSON.parse(result);
-
       if (data["custom"] == null) {
         alert("Theres no customize data available on this version!");
         return;
       }
-
       populateFields(data);
     },
     error: function () {
@@ -72,16 +63,11 @@ function populateFields(data) {
   $("#disable_hcn_color").prop("checked", data["custom"].disable_hcn_color);
   safeSet("#first_note_preview", data["custom"].first_note_preview);
 
-  if (data["custom"].note_size == undefined) safeSet("#note_size", 0);
-  else safeSet("#note_size", data["custom"].note_size);
-  if (data["custom"].lift_cover == undefined) safeSet("#lift_cover", 0);
-  else safeSet("#lift_cover", data["custom"].lift_cover);
-  if (data["custom"].note_beam_size == undefined) safeSet("#note_beam_size", 0);
-  else safeSet("#note_beam_size", data["custom"].note_beam_size);
-  if (data["custom"].cn_color == undefined) safeSet("#cn_color", 0);
-  else safeSet("#cn_color", data["custom"].cn_color);
-  if (data["custom"].cn_size == undefined) safeSet("#cn_size", 0);
-  else safeSet("#cn_size", data["custom"].cn_size);
+  safeSet("#note_size",      data["custom"].note_size      ?? 0);
+  safeSet("#lift_cover",     data["custom"].lift_cover     ?? 0);
+  safeSet("#note_beam_size", data["custom"].note_beam_size ?? 0);
+  safeSet("#cn_color",       data["custom"].cn_color       ?? 0);
+  safeSet("#cn_size",        data["custom"].cn_size        ?? 0);
 
   $("#rank_folder").prop("checked", data["custom"].rank_folder);
   $("#clear_folder").prop("checked", data["custom"].clear_folder);
@@ -95,34 +81,135 @@ function populateFields(data) {
   $("#classic_hispeed").prop("checked", data["custom"].classic_hispeed);
   $("#rival_played_folder").prop("checked", data["custom"].rival_played_folder);
   $("#hide_iidxid").prop("checked", data["custom"].hide_iidxid);
-
-  if (data["custom"].disable_beginner_option == undefined) $("#disable_beginner_option").prop("checked", false);
-  else $("#disable_beginner_option").prop("checked", data["custom"].disable_beginner_option);
+  $("#disable_beginner_option").prop("checked", data["custom"].disable_beginner_option ?? false);
 
   safeSet("#qpro_head", data["custom"].qpro_head);
   safeSet("#qpro_hair", data["custom"].qpro_hair);
   safeSet("#qpro_hand", data["custom"].qpro_hand);
   safeSet("#qpro_face", data["custom"].qpro_face);
   safeSet("#qpro_body", data["custom"].qpro_body);
+  safeSet("#qpro_back", data["custom"].qpro_back ?? 0);
 
-  if (data["custom"].qpro_back == undefined) safeSet("#qpro_back", 0);
-  else safeSet("#qpro_back", data["custom"].qpro_back);
+  updateQproPreview();
 
   if (data["lm_custom"] == null) {
-    safeSet("#lm_skin", 0);
-    safeSet("#lm_bg", 0);
-    safeSet("#lm_bg_2", 0);
-    safeSet("#lm_entry_bg", 0);
+    safeSet("#lm_skin", 0); safeSet("#lm_bg", 0);
+    safeSet("#lm_bg_2", 0); safeSet("#lm_entry_bg", 0);
     safeSet("#lm_entry_bg_bright", 0);
   } else {
     safeSet("#lm_skin", data["lm_custom"].premium_skin);
-    safeSet("#lm_bg", data["lm_custom"].premium_bg);
-
-    if (data["lm_custom"].premium_bg_concent == undefined) safeSet("#lm_bg_2", 0);
-    else safeSet("#lm_bg_2", data["lm_custom"].premium_bg_concent);
-    if (data["lm_custom"].entry_bg == undefined) safeSet("#lm_entry_bg", 0);
-    else safeSet("#lm_entry_bg", data["lm_custom"].entry_bg);
-    if (data["lm_custom"].entry_bg_brightness == undefined) safeSet("#lm_entry_bg_bright", 0);
-    else safeSet("#lm_entry_bg_bright", data["lm_custom"].entry_bg_brightness);
+    safeSet("#lm_bg",   data["lm_custom"].premium_bg);
+    safeSet("#lm_bg_2",           data["lm_custom"].premium_bg_concent   ?? 0);
+    safeSet("#lm_entry_bg",       data["lm_custom"].entry_bg             ?? 0);
+    safeSet("#lm_entry_bg_bright",data["lm_custom"].entry_bg_brightness  ?? 0);
   }
 }
+
+// ── Q-Pro Preview ──────────────────────────────────────────────────────────────
+
+/**
+ * Load an image into an <img> element, silently clearing it on 404.
+ * Removes stacked onerror handlers that would fire on every change.
+ */
+function _qproImg(id, src) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  el.onerror = function () { this.src = ""; this.onerror = null; };
+  el.src = src;
+}
+
+function _qproImgClear(id) {
+  var el = document.getElementById(id);
+  if (el) { el.onerror = null; el.src = ""; }
+}
+
+function updateQproPreview() {
+  var head = $("#qpro_head option:selected").val();   // use index, not text
+  var hair = $("#qpro_hair option:selected").val();
+  var face = $("#qpro_face option:selected").val();
+  var hand = $("#qpro_hand option:selected").val();
+  var body = $("#qpro_body option:selected").val();
+  var bgIdx= parseInt($("#qpro_back option:selected").val()) || 0;
+
+  // Helper: name from index via the select text (already populated from customData)
+  function nameOf(sel) { return $(sel + " option:selected").text(); }
+
+  var headName = nameOf("#qpro_head");
+  var hairName = nameOf("#qpro_hair");
+  var faceName = nameOf("#qpro_face");
+  var handName = nameOf("#qpro_hand");
+  var bodyName = nameOf("#qpro_body");
+  var bgName   = nameOf("#qpro_back");
+
+  var base = "static/asset/qpro/";
+
+  // Background
+  if (bgIdx > 0 && bgName && !bgName.startsWith("Unknown")) {
+    _qproImg("qpro-preview-bg", base + "bg/" + bgName + "/qp_bg.png");
+  } else {
+    _qproImgClear("qpro-preview-bg");
+  }
+
+  // Head
+  if (headName && !headName.startsWith("Unknown")) {
+    _qproImg("qpro-preview-head-b", base + "head/" + headName + "/qp_head_b.png");
+    _qproImg("qpro-preview-head-f", base + "head/" + headName + "/qp_head_f.png");
+  } else {
+    _qproImgClear("qpro-preview-head-b");
+    _qproImgClear("qpro-preview-head-f");
+  }
+
+  // Hair
+  if (hairName && !hairName.startsWith("Unknown")) {
+    _qproImg("qpro-preview-hair-b", base + "hair/" + hairName + "/qp_hair_b.png");
+    _qproImg("qpro-preview-hair-f", base + "hair/" + hairName + "/qp_hair_f.png");
+  } else {
+    _qproImgClear("qpro-preview-hair-b");
+    _qproImgClear("qpro-preview-hair-f");
+  }
+
+  // Face
+  if (faceName && !faceName.startsWith("Unknown")) {
+    _qproImg("qpro-preview-face", base + "face/" + faceName + "/qp_face_neutral.png");
+  } else {
+    _qproImgClear("qpro-preview-face");
+  }
+
+  // Body
+  if (bodyName && !bodyName.startsWith("Unknown")) {
+    _qproImg("qpro-preview-body-b",      base + "body/" + bodyName + "/qp_body_b.png");
+    _qproImg("qpro-preview-body-f",      base + "body/" + bodyName + "/qp_body_f.png");
+    _qproImg("qpro-preview-arm-r-upper", base + "body/" + bodyName + "/qp_arm_r_upper.png");
+    _qproImg("qpro-preview-arm-r-lower", base + "body/" + bodyName + "/qp_arm_r_lower.png");
+    _qproImg("qpro-preview-arm-l-upper", base + "body/" + bodyName + "/qp_arm_l_upper.png");
+    _qproImg("qpro-preview-arm-l-lower", base + "body/" + bodyName + "/qp_arm_l_lower.png");
+    _qproImg("qpro-preview-leg-r-upper", base + "body/" + bodyName + "/qp_leg_r_upper.png");
+    _qproImg("qpro-preview-leg-r-lower", base + "body/" + bodyName + "/qp_leg_r_lower.png");
+    _qproImg("qpro-preview-leg-l-upper", base + "body/" + bodyName + "/qp_leg_l_upper.png");
+    _qproImg("qpro-preview-leg-l-lower", base + "body/" + bodyName + "/qp_leg_l_lower.png");
+  } else {
+    _qproImgClear("qpro-preview-body-b");
+    _qproImgClear("qpro-preview-body-f");
+    _qproImgClear("qpro-preview-arm-r-upper");
+    _qproImgClear("qpro-preview-arm-r-lower");
+    _qproImgClear("qpro-preview-arm-l-upper");
+    _qproImgClear("qpro-preview-arm-l-lower");
+    _qproImgClear("qpro-preview-leg-r-upper");
+    _qproImgClear("qpro-preview-leg-r-lower");
+    _qproImgClear("qpro-preview-leg-l-upper");
+    _qproImgClear("qpro-preview-leg-l-lower");
+  }
+
+  // Hand
+  if (handName && !handName.startsWith("Unknown")) {
+    _qproImg("qpro-preview-hand-r", base + "hand/" + handName + "/qp_hand_r.png");
+    _qproImg("qpro-preview-hand-l", base + "hand/" + handName + "/qp_hand_l.png");
+  } else {
+    _qproImgClear("qpro-preview-hand-r");
+    _qproImgClear("qpro-preview-hand-l");
+  }
+}
+
+$(document).on("change", "#qpro_head, #qpro_hair, #qpro_face, #qpro_hand, #qpro_body, #qpro_back", function () {
+  updateQproPreview();
+});

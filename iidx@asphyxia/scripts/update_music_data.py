@@ -5,17 +5,20 @@ import os
 import glob
 
 # Instrucciones:
-# 1. Pon todos los archivos XML de música (`video_music_list.xml`, `video_music_omni.xml`, etc.) en esta carpeta (`data/`).
-# 2. Ejecuta este script haciendo doble clic o desde la consola con: `python update_music_data.py`
-# 3. El script leerá todos los archivos XML, extraerá las canciones y sobrescribirá `music_data.json`.
+# 1. Pon todos los archivos XML de música (`video_music_list.xml`, `video_music_omni.xml`, etc.) en la carpeta `data/`.
+# 2. Ejecuta este script desde la carpeta scripts con: `python update_music_data.py`
+# 3. El script leerá todos los archivos XML, extraerá las canciones y sobrescribirá `data/music_data.json`.
 # 4. Una vez terminado, puedes borrar los archivos XML.
 
-json_path = "music_data.json"
-xml_files = glob.glob("*.xml")
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+DATA_DIR = os.path.join(os.path.dirname(SCRIPT_DIR), "data")
+
+json_path = os.path.join(DATA_DIR, "music_data.json")
+xml_files = glob.glob(os.path.join(DATA_DIR, "*.xml"))
 
 if not xml_files:
-    print("Error: No se encontro ningun archivo XML en la carpeta data.")
-    print("Por favor, copia los archivos XML (ej. video_music_list.xml) a esta carpeta y vuelve a ejecutar el script.")
+    print(f"Error: No se encontro ningun archivo XML en la carpeta {DATA_DIR}.")
+    print("Por favor, copia los archivos XML (ej. video_music_list.xml) a la carpeta data y vuelve a ejecutar el script.")
     input("Presiona Enter para salir...")
     sys.exit(1)
 

@@ -3,7 +3,7 @@ import { shopgetname, shopsavename, shopgetconvention, shopsetconvention } from 
 import { musicreg, musicgetrank, musicappoint, musicarenacpu, musiccrate, musicbreg, musicgetralive } from "./handlers/music";
 import { graderaised } from "./handlers/grade";
 import { gssysteminfo } from "./handlers/gamesystem";
-import { updateRivalSettings, updateCustomSettings, importScoreData, exportScoreData } from "./handlers/webui";
+import { updateRivalSettings, updateCustomSettings, importScoreData, exportScoreData, extractQproAssets } from "./handlers/webui";
 import { GetVersion } from "./util";
 import { rankingentry, rankinggetranker, rankingoentry } from "./handlers/ranking";
 
@@ -28,6 +28,20 @@ export function register() {
   R.Config("DiscordWebhookUrl", {
     name: "Discord Webhook URL",
     desc: "URL for Top 1 Score Tracker Discord Webhook (leave empty to disable)",
+    type: "string",
+    default: "",
+  });
+
+  // Q-Pro asset extraction settings //
+  R.Config("iidx_ifstools_path", {
+    name: "ifstools Path",
+    desc: "Full path to ifstools.exe (e.g. C:\\tools\\ifstools.exe)",
+    type: "string",
+    default: "",
+  });
+  R.Config("iidx_qpro_src_dir", {
+    name: "Q-Pro IFS Directory",
+    desc: "Directory containing the qpro *.ifs files from the game (e.g. B:\\ARCADE\\IIDX33\\data\\tex\\qpro)",
     type: "string",
     default: "",
   });
@@ -554,6 +568,7 @@ export function register() {
   R.WebUIEvent("iidxUpdateCustom", updateCustomSettings);
   R.WebUIEvent("iidxImportScoreData", importScoreData);
   R.WebUIEvent("iidxExportScoreData", exportScoreData);
+  R.WebUIEvent("iidxExtractQpro", extractQproAssets);
 
   const MultiRoute = (method: string, handler: EPR | boolean) => {
     R.Route(`${method}`, handler);

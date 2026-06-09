@@ -1,0 +1,112 @@
+div
+  .card
+    .card-header
+      p.card-header-title
+        span.icon
+          i.mdi.mdi-image-sync
+        | Extract Q-Pro Assets (from game files)
+    .card-content
+      .notification.is-info.is-light(style="margin-bottom:1rem;")
+        p
+          strong Before you start:
+        ol(style="margin: 0.5rem 0 0 1.2rem;")
+          li Go to the plugin settings (⚙️ gear icon in Asphyxia) and set:
+          li
+            code ifstools Path
+            |  — full path to 
+            code ifstools.exe
+          li
+            code Q-Pro IFS Directory
+            |  — the folder containing the qpro 
+            code *.ifs
+            |  files from your game data (e.g. 
+            code B:\ARCADE\IIDX33\data\tex\qpro
+            | )
+          li Then click 
+            strong Extract
+            | . Already-extracted pieces are skipped automatically on subsequent runs.
+      .field
+        .is-flex.is-align-items-center(style="gap: 1rem;")
+          button.button.is-primary#extractBtn(type="button")
+            span.icon
+              i.mdi.mdi-play-circle
+            span Extract Q-Pro Assets
+          span#extractStatus(style="color: #aaa; font-size: 0.9rem;") Ready
+      .field
+        .is-flex.is-align-items-center(style="gap: 0.5rem; margin-bottom: 0.5rem;")
+          label.switch.is-rounded(style="margin-bottom:0;")
+            input(type="checkbox" id="detailToggle" name="detailToggle")
+            span.check
+          span(style="font-size:0.9rem;") Show verbose log
+      .field
+        textarea#logArea.textarea(rows="28" disabled style="background:#1a1a2e; color:#e0e0ff; font-family:monospace; font-size:13px; resize:vertical;")
+
+script(type="text/javascript").
+  (function () {
+    const logArea    = document.getElementById('logArea');
+    const statusEl   = document.getElementById('extractStatus');
+    const detailTog  = document.getElementById('detailToggle');
+    const btn        = document.getElementById('extractBtn');
+
+    let summaryBuf = '';
+    let detailBuf  = '';
+
+    function render() {
+      logArea.value = detailTog.checked ? detailBuf : summaryBuf;
+      logArea.scrollTop = logArea.scrollHeight;
+    }
+
+    function addSummary(line) { summaryBuf += line + '\n'; if (!detailTog.checked) render(); }
+    function addDetail(line)  { detailBuf  += line + '\n'; if (detailTog.checked)  render(); }
+
+    detailTog.addEventListener('change', render);
+
+    btn.addEventListener('click', async function () {
+      summaryBuf = '';
+      detailBuf  = '';
+      render();
+      btn.disabled = true;
+      statusEl.textContent = 'Running…';
+      statusEl.style.color = '#ffdd57';
+
+      addSummary('Starting Q-Pro asset extraction…');
+      addSummary('(This can take several minutes for ~2000 files. The page will update when done.)');
+      addSummary('');
+      addDetail('Starting…');
+
+      try {
+        const res  = await emit('iidxExtractQpro');
+        const data = (res && res.data) ? res.data : {};
+
+        const ok = data.status !== 'error';
+        statusEl.textContent = ok ? '✅ Done!' : '❌ Finished with errors';
+        statusEl.style.color = ok ? '#48c774' : '#ff3860';
+
+        addSummary(`--- Results ---`);
+        addSummary(`New:     ${data.done    || 0}`);
+        addSummary(`Skipped: ${data.skipped || 0}`);
+        addSummary(`Failed:  ${data.failed  || 0}`);
+        addSummary(`Total:   ${data.total   || 0}`);
+        addSummary('');
+
+        if (Array.isArray(data.logs)) {
+          data.logs.forEach(function (l) { addDetail(l); });
+        }
+        if (Array.isArray(data.errors) && data.errors.length > 0) {
+          addSummary('--- Errors ---');
+          data.errors.forEach(function (e) { addSummary(e); addDetail('[ERROR] ' + e); });
+        }
+        addSummary(ok ? 'Done! Reload the Settings page to use the preview.' : 'Finished with errors. Check verbose log.');
+      } catch (ex) {
+        statusEl.textContent = '❌ Error';
+        statusEl.style.color = '#ff3860';
+        addSummary('Unexpected error: ' + String(ex));
+        addDetail('Exception: ' + String(ex));
+      }
+
+      btn.disabled = false;
+    });
+  })();
+
+style.
+  #logArea { scrollbar-width: thin; scrollbar-color: #444 #111; }

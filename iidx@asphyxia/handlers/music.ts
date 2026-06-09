@@ -626,7 +626,7 @@ export const musicreg: EPR = async (info, data, send) => {
         names[tmp_clid] = profile.name;
         scores[tmp_clid] = exscore;
         clflgs[tmp_clid] = cflg;
-        discordAutoExport(profile.name, mid, clid, -1, exscore, -1, cflg, "");
+        discordAutoExport(profile.name, mid, clid, -1, exscore, -1, cflg, "", String(refid), version);
       }
     }
     else {
@@ -637,7 +637,7 @@ export const musicreg: EPR = async (info, data, send) => {
       if (exscore > scores[tmp_clid]) {
         let previousName = names[tmp_clid];
         names[tmp_clid] = profile.name;
-        discordAutoExport(profile.name, mid, clid, scores[tmp_clid], exscore, clflgs[tmp_clid], cflg, previousName);
+        discordAutoExport(profile.name, mid, clid, scores[tmp_clid], exscore, clflgs[tmp_clid], cflg, previousName, String(refid), version);
         scores[tmp_clid] = exscore;
         clflgs[tmp_clid] = cflg;
       }
@@ -1239,6 +1239,74 @@ function getSongInfo(mid: number) {
   return musicDataCache[mid] || { title: `Song ID: ${mid}`, artist: "Unknown Artist" };
 }
 
+let customDataCache: any = null;
+function getCustomData() {
+  if (!customDataCache) {
+    try {
+      customDataCache = JSON.parse(fs.readFileSync(path.join(__dirname, "../data/customization.json"), "utf8"));
+    } catch {
+      customDataCache = {};
+    }
+  }
+  return customDataCache;
+}
+
+// ── Flag helpers (same pattern as bot.js) ─────────────────────────────────────
+const FLAGS_FILE_IIDX = path.join(__dirname, '../data/player_flags.json');
+let customFlagsIidx: Record<string, string> = {};
+function reloadIidxFlags() {
+  try {
+    if (fs.existsSync(FLAGS_FILE_IIDX)) customFlagsIidx = JSON.parse(fs.readFileSync(FLAGS_FILE_IIDX, 'utf8'));
+  } catch {}
+}
+reloadIidxFlags();
+try {
+  if (!fs.existsSync(FLAGS_FILE_IIDX)) fs.writeFileSync(FLAGS_FILE_IIDX, JSON.stringify({ "RYU": ":flag_cl:" }, null, 2));
+  fs.watchFile(FLAGS_FILE_IIDX, { interval: 5000 }, reloadIidxFlags);
+} catch {}
+
+const countryByRefidIidx = new Map<string, string>();
+function loadCoreDbForIidx() {
+  try {
+    const coreDbPath = path.join(__dirname, '../../core.db');
+    if (!fs.existsSync(coreDbPath)) return;
+    const lines = fs.readFileSync(coreDbPath, 'utf8').split('\n');
+    const cards: any[] = [];
+    const userByCard = new Map<string, string>();
+    for (const line of lines) {
+      if (!line.trim()) continue;
+      try {
+        const doc = JSON.parse(line);
+        if (doc.__s === 'card' && doc.__refid && doc.cid) cards.push(doc);
+        else if (doc.__s === 'user_account' && doc.cardNumber) userByCard.set(doc.cardNumber, doc.countryCode || '');
+      } catch {}
+    }
+    for (const card of cards) {
+      const cc = userByCard.get(card.cid);
+      if (cc) countryByRefidIidx.set(card.__refid, cc);
+    }
+  } catch (e: any) {
+    console.warn('[iidx discord] Could not load core.db for flags:', e.message);
+  }
+}
+loadCoreDbForIidx();
+
+function getFlagEmojiIidx(countryCode: string) {
+  if (!countryCode || countryCode === 'xx' || countryCode.length !== 2) return '';
+  const code = countryCode.toUpperCase();
+  return code.replace(/./g, (char: string) => String.fromCodePoint(char.charCodeAt(0) + 127397));
+}
+
+function withFlagIidx(name: string, refid: string) {
+  let flag: string = customFlagsIidx[name] || '';
+  if (!flag && refid) {
+    const cc = countryByRefidIidx.get(refid);
+    if (cc) flag = getFlagEmojiIidx(cc);
+  }
+  return flag ? `${flag} ${name}` : name;
+}
+// ──────────────────────────────────────────────────────────────────────────────
+
 async function discordAutoExport(
   playerName: string,
   mid: number,
@@ -1247,7 +1315,9 @@ async function discordAutoExport(
   newScore: number,
   oldClear: number,
   newClear: number,
-  previousName: string
+  previousName: string,
+  refid: string,
+  version: number
 ) {
   const webhookUrl = U.GetConfig("DiscordWebhookUrl");
   if (!webhookUrl || typeof webhookUrl !== "string" || webhookUrl.trim() === "") return;
@@ -1271,14 +1341,14 @@ async function discordAutoExport(
   if (oldScore !== -1 && oldScore < newScore) {
     const diff = newScore - oldScore;
     exScoreStr = `${newScore} (+${diff})`;
-  } else if (oldScore === -1) {
-    exScoreStr = `${newScore}`;
   }
 
+  const flaggedPlayer = withFlagIidx(playerName, refid);
+
   let description = `${songInfo.title} - ${songInfo.artist}\n\n`;
-  description += `👤 **Player:** ${playerName}\n`;
+  description += `👤 **Player:** ${flaggedPlayer}\n`;
   if (previousName && previousName !== playerName) {
-    description += `👑 **Took #1 from:** ${previousName}\n`;
+    description += `👑 **Took #1 from:** ${withFlagIidx(previousName, '')}\n`;
   } else if (previousName === playerName) {
     description += `👑 **Retained #1!**\n`;
   }
@@ -1286,34 +1356,125 @@ async function discordAutoExport(
   description += `\n**Chart** \u200B \u200B \u200B \u200B \u200B \u200B \u200B \u200B **EX Score** \u200B \u200B \u200B \u200B \u200B \u200B \u200B \u200B **Clear Lamp**\n`;
   description += `**${diffName}** \u200B \u200B \u200B \u200B \u200B \u200B \u200B \u200B **${exScoreStr}** \u200B \u200B \u200B \u200B \u200B \u200B \u200B \u200B **${newLamp}**\n`;
 
-  const payload = {
+  const payload: any = {
     embeds: [{
-      title: `🏆 ${playerName} got #1! • ${newLamp}`,
+      title: `🏆 ${flaggedPlayer} got #1! • ${newLamp}`,
       color: 0xFFA500,
       description: description,
-      footer: {
-        text: "RyuNET IIDX"
-      },
+      footer: { text: "RyuNET IIDX" },
       timestamp: new Date().toISOString()
     }]
   };
 
+  let imageBuffer: Buffer | null = null;
+  try {
+    const { execSync } = require('child_process');
+    const qproIds = await ReftoQPRO(refid, version);
+    const cData = getCustomData();
+    const hair = cData.qpro_hair?.[qproIds[0]] || "qp_kihon_hair";
+    const head = cData.qpro_head?.[qproIds[1]] || "qp_kihon_head";
+    const face = cData.qpro_face?.[qproIds[2]] || "qp_b_kihon_face";
+    const body = cData.qpro_body?.[qproIds[3]] || "qp_kihon_body";
+    const hand = cData.qpro_hand?.[qproIds[4]] || "qp_kihon_hand";
+
+    const assetDir = path.join(__dirname, "../webui/asset/qpro");
+    const scriptPath = path.join(__dirname, "../data/compose_qpro.ps1");
+    const outPath = path.join(__dirname, `../data/tmp_qpro_${Date.now()}.png`);
+
+    // Always write/overwrite the script to keep it in sync
+    const ps1Content = `param([string]$assetDir,[string]$head,[string]$hair,[string]$face,[string]$body,[string]$hand,[string]$outFile)
+Add-Type -AssemblyName System.Drawing
+$width = 340; $height = 400
+$bmp = New-Object System.Drawing.Bitmap($width, $height)
+$g = [System.Drawing.Graphics]::FromImage($bmp)
+$g.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
+$g.Clear([System.Drawing.Color]::Transparent)
+function Draw-Part([string]$p, [int]$x, [int]$y) {
+  if (Test-Path $p) {
+    try { $img = [System.Drawing.Image]::FromFile($p); $g.DrawImage($img, $x, $y, $img.Width, $img.Height); $img.Dispose() } catch {}
+  }
+}
+Draw-Part "$assetDir\\hair\\$hair\\qp_hair_b.png" 44 20
+Draw-Part "$assetDir\\head\\$head\\qp_head_b.png" 50 20
+Draw-Part "$assetDir\\body\\$body\\qp_leg_r_upper.png" 90 245
+Draw-Part "$assetDir\\body\\$body\\qp_leg_r_lower.png" 90 245
+Draw-Part "$assetDir\\body\\$body\\qp_arm_r_upper.png" 42 178
+Draw-Part "$assetDir\\body\\$body\\qp_arm_r_lower.png" 42 178
+Draw-Part "$assetDir\\body\\$body\\qp_leg_l_upper.png" 145 245
+Draw-Part "$assetDir\\body\\$body\\qp_leg_l_lower.png" 145 245
+Draw-Part "$assetDir\\body\\$body\\qp_arm_l_upper.png" 170 178
+Draw-Part "$assetDir\\body\\$body\\qp_arm_l_lower.png" 170 178
+Draw-Part "$assetDir\\body\\$body\\qp_body_b.png" 50 20
+Draw-Part "$assetDir\\body\\$body\\qp_body_f.png" 50 20
+Draw-Part "$assetDir\\face\\$face\\qp_face_neutral.png" 100 60
+Draw-Part "$assetDir\\hair\\$hair\\qp_hair_f.png" 44 20
+Draw-Part "$assetDir\\head\\$head\\qp_head_f.png" 50 20
+Draw-Part "$assetDir\\hand\\$hand\\qp_hand_r.png" 8 20
+Draw-Part "$assetDir\\hand\\$hand\\qp_hand_l.png" 144 20
+$bmp.Save($outFile, [System.Drawing.Imaging.ImageFormat]::Png)
+$g.Dispose(); $bmp.Dispose()
+`;
+    fs.writeFileSync(scriptPath, ps1Content, 'utf8');
+
+    execSync(`powershell -ExecutionPolicy Bypass -File "${scriptPath}" -assetDir "${assetDir}" -head "${head}" -hair "${hair}" -face "${face}" -body "${body}" -hand "${hand}" -outFile "${outPath}"`, { windowsHide: true });
+    
+    if (fs.existsSync(outPath)) {
+      imageBuffer = fs.readFileSync(outPath);
+      fs.unlinkSync(outPath);
+    }
+  } catch (err) {
+    console.error("Failed to compose QPRO for Discord", err);
+  }
+
+  // Use "image" (large bottom image) instead of "thumbnail" (small right side)
+  if (imageBuffer) {
+    payload.embeds[0].image = { url: "attachment://qpro.png" };
+  }
+
   try {
     const url = new URL(webhookUrl);
-    const postData = JSON.stringify(payload);
-    const req = https.request(
-      url,
-      {
+    
+    if (imageBuffer) {
+      const boundary = '----AsphyxiaDiscord' + Date.now();
+      const payloadStr = JSON.stringify(payload);
+      
+      const bodyParts: (string | Buffer)[] = [
+        `--${boundary}\r\n`,
+        `Content-Disposition: form-data; name="payload_json"\r\n`,
+        `Content-Type: application/json\r\n\r\n`,
+        `${payloadStr}\r\n`,
+        `--${boundary}\r\n`,
+        `Content-Disposition: form-data; name="files[0]"; filename="qpro.png"\r\n`,
+        `Content-Type: image/png\r\n\r\n`,
+        imageBuffer,
+        `\r\n--${boundary}--\r\n`
+      ];
+
+      const postData = Buffer.concat(bodyParts.map((part: string | Buffer) => typeof part === 'string' ? Buffer.from(part) : part));
+
+      const req = https.request(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': `multipart/form-data; boundary=${boundary}`,
+          'Content-Length': postData.length
+        }
+      });
+      req.on('error', (err: any) => console.error('Discord Webhook request error', err));
+      req.write(postData);
+      req.end();
+    } else {
+      const postData = JSON.stringify(payload);
+      const req = https.request(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Content-Length': Buffer.byteLength(postData)
         }
-      }
-    );
-    req.on('error', (err: any) => console.error('Discord Webhook request error', err));
-    req.write(postData);
-    req.end();
+      });
+      req.on('error', (err: any) => console.error('Discord Webhook request error', err));
+      req.write(postData);
+      req.end();
+    }
   } catch (err) {
     console.error('Discord Webhook failed', err);
   }

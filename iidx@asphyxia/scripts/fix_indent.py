@@ -1,6 +1,10 @@
 import re
 
-file_path = r'C:\Users\RyuPC\Desktop\github\asphyxia_plugins\iidx@asphyxia\webui\profile_----setting.pug'
+import os
+
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+PLUGIN_ROOT = os.path.dirname(SCRIPT_DIR)
+file_path = os.path.join(PLUGIN_ROOT, "webui", "profile_----setting.pug")
 
 with open(file_path, 'r', encoding='utf-8') as f:
     lines = f.readlines()

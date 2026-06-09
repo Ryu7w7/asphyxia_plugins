@@ -1,6 +1,10 @@
 import re
 
-JS_FILE = r"C:\Users\RyuPC\Desktop\github\asphyxia_plugins\iidx@asphyxia\webui\asset\js\setting.js"
+import os
+
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+PLUGIN_ROOT = os.path.dirname(SCRIPT_DIR)
+JS_FILE = os.path.join(PLUGIN_ROOT, "webui", "asset", "js", "setting.js")
 
 with open(JS_FILE, 'r', encoding='utf-8') as f:
     content = f.read()

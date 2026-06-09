@@ -2,8 +2,11 @@ import re
 import json
 import os
 
-PHP_FILE = r"C:\Users\RyuPC\Desktop\github\easervers\hydrogen.eamu.fun\mermaidserver\src\Helper\IIDXTheme.php"
-OUTPUT_JSON = r"C:\Users\RyuPC\Desktop\github\asphyxia_plugins\iidx@asphyxia\data\customization.json"
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+PLUGIN_ROOT = os.path.dirname(SCRIPT_DIR)
+
+PHP_FILE = r"C:\path\to\IIDXTheme.php"
+OUTPUT_JSON = os.path.join(PLUGIN_ROOT, "data", "customization.json")
 
 def extract_options(method_name, content):
     method_start = content.find(f"function {method_name}")

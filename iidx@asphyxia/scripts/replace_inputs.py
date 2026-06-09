@@ -1,6 +1,10 @@
 import re
 
-PUG_FILE = r"C:\Users\RyuPC\Desktop\github\asphyxia_plugins\iidx@asphyxia\webui\profile_----setting.pug"
+import os
+
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+PLUGIN_ROOT = os.path.dirname(SCRIPT_DIR)
+PUG_FILE = os.path.join(PLUGIN_ROOT, "webui", "profile_----setting.pug")
 
 def get_select_html(name, data_key, val_var):
     return f"""            .select

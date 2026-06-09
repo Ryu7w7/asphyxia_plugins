@@ -441,6 +441,136 @@ export const exportScoreData = async (data, send: WebUISend) => {
   send.json(result);
 }
 
+export const extractQproAssets = async (data: {}, send: WebUISend) => {
+  // Asphyxia's `child_process` is available via the Node snapshot
+  const { execFile } = require('child_process');
+  const path = require('path');
+  const fs = require('fs');
+
+  const iifstoolsBin  = U.GetConfig('iidx_ifstools_path') as string;
+  const qproSrcDir    = U.GetConfig('iidx_qpro_src_dir') as string;
+  const assetOutDir   = path.resolve('plugins/iidx@asphyxia/webui/asset/qpro');
+  const tempBase      = path.resolve('plugins/iidx@asphyxia/webui/asset/qpro_temp');
+  const MAX_WORKERS   = 4;
+
+  const logs: string[]   = [];
+  const errors: string[] = [];
+  let done = 0, skipped = 0, failed = 0;
+
+  const log = (msg: string) => { console.log(msg); logs.push(msg); };
+  const err = (msg: string) => { console.error(msg); errors.push(msg); };
+
+  function category(name: string): string | null {
+    if (name.includes('_head')) return 'head';
+    if (name.includes('_hair')) return 'hair';
+    if (name.includes('_face')) return 'face';
+    if (name.includes('_hand')) return 'hand';
+    if (name.includes('_body')) return 'body';
+    if (name.includes('_bg'))   return 'bg';
+    return null;
+  }
+
+  // Validate config
+  if (!iifstoolsBin || !fs.existsSync(iifstoolsBin)) {
+    err('ifstools not found. Set "iidx_ifstools_path" in plugin settings.');
+    return send.json({ status: 'error', logs, errors, done, skipped, failed, total: 0 });
+  }
+  if (!qproSrcDir || !fs.existsSync(qproSrcDir)) {
+    err('Q-Pro source directory not found. Set "iidx_qpro_src_dir" in plugin settings.');
+    return send.json({ status: 'error', logs, errors, done, skipped, failed, total: 0 });
+  }
+
+  // Prepare output dirs
+  for (const cat of ['head', 'hair', 'face', 'hand', 'body', 'bg']) {
+    fs.mkdirSync(path.join(assetOutDir, cat), { recursive: true });
+  }
+  fs.mkdirSync(tempBase, { recursive: true });
+
+  const ifsFiles: string[] = fs.readdirSync(qproSrcDir).filter((f: string) => f.endsWith('.ifs'));
+  const total = ifsFiles.length;
+  log(`Found ${total} IFS files. Extracting with ${MAX_WORKERS} workers...`);
+
+  // Worker: extract one IFS file, returns a promise
+  function extractOne(ifsName: string, workerId: number): Promise<void> {
+    return new Promise((resolve) => {
+      const cat = category(ifsName);
+      if (!cat) { skipped++; resolve(); return; }
+
+      const baseName   = ifsName.replace('.ifs', '');
+      const targetDir  = path.join(assetOutDir, cat, baseName);
+
+      // Skip if already extracted
+      if (fs.existsSync(targetDir) && fs.readdirSync(targetDir).some((f: string) => f.endsWith('.png'))) {
+        skipped++;
+        resolve();
+        return;
+      }
+
+      const ifsPath   = path.join(qproSrcDir, ifsName);
+      const workerTmp = path.join(tempBase, `w${workerId}`);
+      fs.mkdirSync(workerTmp, { recursive: true });
+
+      execFile(iifstoolsBin, [ifsPath, '-o', workerTmp, '-y'],
+        { timeout: 30000 },
+        (error: any) => {
+          if (error) {
+            err(`FAIL ${ifsName}: ${error.message}`);
+            failed++;
+            resolve();
+            return;
+          }
+
+          const texDir = path.join(workerTmp, `${baseName}_ifs`, 'tex');
+          if (!fs.existsSync(texDir)) {
+            err(`FAIL ${ifsName}: tex dir not found`);
+            failed++;
+            resolve();
+            return;
+          }
+
+          fs.mkdirSync(targetDir, { recursive: true });
+          const pngs: string[] = fs.readdirSync(texDir).filter((f: string) => f.endsWith('.png'));
+          for (const png of pngs) {
+            fs.copyFileSync(path.join(texDir, png), path.join(targetDir, png));
+          }
+
+          // Clean up worker temp for this file to free disk space
+          try { fs.rmSync(path.join(workerTmp, `${baseName}_ifs`), { recursive: true, force: true }); } catch {}
+
+          done++;
+          if ((done + skipped + failed) % 100 === 0) {
+            log(`Progress: ${done + skipped + failed}/${total} (${done} new, ${skipped} skipped, ${failed} failed)`);
+          }
+          resolve();
+        }
+      );
+    });
+  }
+
+  // Run in parallel pools of MAX_WORKERS
+  async function runPool(files: string[]) {
+    let idx = 0;
+    const next = async (workerId: number) => {
+      while (idx < files.length) {
+        const file = files[idx++];
+        await extractOne(file, workerId);
+      }
+    };
+    const workers = Array.from({ length: MAX_WORKERS }, (_, i) => next(i));
+    await Promise.all(workers);
+  }
+
+  try {
+    await runPool(ifsFiles);
+    try { fs.rmSync(tempBase, { recursive: true, force: true }); } catch {}
+    log(`Extraction complete: ${done} new, ${skipped} already existed, ${failed} failed.`);
+    send.json({ status: 'ok', logs, errors, done, skipped, failed, total });
+  } catch (e: any) {
+    err(String(e));
+    send.json({ status: 'error', logs, errors, done, skipped, failed, total });
+  }
+};
+
 function StoB(value: string) {
   return value == "on" ? true : false;
 };
