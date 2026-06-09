@@ -1368,7 +1368,10 @@ async function discordAutoExport(
 
   let imageBuffer: Buffer | null = null;
   try {
+    const os = require('os');
     const { execSync } = require('child_process');
+    const isWin = process.platform === 'win32';
+
     const qproIds = await ReftoQPRO(refid, version);
     const cData = getCustomData();
     const hair = cData.qpro_hair?.[qproIds[0]] || "qp_kihon_hair";
@@ -1378,11 +1381,11 @@ async function discordAutoExport(
     const hand = cData.qpro_hand?.[qproIds[4]] || "qp_kihon_hand";
 
     const assetDir = path.join(__dirname, "../webui/asset/qpro");
-    const scriptPath = path.join(__dirname, "../data/compose_qpro.ps1");
-    const outPath = path.join(__dirname, `../data/tmp_qpro_${Date.now()}.png`);
+    const outPath = path.join(os.tmpdir(), `tmp_qpro_${Date.now()}.png`);
 
-    // Always write/overwrite the script to keep it in sync
-    const ps1Content = `param([string]$assetDir,[string]$head,[string]$hair,[string]$face,[string]$body,[string]$hand,[string]$outFile)
+    if (isWin) {
+      const scriptPath = path.join(os.tmpdir(), "compose_qpro.ps1");
+      const ps1Content = `param([string]$assetDir,[string]$head,[string]$hair,[string]$face,[string]$body,[string]$hand,[string]$outFile)
 Add-Type -AssemblyName System.Drawing
 $width = 340; $height = 400
 $bmp = New-Object System.Drawing.Bitmap($width, $height)
@@ -1414,9 +1417,73 @@ Draw-Part "$assetDir\\hand\\$hand\\qp_hand_l.png" 144 20
 $bmp.Save($outFile, [System.Drawing.Imaging.ImageFormat]::Png)
 $g.Dispose(); $bmp.Dispose()
 `;
-    fs.writeFileSync(scriptPath, ps1Content, 'utf8');
+      fs.writeFileSync(scriptPath, ps1Content, 'utf8');
+      execSync(`powershell -ExecutionPolicy Bypass -File "${scriptPath}" -assetDir "${assetDir}" -head "${head}" -hair "${hair}" -face "${face}" -body "${body}" -hand "${hand}" -outFile "${outPath}"`, { windowsHide: true });
+    } else {
+      const scriptPath = path.join(os.tmpdir(), "compose_qpro.py");
+      const pyContent = `import sys
+import os
+try:
+    from PIL import Image
+except ImportError:
+    print("Pillow not installed. Run: pip3 install Pillow")
+    sys.exit(1)
 
-    execSync(`powershell -ExecutionPolicy Bypass -File "${scriptPath}" -assetDir "${assetDir}" -head "${head}" -hair "${hair}" -face "${face}" -body "${body}" -hand "${hand}" -outFile "${outPath}"`, { windowsHide: true });
+asset_dir = sys.argv[1]
+head = sys.argv[2]
+hair = sys.argv[3]
+face = sys.argv[4]
+body = sys.argv[5]
+hand = sys.argv[6]
+out_file = sys.argv[7]
+
+def get_path(folder, part, filename):
+    return os.path.join(asset_dir, folder, part, filename)
+
+try:
+    bg = Image.new('RGBA', (340, 400), (0, 0, 0, 0))
+    parts = [
+        (get_path('hair', hair, 'qp_hair_b.png'), 44, 20),
+        (get_path('head', head, 'qp_head_b.png'), 50, 20),
+        (get_path('body', body, 'qp_leg_r_upper.png'), 90, 245),
+        (get_path('body', body, 'qp_leg_r_lower.png'), 90, 245),
+        (get_path('body', body, 'qp_arm_r_upper.png'), 42, 178),
+        (get_path('body', body, 'qp_arm_r_lower.png'), 42, 178),
+        (get_path('body', body, 'qp_leg_l_upper.png'), 145, 245),
+        (get_path('body', body, 'qp_leg_l_lower.png'), 145, 245),
+        (get_path('body', body, 'qp_arm_l_upper.png'), 170, 178),
+        (get_path('body', body, 'qp_arm_l_lower.png'), 170, 178),
+        (get_path('body', body, 'qp_body_b.png'), 50, 20),
+        (get_path('body', body, 'qp_body_f.png'), 50, 20),
+        (get_path('face', face, 'qp_face_neutral.png'), 100, 60),
+        (get_path('hair', hair, 'qp_hair_f.png'), 44, 20),
+        (get_path('head', head, 'qp_head_f.png'), 50, 20),
+        (get_path('hand', hand, 'qp_hand_r.png'), 8, 20),
+        (get_path('hand', hand, 'qp_hand_l.png'), 144, 20)
+    ]
+    for path, x, y in parts:
+        if os.path.exists(path):
+            try:
+                img = Image.open(path).convert('RGBA')
+                bg.alpha_composite(img, (x, y))
+            except:
+                pass
+    bg.save(out_file, 'PNG')
+except Exception as e:
+    print(e)
+    sys.exit(1)
+`;
+      fs.writeFileSync(scriptPath, pyContent, 'utf8');
+      try {
+        execSync(`python3 "${scriptPath}" "${assetDir}" "${head}" "${hair}" "${face}" "${body}" "${hand}" "${outPath}"`);
+      } catch (err) {
+        try {
+          execSync(`python "${scriptPath}" "${assetDir}" "${head}" "${hair}" "${face}" "${body}" "${hand}" "${outPath}"`);
+        } catch (err2) {
+          throw new Error("Failed to execute python script. Ensure Python 3 and Pillow (pip3 install Pillow) are installed.");
+        }
+      }
+    }
     
     if (fs.existsSync(outPath)) {
       imageBuffer = fs.readFileSync(outPath);
