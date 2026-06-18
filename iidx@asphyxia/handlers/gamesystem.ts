@@ -192,11 +192,17 @@ export const gssysteminfo: EPR = async (info, data, send) => {
       break;
     case 33:
       result = Object.assign(result, {
+        CommonBossPhase: K.ATTR({ val: String(3) }),
+        Event1Value: K.ATTR({ val: String(0) }),
         Event1Phase: K.ATTR({ val: String(U.GetConfig("ss_event1")) }),
+        Event2Phase: K.ATTR({ val: String(0) }),
+        ExtraBossEventPhase: K.ATTR({ val: String(0) }),
         isNewSongAnother12OpenFlg: K.ATTR({ val: String(Number(U.GetConfig("NewSongAnother12"))) }),
+        isKiwamiOpenFlg: K.ATTR({ val: String(Number(U.GetConfig("Eisei"))) }),
         WorldTourismOpenList: K.ATTR({ val: String(-1) }),
         BPLBattleOpenPhase: K.ATTR({ val: String(2) }),
-        beat: K.ATTR({ val: String(Number(U.GetConfig("BeatPhase"))) }), // is this same old beat attr at common or something else...? //
+        VocaloidEvent: K.ATTR({ val: String(U.GetConfig("ss_cyber")) }),
+        beat: K.ATTR({ val: String(5293) }), // required value for 2026031000+ //
       });
       break;
 
