@@ -1598,6 +1598,7 @@ export const pcget: EPR = async (info, data, send) => {
       appendsettings,
       custom,
       rArray,
+      rsArray,
       shop_data,
     };
 
