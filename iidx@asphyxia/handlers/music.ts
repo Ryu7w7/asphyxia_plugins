@@ -4,7 +4,7 @@ import { profile } from "../models/profile";
 import { shop_data } from "../models/shop";
 import { tutorial } from "../models/tutorial";
 import { badge } from "../models/badge";
-import { activity_mybest } from "../models/activity";
+import { activity_mybest, activity_news } from "../models/activity";
 import { djtraining } from "../models/djtraining";
 import { rival } from "../models/rival";
 import * as https from "https";
@@ -604,6 +604,13 @@ export const musicreg: EPR = async (info, data, send) => {
     cArray[clid] = Math.max(cArray[clid], cflg);
   }
 
+  // Variables to defer Discord notification until real ranking is confirmed //
+  let discordShouldNotify = false;
+  let discordPreviousName = "";
+  let discordPreviousRefid = "";
+  let discordOldScore = -1;
+  let discordOldClear = -1;
+
   if (version >= 27) { // TODO:: support old version //
     const score_top: score_top | null = await DB.FindOne<score_top>(null, {
       collection: "score_top",
@@ -614,6 +621,7 @@ export const musicreg: EPR = async (info, data, send) => {
     let names = Array<string>(5).fill("");
     let scores = Array<number>(5).fill(-1);
     let clflgs = Array<number>(5).fill(-1);
+    let refids = Array<string>(5).fill("");
     let tmp_clid = clid;
     if (style == 1) tmp_clid -= 5;
 
@@ -622,24 +630,37 @@ export const musicreg: EPR = async (info, data, send) => {
         names[tmp_clid] = profile.name;
         scores[tmp_clid] = esArray[clid];
         clflgs[tmp_clid] = cArray[clid];
+        refids[tmp_clid] = String(refid);
       } else {
         names[tmp_clid] = profile.name;
         scores[tmp_clid] = exscore;
         clflgs[tmp_clid] = cflg;
-        discordAutoExport(profile.name, mid, clid, -1, exscore, -1, cflg, "", String(refid), version);
+        refids[tmp_clid] = String(refid);
+        // First ever score on this song/style — defer notification until real rank confirmed //
+        discordOldScore = -1;
+        discordOldClear = -1;
+        discordPreviousName = "";
+        discordPreviousRefid = "";
+        discordShouldNotify = true;
       }
     }
     else {
       names = score_top.names;
       scores = score_top.scores;
       clflgs = score_top.clflgs;
+      refids = score_top.refids ?? Array<string>(5).fill(""); // migration: existing docs may not have refids //
 
       if (exscore > scores[tmp_clid]) {
-        let previousName = names[tmp_clid];
+        // Capture previous top data — defer notification until real rank confirmed //
+        discordPreviousName = names[tmp_clid];
+        discordPreviousRefid = refids[tmp_clid] || "";
+        discordOldScore = scores[tmp_clid];
+        discordOldClear = clflgs[tmp_clid];
         names[tmp_clid] = profile.name;
-        discordAutoExport(profile.name, mid, clid, scores[tmp_clid], exscore, clflgs[tmp_clid], cflg, previousName, String(refid), version);
         scores[tmp_clid] = exscore;
         clflgs[tmp_clid] = cflg;
+        refids[tmp_clid] = String(refid);
+        discordShouldNotify = true;
       }
     }
 
@@ -654,10 +675,70 @@ export const musicreg: EPR = async (info, data, send) => {
           names,
           scores,
           clflgs,
+          refids,
         }
       }
     );
   }
+
+    // Konami time format: Unix seconds × 1000 (appends '000' to Unix timestamp)
+    const konamiTimestamp = Math.floor(Date.now() / 1000) * 1000;
+
+    const oldScore = music_data ? music_data.esArray[clid] : 0;
+    if (exscore > oldScore) {
+      const diff = exscore - oldScore;
+      const news_data = String(diff).padStart(5, '0') + String(exscore).padStart(5, '0');
+
+      // top_type bitmask: 1=personal best, 2=same-grade top, 4=area top, 8=national top
+      let top_type = 1; // always personal best
+      if (discordShouldNotify) top_type |= 8; // national top
+
+      await DB.Insert<activity_news>({
+        collection: "activity_news",
+        refid: String(refid),
+        music_id: mid,
+        class_id: clid,
+        news_type: 1,
+        news_data,
+        top_type,
+        dj_name: profile.name,
+        pid: profile.pid || 0,
+        version: version,
+        timestamp: konamiTimestamp
+      });
+    }
+
+    const oldClear = music_data ? music_data.cArray[clid] : 0;
+    if (cflg > oldClear) {
+      // Check if this is a national top clear for this song/diff
+      const topScoreForClear = await DB.FindOne<score_top>(null, {
+        collection: "score_top",
+        play_style: style,
+        mid: mid,
+      });
+      let clearTopType = 0; // no ranking info by default
+      const tmp_clid = style == 1 ? clid - 5 : clid;
+      if (topScoreForClear) {
+        const topClear = topScoreForClear.clflgs[tmp_clid];
+        if (cflg > topClear) clearTopType = 8; // national top clear
+      } else {
+        clearTopType = 8; // first ever clear = national top
+      }
+
+      await DB.Insert<activity_news>({
+        collection: "activity_news",
+        refid: String(refid),
+        music_id: mid,
+        class_id: clid,
+        news_type: 0,
+        news_data: String(cflg),
+        top_type: clearTopType,
+        dj_name: profile.name,
+        pid: profile.pid || 0,
+        version: version,
+        timestamp: konamiTimestamp
+      });
+    }
 
   await DB.Upsert<score>(
     refid,
@@ -835,6 +916,11 @@ export const musicreg: EPR = async (info, data, send) => {
   ).map((r) => [r.esArray[clid], r.cArray[clid], r.__refid]);
   scores.sort((a, b) => b[0] - a[0]);
   shop_rank = scores.findIndex((a) => a[2] == refid);
+
+  // Only notify Discord if the player is genuinely #1 in the real ranking //
+  if (discordShouldNotify && shop_rank === 0) {
+    discordAutoExport(profile.name, mid, clid, discordOldScore, exscore, discordOldClear, cflg, discordPreviousName, discordPreviousRefid, String(refid), version);
+  }
 
   scores = await Promise.all(
     scores.map(async (r) => [
@@ -1316,11 +1402,15 @@ async function discordAutoExport(
   oldClear: number,
   newClear: number,
   previousName: string,
+  previousRefid: string,
   refid: string,
   version: number
 ) {
   const webhookUrl = U.GetConfig("DiscordWebhookUrl");
   if (!webhookUrl || typeof webhookUrl !== "string" || webhookUrl.trim() === "") return;
+
+  // Reload core.db each time so players who logged in after server start get their flag //
+  loadCoreDbForIidx();
 
   const LAMP_MAP: Record<number, string> = {
     0: 'NOPLAY', 1: 'FAILED', 2: 'A-CLEAR', 3: 'E-CLEAR',
@@ -1348,7 +1438,7 @@ async function discordAutoExport(
   let description = `${songInfo.title} - ${songInfo.artist}\n\n`;
   description += `👤 **Player:** ${flaggedPlayer}\n`;
   if (previousName && previousName !== playerName) {
-    description += `👑 **Took #1 from:** ${withFlagIidx(previousName, '')}\n`;
+    description += `👑 **Took #1 from:** ${withFlagIidx(previousName, previousRefid)}\n`;
   } else if (previousName === playerName) {
     description += `👑 **Retained #1!**\n`;
   }
@@ -1493,15 +1583,39 @@ except Exception as e:
     console.error("Failed to compose QPRO for Discord", err);
   }
 
-  // Use "image" (large bottom image) instead of "thumbnail" (small right side)
+  // Use "image" (large bottom image) for QPRO, "thumbnail" (top-right) for song jacket //
   if (imageBuffer) {
     payload.embeds[0].image = { url: "attachment://qpro.png" };
+  }
+
+  // Load song jacket: movie_thumbnail → thumbnail → iidx.png fallback //
+  let jacketBuffer: Buffer | null = null;
+  try {
+    const assetBase = path.join(__dirname, "../webui/asset");
+    const jacketName = `${mid}_thum.png`;
+    const moviePath = path.join(assetBase, "movie_thumbnail", jacketName);
+    const thumbPath = path.join(assetBase, "thumbnail", jacketName);
+    const fallbackPath = path.join(assetBase, "iidx.png");
+
+    if (fs.existsSync(moviePath)) {
+      jacketBuffer = fs.readFileSync(moviePath);
+    } else if (fs.existsSync(thumbPath)) {
+      jacketBuffer = fs.readFileSync(thumbPath);
+    } else if (fs.existsSync(fallbackPath)) {
+      jacketBuffer = fs.readFileSync(fallbackPath);
+    }
+  } catch (err) {
+    console.error("Failed to load jacket for Discord", err);
+  }
+
+  if (jacketBuffer) {
+    payload.embeds[0].thumbnail = { url: "attachment://jacket.png" };
   }
 
   try {
     const url = new URL(webhookUrl);
     
-    if (imageBuffer) {
+    if (imageBuffer || jacketBuffer) {
       const boundary = '----AsphyxiaDiscord' + Date.now();
       const payloadStr = JSON.stringify(payload);
       
@@ -1510,12 +1624,29 @@ except Exception as e:
         `Content-Disposition: form-data; name="payload_json"\r\n`,
         `Content-Type: application/json\r\n\r\n`,
         `${payloadStr}\r\n`,
-        `--${boundary}\r\n`,
-        `Content-Disposition: form-data; name="files[0]"; filename="qpro.png"\r\n`,
-        `Content-Type: image/png\r\n\r\n`,
-        imageBuffer,
-        `\r\n--${boundary}--\r\n`
       ];
+
+      if (imageBuffer) {
+        bodyParts.push(
+          `--${boundary}\r\n`,
+          `Content-Disposition: form-data; name="files[0]"; filename="qpro.png"\r\n`,
+          `Content-Type: image/png\r\n\r\n`,
+          imageBuffer,
+          `\r\n`
+        );
+      }
+
+      if (jacketBuffer) {
+        bodyParts.push(
+          `--${boundary}\r\n`,
+          `Content-Disposition: form-data; name="files[1]"; filename="jacket.png"\r\n`,
+          `Content-Type: image/png\r\n\r\n`,
+          jacketBuffer,
+          `\r\n`
+        );
+      }
+
+      bodyParts.push(`--${boundary}--\r\n`);
 
       const postData = Buffer.concat(bodyParts.map((part: string | Buffer) => typeof part === 'string' ? Buffer.from(part) : part));
 

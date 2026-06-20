@@ -98,7 +98,7 @@ export const hiscore: EPR = async (info, data, send) => {
           _.groupBy(records, r => `${r.mid}:${r.type}`),
           group => {
             const rScore = _.maxBy(group, 'score');
-            
+
             return {
               id: K.ITEM('u32', rScore.mid),
               ty: K.ITEM('u32', rScore.type),
@@ -154,8 +154,12 @@ export const entryE: EPR = async (info, data, send) => {
   send.success()
 }
 
-export const globalMatch: EPR = async (info, data, send) => {  
+export const globalMatch: EPR = async (info, data, send) => {
   const version = Math.abs(getVersion(info));
+
+  const RELAY_URL = "http://127.0.0.1:8717/allocate";
+  const RELAY_PUBLIC_IP = "165.1.125.122";
+  const ENABLE_RELAY = true;
 
   let entryData = {
     c_ver: $(data).number('c_ver'),
@@ -187,7 +191,7 @@ export const globalMatch: EPR = async (info, data, send) => {
   // console.log("   claim: " + entryData.claim)
   // console.log("entry_id: " + entryData.entry_id)
 
-  if(matchRooms.length === 0) {
+  if (matchRooms.length === 0) {
     // create room if not exists
     console.log("[" + loglip + " | " + loggip + "] Creating new room: " + entryData.c_ver + " - " + entryData.filter + " - " + entryData.mid)
     matchRooms.push({
@@ -208,7 +212,7 @@ export const globalMatch: EPR = async (info, data, send) => {
 
     // delete room after sec
     setTimeout(function () {
-      console.log("[" + loglip + " | " + loggip + "] Deleting expired room: " + entryData.c_ver + " - " + entryData.filter +  -  + entryData.mid)
+      console.log("[" + loglip + " | " + loggip + "] Deleting expired room: " + entryData.c_ver + " - " + entryData.filter + -  + entryData.mid)
       const search = (element) => element.players[0].lip.join('.') === entryData.lip.join('.')
       const index = matchRooms.findIndex(search)
       matchRooms.splice(index, 1)
@@ -217,7 +221,7 @@ export const globalMatch: EPR = async (info, data, send) => {
     // new room, waiting for opponents
     let opponents = {
       entry_id: K.ITEM('u32', entryData.entry_id),
-    }   
+    }
     return send.object(opponents)
   } else {
     // if there are rooms
@@ -225,8 +229,8 @@ export const globalMatch: EPR = async (info, data, send) => {
     let roomInd = -1
 
     // check if lip already in a room
-    for(const [ind, room] of matchRooms.entries()) {
-      if(room.version === version && room.c_ver === entryData.c_ver && room.filter === entryData.filter && room.mid === entryData.mid) {
+    for (const [ind, room] of matchRooms.entries()) {
+      if (room.version === version && room.c_ver === entryData.c_ver && room.filter === entryData.filter && room.mid === entryData.mid) {
         let playInd = room.players.findIndex(p => p.lip.join('.') === entryData.lip.join('.'))
         if (playInd != -1) {
           inRoom = true
@@ -237,12 +241,15 @@ export const globalMatch: EPR = async (info, data, send) => {
 
     // if not in room, find room with slot, add ip to players arr, get otherplayer data
     let otherPlayers = []
-    if(!inRoom) {
-      console.log("[" + loglip + " | " + loggip + "] Looking for match room.")
+    if (!inRoom) {
+      console.log(`[${loglip} | ${loggip}] Looking for match room. My params: ${version} - ${entryData.c_ver} - ${entryData.filter} - ${entryData.mid}`)
       let dataAdded = false
       for(const [ind, room] of matchRooms.entries()) {
-        if(room.version === version && room.c_ver === entryData.c_ver && room.filter === entryData.filter && room.mid === entryData.mid) {
-          if(room.players.length < room.p_rest + room.p_num) {
+        console.log(`Comparing with Room: ${room.version} - ${room.c_ver} - ${room.filter} - ${room.mid}`);
+        // REGLAS PARA PRODUCCIÓN (Matchmaker Flexible)
+        // Se respeta la versión del juego y el modo (Megamix vs Arena), pero ignora el rango (mid)
+        if(room.version === version && room.c_ver === entryData.c_ver && room.filter === entryData.filter) {
+          if (room.players.length < room.p_rest + room.p_num) {
             matchRooms[ind].players.push({
               gip: entryData.gip,
               lip: entryData.lip,
@@ -250,16 +257,9 @@ export const globalMatch: EPR = async (info, data, send) => {
             })
             dataAdded = true
             otherPlayers = [...room.players]
-            otherPlayers.splice(room.players.length-1, 1)
+            otherPlayers.splice(room.players.length - 1, 1)
 
-            let opponents = {
-              entry_id: K.ITEM('u32', entryData.entry_id),
-              entry: otherPlayers.map(e => ({
-                port: K.ITEM('u16', e.port),
-                gip: K.ITEM('4u8', e.gip),
-                lip: K.ITEM('4u8', e.lip)
-              }))
-            }
+            let opponents = await buildOpponents(matchRooms[ind], matchRooms[ind].players.length - 1);
             console.log("[" + loglip + " | " + loggip + "] Added data to player list. Sending opponent data.")
 
             return send.object(opponents)
@@ -268,7 +268,7 @@ export const globalMatch: EPR = async (info, data, send) => {
       }
 
       // if no rooms with slot, create new
-      if(!dataAdded) {
+      if (!dataAdded) {
         console.log("[" + loglip + " | " + loggip + "] No available rooms, creating new room.")
         matchRooms.push({
           version: version,
@@ -289,7 +289,7 @@ export const globalMatch: EPR = async (info, data, send) => {
         setTimeout(function () {
           const search = (element) => element.players[0].lip.join('.') === entryData.lip.join('.')
           const index = matchRooms.findIndex(search)
-          console.log("[" + loglip + " | " + loggip + "] Deleting expired room: " + entryData.c_ver + " - " + entryData.filter +  -  + entryData.mid)
+          console.log("[" + loglip + " | " + loggip + "] Deleting expired room: " + entryData.c_ver + " - " + entryData.filter + -  + entryData.mid)
           matchRooms.splice(index, 1)
         }, entryData.sec * 1000);
         let opponents = {
@@ -303,19 +303,101 @@ export const globalMatch: EPR = async (info, data, send) => {
     else {
       let room = matchRooms[roomInd]
       let playInd = room.players.findIndex(p => p.lip.join('.') === entryData.lip.join('.'))
-      otherPlayers = [...room.players]
-      otherPlayers.splice(playInd, 1)
-      let opponents = {
-        entry_id: K.ITEM('u32', entryData.entry_id),
-        entry: otherPlayers.map(e => ({
-          port: K.ITEM('u16', e.port),
-          gip: K.ITEM('4u8', e.gip),
-          lip: K.ITEM('4u8', e.lip)
-        }))
-      }
-      console.log("[" + loglip + " | " + loggip + "] Already in room, re-sending opponent data.")
+
+      let opponents = await buildOpponents(room, playInd);
+
+      // console.log("[" + loglip + " | " + loggip + "] Already in room, re-sending opponent data.")
       return send.object(opponents)
     }
+  }
+
+  // Helper function para asignar puertos del Relay a los oponentes
+  async function buildOpponents(room, playInd) {
+    let otherPlayers = [...room.players]
+    otherPlayers.splice(playInd, 1)
+
+    let proxyEntries = [];
+
+    if (ENABLE_RELAY && otherPlayers.length > 0) {
+      try {
+        let relayReq = {
+          sessionId: room.c_ver + "_" + room.mid + "_" + room.filter,
+          players: room.players.map(p => ({
+            id: p.lip.join('.'),
+            gip: p.gip.join('.')
+          }))
+        };
+
+        // Usa http nativo para compatibilidad con Node.js 16 de RyuNET
+        const http = require('http');
+        const postData = JSON.stringify(relayReq);
+        const options = {
+          hostname: '127.0.0.1',
+          port: 8080,
+          path: '/allocate',
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Content-Length': Buffer.byteLength(postData)
+          }
+        };
+
+        const data: any = await new Promise((resolve, reject) => {
+          const req = http.request(options, res => {
+            let body = '';
+            res.on('data', chunk => body += chunk);
+            res.on('end', () => {
+              try { resolve(JSON.parse(body)); } catch (e) { reject(e); }
+            });
+          });
+          req.on('error', reject);
+          req.write(postData);
+          req.end();
+        });
+
+        if (data && data.ports) {
+          proxyEntries = otherPlayers.map(e => {
+            let targetId = e.lip.join('.');
+            let targetRelayPort = data.ports[targetId];
+            let relayIpArr = RELAY_PUBLIC_IP.split('.').map(Number);
+
+            // Restaurado el Bypass de LAN
+            if (e.gip.join('.') === loggip && e.lip[0] === entryData.lip[0] && e.lip[1] === entryData.lip[1]) {
+              return {
+                port: K.ITEM('u16', e.port),
+                gip: K.ITEM('4u8', e.gip),
+                lip: K.ITEM('4u8', e.lip)
+              };
+            }
+
+            return {
+              port: K.ITEM('u16', targetRelayPort),
+              gip: K.ITEM('4u8', relayIpArr),
+              lip: K.ITEM('4u8', relayIpArr) // Engañar a SDVX para enrutar todo al Relay
+            };
+          });
+        }
+      } catch (e) {
+        console.error("[Relay] Error allocating ports: " + e);
+      }
+    }
+
+    if (proxyEntries.length === 0 && otherPlayers.length > 0) {
+      // Fallback a IP directa si el relay falla o está apagado
+      proxyEntries = otherPlayers.map(e => ({
+        port: K.ITEM('u16', e.port),
+        gip: K.ITEM('4u8', e.gip),
+        lip: K.ITEM('4u8', e.lip)
+      }));
+    }
+
+    let res: any = {
+      entry_id: K.ITEM('u32', entryData.entry_id)
+    };
+    if (proxyEntries.length > 0) {
+      res.entry = proxyEntries;
+    }
+    return res;
   }
 }
 
@@ -323,7 +405,7 @@ export const lounge: EPR = async (info, data, send) => {
   const version = Math.abs(getVersion(info));
   let filter = $(data).number('filter')
   let matches = matchRooms.filter(room => room.version === version && room.filter === filter)
-  if(matches.length < 1) {
+  if (matches.length < 1) {
     send.object({
       interval: K.ITEM('u32', 5)
     })
@@ -339,37 +421,37 @@ export const lounge: EPR = async (info, data, send) => {
 export const serial: EPR = async (info, data, send) => {
   const version = Math.abs(getVersion(info));
   const dVersion = parseInt(info.model.split(":")[4].slice(0, -2));
-  if(version !== 3) return send.deny()
+  if (version !== 3) return send.deny()
   let date = new Date()
   let refid = $(data).str('refid')
   let serial = SERIAL3.filter(s => checkVerStart(dVersion, s.version, 1, date))
 
   const code = parseInt($(data).str('code'))
-  let used = await DB.FindOne<Serial>(refid, {collection: 'serial', version})
+  let used = await DB.FindOne<Serial>(refid, { collection: 'serial', version })
   let usedInd = used ? used.list.findIndex(l => l === code) : -1
   let found = serial.find(s => s.code === code)
   let result = 0
-  if(!found) result = 2
-  else if(usedInd >= 0 && found.onetime) result = 3 
+  if (!found) result = 2
+  else if (usedInd >= 0 && found.onetime) result = 3
 
   let finItems = []
-  if(result === 0) {
-    for(const item of found.items) {
-      await DB.Upsert<Item>(refid, {collection: 'item', version, type: item.type, id: item.id}, {
+  if (result === 0) {
+    for (const item of found.items) {
+      await DB.Upsert<Item>(refid, { collection: 'item', version, type: item.type, id: item.id }, {
         $inc: {
           param: item.param
         }
       })
-      finItems.push({item: await DB.FindOne<Item>(refid, {collection: 'item', version, type: item.type, id: item.id}), param: item.param})
+      finItems.push({ item: await DB.FindOne<Item>(refid, { collection: 'item', version, type: item.type, id: item.id }), param: item.param })
     }
 
-    if(usedInd < 0) {
-      await DB.Upsert<Serial>(refid, {collection: 'serial', version}, {
+    if (usedInd < 0) {
+      await DB.Upsert<Serial>(refid, { collection: 'serial', version }, {
         $push: {
           list: code
         }
       })
-    } 
+    }
 
   } else {
     return send.object({
@@ -383,7 +465,7 @@ export const serial: EPR = async (info, data, send) => {
 
   return send.object({
     //success, congest, invalid, used
-    result: K.ITEM('s8', result), 
+    result: K.ITEM('s8', result),
     serial_name: K.ITEM('str', "__"),
     item: finItems.map(i => ({
       type: K.ITEM('u32', i.item.type === 6 ? 3 : i.type),

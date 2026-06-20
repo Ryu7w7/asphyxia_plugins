@@ -23,6 +23,7 @@ export interface score_top {
   names: string[];
   scores: number[];
   clflgs: number[];
+  refids: string[]; // refid of the top holder per chart index, for Discord flag lookup //
 }
 
 export interface old_score {

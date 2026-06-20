@@ -48,3 +48,17 @@ export interface activity_mybest {
 
   update_date: number;
 }
+
+export interface activity_news {
+  collection: "activity_news";
+  refid: string;
+  music_id: number;
+  class_id: number;
+  news_type: number;
+  news_data: string;
+  top_type: number;
+  dj_name: string;
+  pid: number;
+  version: number;
+  timestamp: number;
+}
