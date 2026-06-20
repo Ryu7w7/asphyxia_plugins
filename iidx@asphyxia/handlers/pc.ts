@@ -4,7 +4,7 @@ import { custom, default_custom } from "../models/custom";
 import { IDtoCode, IDtoRef, GetVersion, ReftoProfile, ReftoPcdata, ReftoQPRO, appendSettingConverter, NumArrayToString, GetWeekId } from "../util";
 import { eisei_grade, eisei_grade_data, lightning_custom, lightning_musicfilter, lightning_musicfilter_sort, lightning_musicmemo, lightning_musicmemo_new, lightning_playdata, lightning_settings, lm_customdata, lm_playdata, lm_settings, lm_settings_new, musicfilter_data, musicfilter_sort_data, musicmemo_data, musicmemo_data_new } from "../models/lightning";
 import { profile, default_profile } from "../models/profile";
-import { rival, rival_data } from "../models/rival";
+import { rival, rival_data, rival_sub } from "../models/rival";
 import { world_tourism } from "../models/worldtourism";
 import { shop_data } from "../models/shop";
 import { tutorial } from "../models/tutorial";
@@ -12,7 +12,7 @@ import { expert } from "../models/ranking";
 import { blueboss } from "../models/event";
 import { badge, badgeBaseMap, badgeVersionMap } from "../models/badge";
 import { extra_favorite } from "../models/favorite";
-import { activity, activity_mybest } from "../models/activity";
+import { activity, activity_mybest, activity_news } from "../models/activity";
 import { extra_boss } from "../models/extraboss";
 import { djtraining } from "../models/djtraining";
 
@@ -589,6 +589,7 @@ export const pcget: EPR = async (info, data, send) => {
   const custom = await DB.FindOne<custom>(refid, { collection: "custom", version: version });
   const grade = await DB.Find<grade>(refid, { collection: "grade", version: version });
   const rivals = await DB.Find<rival>(refid, { collection: "rival" });
+  const rivals_sub = await DB.Find<rival_sub>(refid, { collection: "rival_sub" });
   const shop_data = await DB.FindOne<shop_data>({ collection: "shop_data" });
   const expert = await DB.Find<expert>(refid, { collection: "expert", version: version });
   const world_tourism = await DB.Find<world_tourism>(refid, { collection: "world_tourism", version: version });
@@ -699,7 +700,9 @@ export const pcget: EPR = async (info, data, send) => {
     custom.hide_iidxid,
     custom.disable_beginner_option,
   );
-  let dArray = [], eArray = [], rArray = [], mArray = [], bArray = [], fArray = [], fsArray = [], efArray = [];
+  let dArray = [], eArray = [], rArray = [],
+    rsArray = [], mArray = [], bArray = [],
+    fArray = [], fsArray = [], efArray = [];
 
   grade.forEach((res: grade) => {
     dArray.push([res.style, res.gradeId, res.maxStage, res.archive]);
@@ -741,6 +744,27 @@ export const pcget: EPR = async (info, data, send) => {
     }
 
     rArray.sort((a: rival_data, b: rival_data): number => a.play_style - b.play_style || a.index - b.index);
+  }
+
+  if (rivals_sub.length > 0) {
+    for (let a = 0; a < rivals_sub.length; a++) {
+      let profile = await ReftoProfile(rivals_sub[a].rival_refid);
+      let pcdata = await ReftoPcdata(rivals_sub[a].rival_refid, version);
+      let qprodata = await ReftoQPRO(rivals_sub[a].rival_refid, version);
+
+      let rival_data: rival_data = {
+        play_style: rivals_sub[a].play_style,
+        index: rivals_sub[a].index,
+
+        profile: profile,
+        pcdata: pcdata,
+        qprodata: qprodata,
+      }
+
+      rsArray.push(rival_data);
+    }
+
+    rsArray.sort((a: rival_data, b: rival_data): number => a.play_style - b.play_style || a.index - b.index);
   }
 
   let wArray = [];
@@ -1577,6 +1601,40 @@ export const pcget: EPR = async (info, data, send) => {
       shop_data,
     };
 
+    if (version >= 27) {
+      // Fetch all recent news (limit to last 500 entries to avoid performance issues)
+      const allNews = await DB.Find<activity_news>(null, { collection: "activity_news" });
+
+      // Only show news from same or older version (no v33 news to v31 player)
+      const versionFilteredNews = allNews.filter(n => !n.version || n.version <= version);
+
+      // National top: top_type bit 8 set
+      const newsDataAllTop = versionFilteredNews
+        .filter(n => (n.top_type & 8) !== 0)
+        .sort((a, b) => b.timestamp - a.timestamp)
+        .slice(0, 15);
+
+      // Area top: top_type bit 4 set, same pid (prefecture)
+      const playerPid = profile.pid || 0;
+      const newsDataAreaTop = versionFilteredNews
+        .filter(n => (n.top_type & 4) !== 0 && n.pid === playerPid)
+        .sort((a, b) => b.timestamp - a.timestamp)
+        .slice(0, 15);
+
+      // Rival news: use the raw rivals array (has rival_refid), exclude own news
+      const rivalRefids = rivals.map((r: any) => r.rival_refid);
+      const newsDataRival = versionFilteredNews
+        .filter(n => rivalRefids.includes(n.refid) && n.refid !== String(refid))
+        .sort((a, b) => b.timestamp - a.timestamp)
+        .slice(0, 15);
+
+      result = Object.assign(result, {
+        newsDataAllTop,
+        newsDataAreaTop,
+        newsDataRival,
+      });
+    }
+
     switch (version) {
       case 21:
         result = Object.assign(result, {
@@ -1659,6 +1717,7 @@ export const pcget: EPR = async (info, data, send) => {
         });
       case 32:
         result = Object.assign(result, {
+          rsArray,
           fsArray,
           activityDayId,
           activityTimestamp,

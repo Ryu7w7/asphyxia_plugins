@@ -55,6 +55,11 @@ IIDX32pc(status="0")
         qprodata(body=rd.qprodata[3] face=rd.qprodata[2] hair=rd.qprodata[0] hand=rd.qprodata[4] head=rd.qprodata[1] back=rd.qprodata[5])
         shop(name=shop_data.opname)
   rlist_sub
+    - for (let rsd of rsArray)
+      rival(spdp=rsd.play_style id=rsd.profile[2] id_str=rsd.profile[3] djname=rsd.profile[0] pid=rsd.profile[1] sg=rsd.pcdata[0] dg=rsd.pcdata[1] sa=rsd.pcdata[2] da=rsd.pcdata[3])
+        is_robo(__type="bool") 0
+        qprodata(body=rsd.qprodata[3] face=rsd.qprodata[2] hair=rsd.qprodata[0] hand=rsd.qprodata[4] head=rsd.qprodata[1] back=rsd.qprodata[5])
+        shop(name=shop_data.opname)
   notes_radar(style="0")
     radar_score(__type="s32" __count="6") #{pcdata.nr_spradar[0]} #{pcdata.nr_spradar[1]} #{pcdata.nr_spradar[2]} #{pcdata.nr_spradar[3]} #{pcdata.nr_spradar[4]} #{pcdata.nr_spradar[5]}
   notes_radar(style="1")
@@ -147,3 +152,14 @@ IIDX32pc(status="0")
         best_data(play_style=a.play_style kind=a.kind play_side=a.play_side music_id=a.music_id note_id=a.note_id target_graph=a.target_graph target_score=a.target_score pacemaker=a.pacemaker best_clear=a.best_clear best_score=a.best_score best_misscount=a.best_misscount now_clear=a.now_clear now_score=a.now_score now_misscount=a.now_misscount now_pgreat=a.now_pgreat now_great=a.now_great now_good=a.now_good now_bad=a.now_bad now_poor=a.now_poor now_combo=a.now_combo now_fast=a.now_fast now_slow=a.now_slow option=a.option option2=a.option_2 gauge_type=a.gauge_type result_type=a.result_type update_date=a.update_date)
           ghost_gauge_data(__type="bin") #{a.ghost_gauge_data}
           is_special_result(__type="bool") #{a.is_special_result}
+  if newsDataAllTop != null
+    news_data(disp_score_type="0")
+      news_data_rival(last_read_time="0")
+        - for (let n of newsDataRival)
+          detail(music_id=n.music_id class_id=n.class_id news_type=n.news_type news_data=n.news_data news_time=n.timestamp dj_name=n.dj_name)
+      news_data_all_top(last_read_time="0")
+        - for (let n of newsDataAllTop)
+          detail(music_id=n.music_id class_id=n.class_id news_type=n.news_type news_data=n.news_data news_time=n.timestamp dj_name=n.dj_name)
+      news_data_area_top(last_read_time="0")
+        - for (let n of newsDataAreaTop)
+          detail(music_id=n.music_id class_id=n.class_id news_type=n.news_type news_data=n.news_data news_time=n.timestamp dj_name=n.dj_name)
