@@ -202,6 +202,8 @@ export const gssysteminfo: EPR = async (info, data, send) => {
         WorldTourismOpenList: K.ATTR({ val: String(-1) }),
         BPLBattleOpenPhase: K.ATTR({ val: String(2) }),
         VocaloidEvent: K.ATTR({ val: String(U.GetConfig("ss_cyber")) }),
+        KrankAppendSeason: K.ATTR({ val: String(0) }),
+        the4thEvent: K.ATTR({ val: String(1)} ),
         beat: K.ATTR({ val: String(5293) }), // required value for 2026031000+ //
       });
       break;
