@@ -1,0 +1,97 @@
+-
+link(rel="stylesheet" href="static/asset/css/customcharts.css")
+div
+  .card
+    .card-header
+      p.card-header-title
+        span.icon
+          i.mdi.mdi-star
+        | Nominate a Chart
+    .card-content
+      p.mb-3 Search for a chart on Nautica and nominate it for review. Admins will review nominations and approved charts will be added to the server.
+      .field.is-grouped
+        .control
+          input.input.is-small#nominate-search(type="text" placeholder="Search by title, artist or effector..." style="width:300px")
+        .control
+          button.button.is-small#nom-prev-btn
+            span.icon.is-small
+              i.mdi.mdi-chevron-left
+        .control
+          input.input.is-small#nom-page-input(type="number" min="1" value="1" style="width:70px;text-align:center")
+        .control
+          span.is-size-7#nom-page-total(style="line-height:30px") / 1
+        .control
+          button.button.is-small#nom-next-btn
+            span.icon.is-small
+              i.mdi.mdi-chevron-right
+        .control(style="margin-left:auto")
+          span.is-size-7(style="line-height:30px") Powered by #[a(href="https://ksm.dev" target="_blank") ksm.dev]
+      p.help
+        span.icon.is-small(style="vertical-align:middle")
+          i.mdi.mdi-information-outline
+        |  Tip: use #[code level:13] or #[code levels:13,14,15] to filter by chart level.
+      #nominate-results
+
+  .card.mt-5
+    .card-header
+      p.card-header-title
+        span.icon
+          i.mdi.mdi-music-box-multiple
+        | Custom Charts
+    .card-content
+      p Curated community charts available on this server. These charts are included in player rating calculations.
+      p
+        a(href="/plugin/sdvx@asphyxia/custom%20charts%20setup")
+          span.icon
+            i.mdi.mdi-book-open-variant
+          span How to play custom charts?
+
+      .field.is-grouped.is-grouped-multiline.mb-4.mt-4
+        .control
+          a.button.is-link(href="/api/nautica/download-all")
+            span.icon
+              i.mdi.mdi-download
+            span Download All Charts (ZIP)
+
+        .control.is-admin-only(style="display:none")
+          button.button.is-info#curated-export-btn(title="Download the full curated chart list as JSON so it can be re-imported on another server.")
+            span.icon
+              i.mdi.mdi-download
+            span Export List
+        .control.is-admin-only(style="display:none")
+          button.button.is-info.is-light#curated-import-btn(title="Upload a previously-exported JSON. New entries are added with status 'pending'; existing charts are left untouched.")
+            span.icon
+              i.mdi.mdi-upload
+            span Import List
+          input#curated-import-file(type="file" accept=".json,application/json" style="display:none")
+        .control(style="margin-left:auto")
+          .control.has-icons-left
+            input.input.is-small#custom-charts-search(type="text" placeholder="Search by title, artist or effector..." style="width:300px")
+            span.icon.is-small.is-left
+              i.mdi.mdi-magnify
+
+      #custom-charts-list
+        p.has-text-grey Loading custom charts...
+
+  .card.mt-5
+    .card-header
+      p.card-header-title
+        span.icon
+          i.mdi.mdi-clipboard-list
+        | My Nominations
+    .card-content
+      #my-nominations
+        p.has-text-grey Loading...
+
+  .card.mt-5#testing-feedback-section(style="display:none")
+    .card-header
+      p.card-header-title
+        span.icon
+          i.mdi.mdi-test-tube
+        | Charts in Testing
+    .card-content
+      p.mb-3 These charts are being playtested. Play them and leave your feedback!
+      #testing-charts-list
+
+script(src="static/asset/js/customcharts.js")
+script(src="static/asset/js/nominations.js")

@@ -1,0 +1,171 @@
+/* Shared chip styles */
+.chip {
+  font-size: 0.65em;
+  padding: 1px 5px;
+  border-radius: 4px;
+  color: #fff;
+}
+.chip-nov {
+  background: #5b7bb5;
+}
+.chip-adv {
+  background: #c4a135;
+}
+.chip-exh {
+  background: #b53535;
+}
+.chip-inf {
+  background: #c455c4;
+}
+.chip-mxm {
+  background: #888;
+}
+
+/* Status badges */
+.curated-status {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.8em;
+}
+.status-nominated {
+  background: #553300;
+  color: #ffaa33;
+}
+.status-testing {
+  background: #003355;
+  color: #33aaff;
+}
+.status-approved {
+  background: #335500;
+  color: #88cc33;
+}
+.status-pending {
+  background: #665500;
+  color: #ffcc00;
+}
+.status-converting {
+  background: #004466;
+  color: #33ccff;
+}
+.status-ready {
+  background: #005500;
+  color: #55ff55;
+}
+.status-error {
+  background: #660000;
+  color: #ff5555;
+}
+.status-rejected {
+  background: #440022;
+  color: #ff4488;
+}
+
+/* Card grid (shared layout) */
+.charts-grid,
+.nautica-grid {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+.nautica-grid {
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+}
+.charts-grid {
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+}
+
+@media (min-width: 1400px) {
+  .nautica-grid,
+  .charts-grid {
+    grid-template-columns: repeat(5, 1fr);
+  }
+}
+
+/* Song cards */
+.nautica-card,
+.chart-card {
+  background: #2a2a2e;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid #444;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.nautica-card .jacket,
+.chart-card .jacket {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+}
+
+.nautica-card .card-body,
+.chart-card .card-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 0.5rem;
+}
+
+.nautica-card .info,
+.chart-card .info {
+  padding: 0;
+}
+
+.nautica-card .title,
+.chart-card .title {
+  font-weight: bold;
+  font-size: 1em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin: 0;
+  padding: 0;
+  line-height: 1.2;
+}
+
+.nautica-card .artist,
+.chart-card .artist {
+  font-size: 0.75em;
+  color: #aaa;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin: 0;
+  padding: 0;
+  line-height: 1.2;
+}
+
+.nautica-card .charts,
+.chart-card .charts {
+  display: flex;
+  gap: 0.2rem;
+  margin-top: 0.5rem;
+  flex-wrap: wrap;
+  padding: 0;
+}
+
+.nautica-card .effector,
+.chart-card .effector {
+  margin-top: 0.5rem;
+}
+
+.nautica-card .actions,
+.chart-card .actions {
+  padding: 0;
+  display: flex;
+  gap: 0.3rem;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: auto;
+  padding-top: 0.5rem;
+}
+
+.chart-card .id-badge {
+  font-size: 0.65em;
+  color: #666;
+  margin-top: 0.2rem;
+}

@@ -1,0 +1,64 @@
+-
+link(rel="stylesheet" href="static/asset/css/customcharts.css")
+div
+  .card
+    .card-header
+      p.card-header-title
+        span.icon
+          i.mdi.mdi-book-open-variant
+        | How to Play Custom Charts
+    .card-content
+      .content
+        h4 Prerequisites
+        ol
+          li
+            | Download #[strong ifs_layeredfs] (#[code ifs_hook.dll]) from
+            |  #[a(href="https://github.com/mon/ifs_layeredfs/releases" target="_blank") GitHub releases].
+            | This is a DLL hook that allows the game to load custom content from the #[code data_mods] folder.
+          li Place #[code ifs_hook.dll] in the same folder as #[code spice64.exe].
+          li
+            | Open #[strong spicecfg.exe], go to #[strong Options] → #[strong Inject DLL Hooks],
+            |  and add #[code ifs_hook.dll] to the list.
+
+        hr
+
+        h4 Setup Custom Charts Sync
+        ol
+          li
+            | Download the sync bundle below and extract both files next to #[code spice64.exe]:
+          .field(style="margin-top:1.5rem;margin-bottom:1rem")
+            a.button.is-success(href="/api/nautica/sync-bundle")
+              span.icon
+                i.mdi.mdi-download
+              span Download Sync Bundle (.zip)
+          li The bundle contains:
+            ul(style="margin-bottom:1.5rem")
+              li #[code sync_custom_charts.ps1] — the sync script that downloads charts from the server
+              li #[code sync_and_play.bat] — a launcher that runs the sync script then starts the game
+          li
+            | Your folder should now look like this:
+            pre(style="background:#1a1a1e;color:#ddd;padding:1em;border-radius:6px;font-size:0.85em;margin-top:0.5rem")
+              | your_game_folder/
+              |   spice64.exe
+              |   spicecfg.exe
+              |   ifs_hook.dll
+              |   sync_custom_charts.ps1
+              |   sync_and_play.bat
+              |   data_mods/          ← created automatically on first sync
+
+        hr
+
+        h4 Playing
+        ol
+          li Run #[strong sync_and_play.bat] instead of launching the game directly.
+          li The script will check for new custom charts on the server and download them automatically.
+          li After syncing, the game launches normally. Custom charts appear in the song list.
+          li On subsequent launches, the script only downloads if new charts are available — otherwise it starts instantly.
+
+
+
+        div(style="margin-top:2rem")
+          a.button.is-link(href="/plugin/sdvx@asphyxia/custom%20charts")
+            span.icon
+              i.mdi.mdi-arrow-left
+            span Back to Custom Charts

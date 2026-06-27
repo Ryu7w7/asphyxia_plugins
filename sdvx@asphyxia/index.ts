@@ -13,8 +13,31 @@ import {
   manageStartupFlags,
   addWeekly,
   getWeekRankList,
-  getDateCode
+  getDateCode,
+  clearCustomChartScores,
 } from './handlers/webui';
+import {
+  nauticaBrowse,
+  nauticaApprove,
+  nauticaRemove,
+  nauticaList,
+  nauticaDeletedList,
+  nauticaConvertStatus,
+  nauticaReconvert,
+  nauticaReconvertAll,
+  nauticaExportList,
+  nauticaImportList,
+  nauticaDownloadSong,
+  nauticaDownloadAll,
+  nauticaNominate,
+  nauticaMyNominations,
+  nauticaNominationQueue,
+  nauticaSubmitFeedback,
+  nauticaGetFeedback,
+  nauticaSetTesting,
+  nauticaReject,
+  nauticaSlotsStatus,
+} from './handlers/nautica';
 import {
   load,
   create,
@@ -50,6 +73,17 @@ export function register() {
   R.Config('gw_mission_skipmatch', { type: 'boolean', default: false, name: 'Skip matchmaking MISSION objectives', desc: 'In case you\'re unable to do matchmaking. Prologue and episode 10 only. Dialogue will be skipped.' })
   R.Config('gw_gene', { type: 'boolean', default: true, name: 'GENERATOR START', desc: 'For GRAVITY WARS: disable to hide in mode select in case of print problem loop (due to missing chara_card files)' })
   
+  R.Config('sdvx_voxcharger_path', { type: 'string', needRestart: false, default: '', name: 'VoxCharger Path', desc: 'Path to VoxCharger.exe for converting custom charts'});
+  R.Config('sdvx_custom_mix_name', { type: 'string', needRestart: false, default: 'asphyxia_custom', name: 'Custom Mix Name', desc: 'Folder name under data_mods/ for curated custom charts'});
+  R.Config('sdvx_nomination_mode', { type: 'string', options: ['production', 'staging'], default: 'production', name: 'Nomination Mode', desc: 'On staging servers, charts moved to testing are auto-converted for playtesting'});
+  R.Config('sdvx_nautica_id_start', { type: 'string', needRestart: false, default: '2800', name: 'Custom Chart Starting ID', desc: 'First music ID allocated to custom (Nautica) charts. The game crashes at IDs >= 3072, so this is capped at 3070. Lowering it gives more custom-chart slots, but values too low will collide with official song IDs (typically up to ~1900). Change this BEFORE adding custom charts — songs already assigned below the new start remain in the DB but will be invisible to slot tracking.'});
+  R.Config('sdvx_drive_enabled', { type: 'boolean', needRestart: false, default: false, name: 'Google Drive Uploads', desc: 'When enabled, converted charts are uploaded to Google Drive and clients download from there instead of this server.'});
+  R.Config('sdvx_drive_oauth_client_id', { type: 'string', needRestart: false, default: '', name: 'Drive OAuth Client ID', desc: 'OAuth 2.0 Client ID from GCP Console > APIs & Services > Credentials. Create a Web application client and add http://localhost:8083/api/drive-oauth-callback (matching your server URL) as an Authorized redirect URI.'});
+  R.Config('sdvx_drive_oauth_client_secret', { type: 'string', needRestart: false, default: '', name: 'Drive OAuth Client Secret', desc: 'OAuth 2.0 Client Secret that pairs with the Client ID above.'});
+  R.Config('sdvx_drive_oauth_refresh_token', { type: 'string', needRestart: false, default: '', name: 'Drive OAuth Refresh Token', desc: 'Populated automatically after you click "Authorize with Google Drive" on the Custom Charts Admin page. Leave empty.'});
+  R.Config('sdvx_drive_folder_id', { type: 'string', needRestart: false, default: '', name: 'Drive Folder ID', desc: 'The target Google Drive folder ID (the last segment of the folder URL). Uploads go into this folder under your own Google account, counting against your personal Drive quota.'});
+  R.Config('sdvx_chrome_path', { type: 'string', needRestart: false, default: '', name: 'Chrome / Chromium / Edge executable', desc: 'Absolute path to a Chromium-based browser used to render the VF Top 50 PNG endpoint (/api/sdvx/vf-top-50/<refid>.png). Leave empty to auto-detect Chrome and Edge on Windows / macOS / Linux. Only needed if auto-detect fails or you want a specific install.'});
+
   R.DataFile('./webui/asset/uploads/1_mdb.xml', {name: 'music_db.xml (BOOTH)', accept: 'text/xml, .xml'});
   R.DataFile('./webui/asset/uploads/2_mdb.xml', {name: 'music_db.xml (infinite infection)', accept: 'text/xml, .xml'});
   R.DataFile('./webui/asset/uploads/3_mdb.xml', {name: 'music_db.xml (GRAVITY WARS)', accept: 'text/xml, .xml'});
@@ -72,6 +106,27 @@ export function register() {
   R.WebUIEvent('addWeekly', addWeekly);
   R.WebUIEvent('getWeekRankList', getWeekRankList);
   R.WebUIEvent('getDateCode', getDateCode);
+  R.WebUIEvent('clearCustomChartScores', clearCustomChartScores);
+  R.WebUIEvent('nauticaBrowse', nauticaBrowse);
+  R.WebUIEvent('nauticaApprove', nauticaApprove);
+  R.WebUIEvent('nauticaRemove', nauticaRemove);
+  R.WebUIEvent('nauticaList', nauticaList);
+  R.WebUIEvent('nauticaDeletedList', nauticaDeletedList);
+  R.WebUIEvent('nauticaConvertStatus', nauticaConvertStatus);
+  R.WebUIEvent('nauticaReconvert', nauticaReconvert);
+  R.WebUIEvent('nauticaReconvertAll', nauticaReconvertAll);
+  R.WebUIEvent('nauticaExportList', nauticaExportList);
+  R.WebUIEvent('nauticaImportList', nauticaImportList);
+  R.WebUIEvent('nauticaDownloadSong', nauticaDownloadSong);
+  R.WebUIEvent('nauticaDownloadAll', nauticaDownloadAll);
+  R.WebUIEvent('nauticaNominate', nauticaNominate);
+  R.WebUIEvent('nauticaMyNominations', nauticaMyNominations);
+  R.WebUIEvent('nauticaNominationQueue', nauticaNominationQueue);
+  R.WebUIEvent('nauticaSubmitFeedback', nauticaSubmitFeedback);
+  R.WebUIEvent('nauticaGetFeedback', nauticaGetFeedback);
+  R.WebUIEvent('nauticaSetTesting', nauticaSetTesting);
+  R.WebUIEvent('nauticaReject', nauticaReject);
+  R.WebUIEvent('nauticaSlotsStatus', nauticaSlotsStatus);
 
   const MultiRoute = (method: string, handler: EPR | boolean) => {
     // Helper for register multiple versions.

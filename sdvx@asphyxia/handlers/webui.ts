@@ -1056,3 +1056,23 @@ export const getDateCode = async(data: {}, send: WebUISend) =>  {
     datecode: await getDateCodeInit()
   })
 }
+
+export const clearCustomChartScores = async (data: { refid?: string }, send: WebUISend) => {
+  const refid = data.refid;
+  if (!refid) { send.json({ error: 'Missing refid' }); return; }
+
+  try {
+    const { isCustomMid } = await import('../utils');
+    const allScores = await DB.Find<MusicRecord>(refid, { collection: 'music' });
+    const customMids = [...new Set((allScores || []).filter(s => isCustomMid(s.mid)).map(s => s.mid))];
+
+    let removed = 0;
+    for (const mid of customMids) {
+      removed += await DB.Remove<MusicRecord>(refid, { collection: 'music', mid });
+    }
+
+    send.json({ success: true, removed, songs: customMids.length });
+  } catch (err: any) {
+    send.json({ error: err.message || 'Failed to clear custom chart scores' });
+  }
+};
