@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="shift-jis"?>
+<system status="0">
+    <param>
+        <mode __type="str">default</mode>
+        <timestamp __type="str">2024-01-05 01:01:01.12345</timestamp>
+        <timestamp_adjust __type="bool">0</timestamp_adjust>
+    </param>
+    <boot_id __type="s64">1</boot_id>
+    <location>
+        <id __type="str">UJK</id>
+        <type __type="str">1</type>
+        <country __type="str">JP</country>
+        <region __type="str">13</region>
+        <name __type="str">unknown</name>
+        <countryname __type="str">Japan</countryname>
+        <countryjname __type="str">日本</countryjname>
+        <regionname __type="str">Tokyo</regionname>
+        <regionjname __type="str">東京都</regionjname>
+        <customercode __type="str">CCJ</customercode>
+        <companycode __type="str">00</companycode>
+        <latitude __type="s32">1396918</latitude>
+        <longitude __type="s32">1396918</longitude>
+        <accuracy __type="u8">0</accuracy>
+    </location>
+    <line>
+        <id __type="str">0</id>
+        <class __type="u8">1</class>
+    </line>
+    <portfw>
+        <globalip __type="str">{{GLOBAL_IP}}</globalip>
+        <globalport __type="s32">{{GLOBAL_PORT}}</globalport>
+        <privateport __type="s32">{{PRIVATE_PORT}}</privateport>
+    </portfw>
+</system>

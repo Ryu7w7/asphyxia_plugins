@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="shift-jis"?>
+<player status="0">
+    <ranking_id __type="str">202307</ranking_id>
+    <gettime __type="s64">1688424980</gettime>
+    <rank>
+        <shogo_id __type="s32">1</shogo_id>
+        <chara_id __type="s32">1</chara_id>
+        <score __type="s32">1</score>
+        <name __type="str">PLAYER</name>
+    </rank>
+</player>

@@ -1,0 +1,99 @@
+//DATA//
+  profiles: DB.Find(null, { collection: 'profile' })
+
+-
+  const getLeague = (p) => {
+    if (!p.leaguedata) return null;
+    return p.leaguedata['0'] || p.leaguedata['noSlot'] || null;
+  };
+  const getStats = (p) => {
+    if (!p.UserStatsData) return null;
+    return p.UserStatsData['0'] || p.UserStatsData['noSlot'] || null;
+  };
+  
+  const sorted = profiles.sort((a, b) => {
+    const leagueA = getLeague(a);
+    const leagueB = getLeague(b);
+    const rankA = (leagueA && leagueA.currentMatchingRank) || 0;
+    const rankB = (leagueB && leagueB.currentMatchingRank) || 0;
+    const expA = (leagueA && leagueA.currentMatchingRankExp) || 0;
+    const expB = (leagueB && leagueB.currentMatchingRankExp) || 0;
+    
+    if (rankB !== rankA) return rankB - rankA;
+    return expB - expA;
+  });
+
+div.section
+  div.container
+    div.columns
+            div.columns.is-vcentered.mb-5
+              div.column
+                div.is-flex.is-align-items-center
+                  span.is-size-2.mr-3 🏆
+                  div
+                    h1.title.is-2.mb-0 Ranking
+                    h2.subtitle.is-6.has-text-grey-light Global Leaderboard
+              div.column.is-narrow
+                div.field.has-addons
+                  div.control.has-icons-left
+                    input.input(type="text" placeholder="Search Player..." id="rank-search")
+                    span.icon.is-left: i.mdi.mdi-magnify
+                  div.control
+                    button.button.is-info(onclick="location.reload()")
+                      span.icon: i.mdi.mdi-refresh
+
+    div.card
+      div.card-header
+        p.card-header-title Total Players: #{profiles.length}
+      div.card-content
+        div.table-container
+          table.table.is-fullwidth.is-hoverable.is-striped#rank-table
+            thead
+              tr
+                th.has-text-centered(style="width: 60px") #
+                th Player Name
+                th.has-text-centered Rank
+                th.has-text-centered EXP
+                th.has-text-centered Kills
+                th.has-text-centered Plays
+            tbody
+              each p, index in sorted.slice(0, 100)
+                - const league = getLeague(p)
+                - const stats = getStats(p)
+                - const rank = (league && league.currentMatchingRank) || 1
+                tr(onclick=`location.href='profile_-----detail?refid=${p.refid}'` style="cursor: pointer")
+                  td.has-text-centered.has-text-weight-bold
+                    if index === 0
+                      span 🥇
+                    else if index === 1
+                      span 🥈
+                    else if index === 2
+                      span 🥉
+                    else
+                      | #{index + 1}
+                  td
+                    div
+                      span.has-text-weight-semibold #{p.name || 'GUEST-PLAYER'}
+                  td.has-text-centered
+                    - let color = 'has-text-grey-light'
+                    if rank >= 80
+                      - color = 'has-text-danger'
+                    else if rank >= 50
+                      - color = 'has-text-warning'
+                    else if rank >= 20
+                      - color = 'has-text-info'
+                    span.has-text-weight-bold(class=color) LV.#{rank}
+                  td.has-text-centered
+                    span.is-size-7 #{(league && league.currentMatchingRankExp) || 0}
+                  td.has-text-centered #{(stats && stats.killCount) || 0}
+                  td.has-text-centered #{(stats && stats.playCount) || 0}
+
+script.
+  document.getElementById('rank-search').addEventListener('keyup', function(e) {
+    const q = e.target.value.toLowerCase();
+    const rows = document.querySelectorAll('#rank-table tbody tr');
+    rows.forEach(row => {
+      const name = row.querySelector('td:nth-child(2)').innerText.toLowerCase();
+      row.style.display = name.includes(q) ? '' : 'none';
+    });
+  });

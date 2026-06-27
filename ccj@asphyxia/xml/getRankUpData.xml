@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="shift-jis"?>
+<game status="0">
+    <season_border __type="s32">2189</season_border>
+    <season_id __type="s32">1</season_id>
+    <data>
+        <rank __type="str">0</rank>
+        <cont_avg __type="double">166.666667</cont_avg>
+        <cont_stddev __type="double">80.000000</cont_stddev>
+        <count __type="s32">0</count>
+    </data>
+    <data>
+        <rank __type="str">1</rank>
+        <cont_avg __type="double">166.666667</cont_avg>
+        <cont_stddev __type="double">80.000000</cont_stddev>
+        <count __type="s32">0</count>
+    </data>
+    <data>
+        <rank __type="str">2</rank>
+        <cont_avg __type="double">166.666667</cont_avg>
+        <cont_stddev __type="double">80.000000</cont_stddev>
+        <count __type="s32">0</count>
+    </data>
+    <data>
+        <rank __type="str">3</rank>
+        <cont_avg __type="double">166.666667</cont_avg>
+        <cont_stddev __type="double">80.000000</cont_stddev>
+        <count __type="s32">0</count>
+    </data>
+    <data>
+        <rank __type="str">4</rank>
+        <cont_avg __type="double">166.666667</cont_avg>
+        <cont_stddev __type="double">80.000000</cont_stddev>
+        <count __type="s32">0</count>
+    </data>
+    <data>
+        <rank __type="str">5</rank>
+        <cont_avg __type="double">166.666667</cont_avg>
+        <cont_stddev __type="double">80.000000</cont_stddev>
+        <count __type="s32">0</count>
+    </data>
+    <data>
+        <rank __type="str">6</rank>
+        <cont_avg __type="double">103.541455</cont_avg>
+        <cont_stddev __type="double">38.946785</cont_stddev>
+        <count __type="s32">0</count>
+    </data>
+    <data>
+        <rank __type="str">7</rank>
+        <cont_avg __type="double">114.537838</cont_avg>
+        <cont_stddev __type="double">43.861323</cont_stddev>
+        <count __type="s32">0</count>
+    </data>
+    <data>
+        <rank __type="str">8</rank>
+        <cont_avg __type="double">120.147287</cont_avg>
+        <cont_stddev __type="double">40.360185</cont_stddev>
+        <count __type="s32">0</count>
+    </data>
+    <data>
+        <rank __type="str">9</rank>
+        <cont_avg __type="double">129.559499</cont_avg>
+        <cont_stddev __type="double">42.627757</cont_stddev>
+        <count __type="s32">0</count>
+    </data>
+    <data>
+        <rank __type="str">10</rank>
+        <cont_avg __type="double">140.827338</cont_avg>
+        <cont_stddev __type="double">42.514426</cont_stddev>
+        <count __type="s32">0</count>
+    </data>
+    <data>
+        <rank __type="str">11</rank>
+        <cont_avg __type="double">162.138070</cont_avg>
+        <cont_stddev __type="double">44.581445</cont_stddev>
+        <count __type="s32">0</count>
+    </data>
+    <data>
+        <rank __type="str">12</rank>
+        <cont_avg __type="double">192.583333</cont_avg>
+        <cont_stddev __type="double">47.445666</cont_stddev>
+        <count __type="s32">0</count>
+    </data>
+    <data>
+        <rank __type="str">13</rank>
+        <cont_avg __type="double">246.179487</cont_avg>
+        <cont_stddev __type="double">46.650120</cont_stddev>
+        <count __type="s32">0</count>
+    </data>
+    <data>
+        <rank __type="str">14</rank>
+        <cont_avg __type="double">246.179487</cont_avg>
+        <cont_stddev __type="double">46.650120</cont_stddev>
+        <count __type="s32">0</count>
+    </data>
+    <data>
+        <rank __type="str">15</rank>
+        <cont_avg __type="double">246.179487</cont_avg>
+        <cont_stddev __type="double">46.650120</cont_stddev>
+        <count __type="s32">0</count>
+    </data>
+</game>
