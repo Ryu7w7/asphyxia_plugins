@@ -473,8 +473,12 @@ function downloadFile(url: string, destPath: string): Promise<void> {
 }
 
 async function extractZip(zipPath: string, destDir: string): Promise<void> {
-  const psCommand = `Expand-Archive -Path '${zipPath.replace(/'/g, "''")}' -DestinationPath '${destDir.replace(/'/g, "''")}' -Force`;
-  await runCommand('powershell', ['-NoProfile', '-Command', psCommand], { timeout: 60000 });
+  if (process.platform === 'win32') {
+    const psCommand = `Expand-Archive -Path '${zipPath.replace(/'/g, "''")}' -DestinationPath '${destDir.replace(/'/g, "''")}' -Force`;
+    await runCommand('powershell', ['-NoProfile', '-Command', psCommand], { timeout: 60000 });
+  } else {
+    await runCommand('unzip', ['-o', zipPath, '-d', destDir], { timeout: 60000 });
+  }
 }
 
 // Promise-wrapped spawn. Unlike execSync this does NOT block the Node event
