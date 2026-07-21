@@ -62,7 +62,7 @@ script.
       var btn = this;
       btn.classList.add('is-loading');
       btn.disabled = true;
-      fetch('/emit/sdvx@asphyxia/clearCustomChartScores', {
+      fetch('/emit/clearCustomChartScores', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ refid: refid }),

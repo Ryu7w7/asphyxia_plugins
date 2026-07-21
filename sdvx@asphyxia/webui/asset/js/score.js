@@ -10,6 +10,7 @@ function zeroPad(num, places) {
 }
 
 function getSongName(musicid) {
+    if (!music_db || !music_db["mdb"] || !music_db["mdb"]["music"]) return "Unknown";
     var ind = music_db["mdb"]["music"].findIndex(object => object["id"] == musicid);
     if (ind === -1) {
         if (music_db["omni"] && music_db["omni"]["music"]) {
@@ -27,6 +28,7 @@ function getSongName(musicid) {
 
 function getDifficulty(musicid, type) {
     let result
+    if (!music_db || !music_db["mdb"] || !music_db["mdb"]["music"]) return "Unknown";
     var ind = music_db["mdb"]["music"].findIndex(object => object["id"] == musicid);
     if (ind === -1) {
         if (music_db["omni"] && music_db["omni"]["music"]) {
