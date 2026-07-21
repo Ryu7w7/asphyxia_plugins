@@ -403,7 +403,7 @@ async function executeConversion(prepared: PreparedSong): Promise<void> {
 
   try {
     const voxArgs = [
-      '--full-import', kshFile,
+      '--import', kshFile,
       '--game-path', gameRoot,
       '--mix', mixName,
       '--music-id', String(song.mid),
