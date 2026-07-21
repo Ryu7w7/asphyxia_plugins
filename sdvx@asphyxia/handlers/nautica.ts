@@ -11,6 +11,7 @@ import {
   getNauticaSlotsStatus,
   nauticaSlotExhaustedError,
 } from '../utils';
+import { invalidateHiscoreCache } from './features';
 import { convertNauticaSong, bulkConvertNauticaSongs, rebuildMergedXml } from './converter';
 import { deleteDriveFile } from './drive';
 
@@ -469,7 +470,10 @@ export const nauticaRemove = async (data: { nauticaId: string; reason?: string; 
 
     if (song.mid > 0) {
       // Delete all player scores for this music ID so it can be reused
-      await DB.Remove<MusicRecord>(null, { collection: 'music', mid: song.mid });
+      const profiles = await DB.Find<any>(null, { collection: 'profile' });
+      for (const p of (profiles || [])) {
+        if (p.__refid) await DB.Remove<MusicRecord>(p.__refid, { collection: 'music', mid: song.mid });
+      }
 
       removeFromCustomMusicDb(song.mid);
 
@@ -491,6 +495,7 @@ export const nauticaRemove = async (data: { nauticaId: string; reason?: string; 
       }
 
       invalidateMusicDbCache();
+      invalidateHiscoreCache();
     }
 
     send.json({ success: true });

@@ -510,6 +510,9 @@ export const importScoreData = async (data, send: WebUISend) => {
     return send.error(400, "Invalid data");
   }
 
+  // Track SP/DP play counts for newly inserted records.
+  let spAdded = 0, dpAdded = 0;
+
   switch (version) {
     case 1:
       let sd_ver1: old_score[] = content.data;
@@ -559,6 +562,13 @@ export const importScoreData = async (data, send: WebUISend) => {
           }
         }
 
+        // Count play types for newly inserted records.
+        const existing1 = await DB.FindOne<score>(data.refid, { collection: 'score', mid: sd_ver1[a].music_id });
+        if (!existing1) {
+          if (result.esArray.slice(0, 5).some(v => v > 0)) spAdded++;
+          if (result.esArray.slice(5, 10).some(v => v > 0)) dpAdded++;
+        }
+
         await DB.Upsert<score>(data.refid,
           {
             collection: "score",
@@ -596,6 +606,14 @@ export const importScoreData = async (data, send: WebUISend) => {
           }
         }
 
+        // Count play types for newly inserted records.
+        const existing2 = await DB.FindOne<score>(data.refid, { collection: 'score', mid: sd_ver2[a].mid });
+        if (!existing2) {
+          const esArr = sd_ver2[a].esArray || Array(10).fill(0);
+          if (esArr.slice(0, 5).some(v => v > 0)) spAdded++;
+          if (esArr.slice(5, 10).some(v => v > 0)) dpAdded++;
+        }
+
         await DB.Upsert<score>(data.refid,
           {
             collection: "score",
@@ -613,6 +631,20 @@ export const importScoreData = async (data, send: WebUISend) => {
     default:
       console.error("[Score Importer] Unregistered score data version");
       return send.error(400, "Invalid data version");
+  }
+
+  // Update the profile's play counters for newly inserted songs.
+  if (spAdded + dpAdded > 0) {
+    const prof = await DB.FindOne<profile>(data.refid, { collection: 'profile' });
+    if (prof) {
+      await DB.Upsert<profile>(data.refid, { collection: 'profile' }, {
+        $set: {
+          total_pc:  (prof.total_pc  || 0) + spAdded + dpAdded,
+          total_kbd: (prof.total_kbd || 0) + spAdded,
+          total_scr: (prof.total_scr || 0) + dpAdded,
+        },
+      });
+    }
   }
 }
 

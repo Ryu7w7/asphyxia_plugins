@@ -3,7 +3,7 @@ import { Param } from '../models/param'
 import { MusicRecord } from '../models/music_record'
 import { ValgeneTicket } from '../models/valgene_ticket'
 import { Skill } from '../models/skill'
-import { getVersion, IDToCode, GetCounter } from '../utils'
+import { getVersion, IDToCode, GetCounter, isCustomMid } from '../utils'
 import { Mix } from '../models/mix'
 import { Rival } from '../models/rival'
 import { Item } from '../models/item'
@@ -1062,7 +1062,6 @@ export const clearCustomChartScores = async (data: { refid?: string }, send: Web
   if (!refid) { send.json({ error: 'Missing refid' }); return; }
 
   try {
-    const { isCustomMid } = await import('../utils');
     const allScores = await DB.Find<MusicRecord>(refid, { collection: 'music' });
     const customMids = [...new Set((allScores || []).filter(s => isCustomMid(s.mid)).map(s => s.mid))];
 

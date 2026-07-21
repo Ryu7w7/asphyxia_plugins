@@ -13,111 +13,178 @@ const hiscoreCache: Record<number, any> = {};
 const hiscoreLastUpdate: Record<number, number> = {};
 const CACHE_TTL = 1000 * 60 * 10; // 10 minutes
 
+export function invalidateHiscoreCache() {
+  for (const key in hiscoreCache) {
+    delete hiscoreCache[key];
+    delete hiscoreLastUpdate[key];
+  }
+}
+
 export const hiscore: EPR = async (info, data, send) => {
   const version = Math.abs(getVersion(info));
+  console.log(`[hiscore] Received hiscore request for version: ${version}`);
   const dVersion = parseInt(info.model.split(":")[4].slice(0, -2));
 
   if (hiscoreCache[version] && (Date.now() - hiscoreLastUpdate[version] < CACHE_TTL)) {
-    return send.object(hiscoreCache[version]);
+    return send.object(_.cloneDeep(hiscoreCache[version]));
   }
 
-  const allRecords = await DB.Find<MusicRecord>(null, { collection: 'music', version });
+  // For SDVX 6 (Exceed Gear) and 7 (Valkyrie Model), scores can be stored
+  // under either version depending on when/how they were saved (in-game saves
+  // under the active version; imports may default to version 6).
+  // We fetch profiles and records from BOTH versions and pick the best score
+  // per (player × mid × type) so the leaderboard is always fully populated.
+  const versionsToSearch = (version === 6 || version === 7) ? [6, 7] : [version];
 
-  const profiles = _.groupBy(
-    await DB.Find<Profile>(null, { collection: 'profile', version }),
-    '__refid'
+  // Gather ALL profiles across the relevant versions, deduplicated by refid
+  // (prefer the profile whose version matches the requesting client).
+  // __refid is injected at runtime by the DB layer (not in the Profile type).
+  const profilesByRefid: Record<string, any> = {};
+  for (const v of versionsToSearch) {
+    const list = await DB.Find<Profile>(null, { collection: 'profile', version: v });
+    for (const p of (list || []) as any[]) {
+      if (!p.__refid) continue;
+      // Keep the one whose version matches the current game; fall back to any.
+      if (!profilesByRefid[p.__refid] || p.version === version) {
+        profilesByRefid[p.__refid] = p;
+      }
+    }
+  }
+  const profileList: any[] = Object.values(profilesByRefid);
+  // Keep the original groupBy structure so the rest of the handler stays unchanged.
+  const profiles: Record<string, any[]> = {};
+  for (const p of profileList) {
+    if (!profiles[p.__refid]) profiles[p.__refid] = [];
+    profiles[p.__refid].push(p);
+  }
+
+  // Fetch music records for each player across all relevant versions, then
+  // deduplicate: for the same (refid, mid, type) keep the highest score.
+  const bestRecordKey = (r: MusicRecord & { __refid?: string }, refid: string) => `${refid}:${r.mid}:${r.type}`;
+  const bestRecords: Record<string, MusicRecord & { __refid?: string }> = {};
+
+  for (const p of profileList) {
+    if (!p.__refid) continue;
+    for (const v of versionsToSearch) {
+      try {
+        const recs = await DB.Find<MusicRecord>(p.__refid, { collection: 'music', version: v });
+        for (const r of (recs || []) as any[]) {
+          const key = bestRecordKey(r, p.__refid);
+          if (!bestRecords[key] || r.score > bestRecords[key].score) {
+            bestRecords[key] = { ...r, __refid: p.__refid };
+          }
+        }
+      } catch { /* skip on error */ }
+    }
+  }
+
+  const records = Object.values(bestRecords).filter(
+    r => profiles[r.__refid] && profiles[r.__refid].length > 0
   );
-
-  // Filter out ghost records before grouping
-  const records = allRecords.filter(r => profiles[r.__refid] && profiles[r.__refid].length > 0);
 
   let result: any;
 
-  if (version === 1) {
-    result = {
-      hiscore: K.ATTR({ type: "1" }, {
-        music: _.map(
-          _.groupBy(records, r => `${r.mid}:${r.type}`),
-          group => {
-            const r = _.maxBy(group, 'score');
-            return K.ATTR({ id: r.mid.toString() }, {
-              note: K.ATTR({ type: r.type.toString() }, {
-                name: K.ITEM('str', profiles[r.__refid][0].name),
-                score: K.ITEM('u32', r.score),
+  try {
+    if (version === 1) {
+      result = {
+        hiscore: K.ATTR({ type: "1" }, {
+          music: _.map(
+            _.groupBy(records, r => `${r.mid}:${r.type}`),
+            group => {
+              const r = _.maxBy(group, 'score');
+              return K.ATTR({ id: r.mid.toString() }, {
+                note: K.ATTR({ type: r.type.toString() }, {
+                  name: K.ITEM('str', profiles[r.__refid][0].name),
+                  score: K.ITEM('u32', r.score),
+                })
               })
-            })
-          }
-        )
-      })
-    };
-  } else if (version === 2 || (version === 3 && dVersion === 20151116)) {
-    let profCnt = Object.keys(profiles).length;
-    result = {
-      hiscore_allover: {
-        info: _.map(
-          _.groupBy(records, r => `${r.mid}:${r.type}`),
-          r => _.maxBy(r, 'score')
-        ).map(r => ({
-          id: K.ITEM('u32', r.mid),
-          type: K.ITEM('u32', r.type),
-          seq: K.ITEM('str', IDToCode(profiles[r.__refid][0].id)),
-          name: K.ITEM('str', profiles[r.__refid][0].name),
-          score: K.ITEM('u32', r.score)
-        }))
-      },
-      hiscore_location: {
-        info: _.map(
-          _.groupBy(records, r => `${r.mid}:${r.type}`),
-          r => _.maxBy(r, 'score')
-        ).map(r => ({
-          id: K.ITEM('u32', r.mid),
-          type: K.ITEM('u32', r.type),
-          seq: K.ITEM('str', IDToCode(profiles[r.__refid][0].id)),
-          name: K.ITEM('str', profiles[r.__refid][0].name),
-          score: K.ITEM('u32', r.score)
-        }))
-      },
-      clear_rate: {
-        d: _.map(
-          _.groupBy(records, r => `${r.mid}:${r.type}`),
-          group => {
-            const filt = _.filter(group, g => g.clear > 1).length
-            return {
-              id: K.ITEM('u32', group[0].mid),
-              type: K.ITEM('u32', group[0].type),
-              cr: K.ITEM('s16', Math.ceil((filt / profCnt) * 10000))
             }
-          }
-        )
-      }
-    };
-  } else {
-    result = {
-      sc: {
-        d: _.map(
-          _.groupBy(records, r => `${r.mid}:${r.type}`),
-          group => {
-            const rScore = _.maxBy(group, 'score');
+          )
+        })
+      };
+    } else if (version === 2 || (version === 3 && dVersion === 20151116)) {
+      let profCnt = Object.keys(profiles).length;
+      result = {
+        hiscore_allover: {
+          info: _.map(
+            _.groupBy(records, r => `${r.mid}:${r.type}`),
+            r => _.maxBy(r, 'score')
+          ).map(r => ({
+            id: K.ITEM('u32', r.mid),
+            type: K.ITEM('u32', r.type),
+            seq: K.ITEM('str', IDToCode(profiles[r.__refid][0].id)),
+            name: K.ITEM('str', profiles[r.__refid][0].name),
+            score: K.ITEM('u32', r.score)
+          }))
+        },
+        hiscore_location: {
+          info: _.map(
+            _.groupBy(records, r => `${r.mid}:${r.type}`),
+            r => _.maxBy(r, 'score')
+          ).map(r => ({
+            id: K.ITEM('u32', r.mid),
+            type: K.ITEM('u32', r.type),
+            seq: K.ITEM('str', IDToCode(profiles[r.__refid][0].id)),
+            name: K.ITEM('str', profiles[r.__refid][0].name),
+            score: K.ITEM('u32', r.score)
+          }))
+        },
+        clear_rate: {
+          d: _.map(
+            _.groupBy(records, r => `${r.mid}:${r.type}`),
+            group => {
+              const filt = _.filter(group, g => g.clear > 1).length
+              return {
+                id: K.ITEM('u32', group[0].mid),
+                type: K.ITEM('u32', group[0].type),
+                cr: K.ITEM('s16', Math.ceil((filt / profCnt) * 10000))
+              }
+            }
+          )
+        }
+      };
+    } else {
+      result = {
+        sc: {
+          d: _.map(
+            _.groupBy(records, r => `${r.mid}:${r.type}`),
+            group => {
+              const rScore = _.maxBy(group, 'score');
+              const profile = profiles[rScore.__refid]?.[0];
+              const pId = profile?.id || 0;
+              const pName = profile?.name || 'UNKNOWN';
 
-            return {
-              id: K.ITEM('u32', rScore.mid),
-              ty: K.ITEM('u32', rScore.type),
-              a_sq: K.ITEM('str', IDToCode(profiles[rScore.__refid][0].id)),
-              a_nm: K.ITEM('str', profiles[rScore.__refid][0].name),
-              a_sc: K.ITEM('u32', rScore.score),
-              l_sq: K.ITEM('str', IDToCode(profiles[rScore.__refid][0].id)),
-              l_nm: K.ITEM('str', profiles[rScore.__refid][0].name),
-              l_sc: K.ITEM('u32', rScore.score),
-            };
-          }
-        )
-      }
-    };
+              return {
+                id: K.ITEM('u32', rScore.mid),
+                ty: K.ITEM('u32', rScore.type),
+                a_sq: K.ITEM('str', IDToCode(pId)),
+                a_nm: K.ITEM('str', pName),
+                a_sc: K.ITEM('u32', rScore.score),
+                l_sq: K.ITEM('str', IDToCode(pId)),
+                l_nm: K.ITEM('str', pName),
+                l_sc: K.ITEM('u32', rScore.score),
+              };
+            }
+          )
+        }
+      };
+    }
+
+    try {
+      IO.WriteFile('hiscore_debug.json', JSON.stringify({
+        records_length: records.length,
+        sc_d_length: result.sc ? result.sc.d.length : 0,
+        sample: result.sc ? result.sc.d.slice(0, 5) : null
+      }));
+    } catch(e) {}
+
+    hiscoreCache[version] = result;
+    hiscoreLastUpdate[version] = Date.now();
+    return send.object(_.cloneDeep(result));
+  } catch (err) {
+    console.error("Error in hiscore processing:", err);
+    return send.object({ sc: { d: [] } });
   }
-
-  hiscoreCache[version] = result;
-  hiscoreLastUpdate[version] = Date.now();
-  return send.object(result);
 };
 
 export const rival: EPR = async (info, data, send) => {

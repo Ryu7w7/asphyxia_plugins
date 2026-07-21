@@ -1,6 +1,7 @@
 //DATA//
   profile: DB.Find(refid, { collection: 'profile' })
   score: DB.Find(refid, { collection: 'music' })
+  custom_charts: DB.Find(null, { collection: 'nautica_song' })
 
 -
   //const padded = _.padStart(profile.id.toString(), 8);
@@ -44,6 +45,7 @@ div
 
 div(hidden id='profile-pass') !{JSON.stringify(profile)}
 div(hidden id='score-pass') !{JSON.stringify(score)}
+div(hidden id='custom-charts-pass') !{JSON.stringify(custom_charts)}
 script(src="static/asset/js/score.js")
 script(src="static/asset/js/datatables.js")
 script.

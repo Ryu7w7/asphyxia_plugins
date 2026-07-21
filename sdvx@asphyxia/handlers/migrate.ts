@@ -39,83 +39,95 @@ export async function dataUpdate() {
 }
 
 async function updateSkillCourseIds() {
-	// old skill analyzer migrate code
-	let courseData = await DB.Find(null, {collection: 'course', dbver: {$exists: false}})
-	let skillData 
-	courseData.forEach(async course => {
-		skillData = COURSES6.find(sd => sd.id === course['sid'])
-		if(skillData && 'courses' in skillData) {
-			let courseIndex = skillData['courses'].findIndex(cd => parseInt('' + skillData.id + cd.id) === course['cid'])
-			if(courseIndex === -1) {
-				console.log("old: (" + course['__refid'] + ") updating cid " + course['cid'] + " -> " + parseInt('' + skillData.id + course['cid']))
-				await DB.Upsert(course['__refid'], {collection: 'course', sid: course['sid'], cid: course['cid']}, {
-					$set: {
-						cid: parseInt('' + skillData.id + course['cid'])
-					}
-				})
+	// old skill analyzer migrate code — iterate per-profile to avoid NeDB stack overflow
+	const allProfiles = await DB.Find<Profile>(null, { collection: 'profile' })
+	for (const profile of (allProfiles || [])) {
+		if (!profile['__refid']) continue
+		const courseData = await DB.Find(profile['__refid'], { collection: 'course', dbver: { $exists: false } })
+		let skillData
+		for (const course of (courseData || [])) {
+			skillData = COURSES6.find(sd => sd.id === course['sid'])
+			if (skillData && 'courses' in skillData) {
+				const courseIndex = skillData['courses'].findIndex(cd => parseInt('' + skillData.id + cd.id) === course['cid'])
+				if (courseIndex === -1) {
+					console.log("old: (" + profile['__refid'] + ") updating cid " + course['cid'] + " -> " + parseInt('' + skillData.id + course['cid']))
+					await DB.Upsert(profile['__refid'], { collection: 'course', sid: course['sid'], cid: course['cid'] }, {
+						$set: {
+							cid: parseInt('' + skillData.id + course['cid'])
+						}
+					})
+				}
 			}
 		}
-	})
+	}
 }
 
 async function updateDB() {
-	// update collections
+	// update collections — all iterations are per-profile to avoid NeDB stack overflow
 
-	// dbver 1
-	let varPower = await DB.Find<VariantPower>(null, {collection: 'variantpower', $or: [{dbver: 1}, {dbver: {$exists: false}}]})
-	varPower.forEach(async vp => {
-		await DB.Upsert<VariantPower>(vp['__refid'], {collection: 'variantpower'}, {
-			$set: {
-				overRadar: (!vp['overRadar']) ? [] : vp['overRadar'],
-				dbver: 1
-			}
-		})
-	})
+	// dbver 1: fix variantpower (need global find but this collection is small per profile)
+	const allProfiles = await DB.Find<Profile>(null, { collection: 'profile' })
+	for (const profile of (allProfiles || [])) {
+		if (!profile['__refid']) continue
+		const vpList = await DB.Find<VariantPower>(profile['__refid'], { collection: 'variantpower', $or: [{ dbver: 1 }, { dbver: { $exists: false } }] })
+		for (const vp of (vpList || [])) {
+			await DB.Upsert<VariantPower>(profile['__refid'], { collection: 'variantpower' }, {
+				$set: {
+					overRadar: (!vp['overRadar']) ? [] : vp['overRadar'],
+					dbver: 1
+				}
+			})
+		}
+	}
 
-	let profiles = await DB.Find<Profile>(null, {collection: 'profile', dbver: {$exists: false}})
-	profiles.forEach(async profile => {
-		await DB.Update<Profile>(profile['__refid'], {collection: 'profile'}, { $set: { version: 6, dbver: 1 }})
-		await DB.Update<Arena>(profile['__refid'], {collection: 'arena'}, { $set: { version: 6, dbver: 1 }})
-		await DB.Update<MusicRecord>(profile['__refid'], {collection: 'music'}, { $set: { version: 6, dbver: 1 }})
-		await DB.Update<CourseRecord>(profile['__refid'], {collection: 'course'}, { $set: { version: 6, dbver: 1 }})
-		await DB.Update<Item>(profile['__refid'], {collection: 'item'}, { $set: { version: 6, dbver: 1 }})
-		await DB.Update<Param>(profile['__refid'], {collection: 'param'}, { $set: { version: 6, dbver: 1 }})
-		await DB.Update<Rival>(profile['__refid'], {collection: 'rival'}, { $set: { version: 6, dbver: 1 }})
-		await DB.Update<Skill>(profile['__refid'], {collection: 'skill'}, { $set: { version: 6, dbver: 1 }})
-		await DB.Update<VariantPower>(profile['__refid'], {collection: 'variantpower'}, { $set: { version: 6, dbver: 1 }})
-		await DB.Update<WeeklyMusicScore>(profile['__refid'], {collection: 'weeklymusicscore'}, { $set: { version: 6, dbver: 1 }})
-	})
+	// dbver 1: migrate profiles without dbver
+	const profiles = await DB.Find<Profile>(null, { collection: 'profile', dbver: { $exists: false } })
+	for (const profile of (profiles || [])) {
+		if (!profile['__refid']) continue
+		await DB.Update<Profile>(profile['__refid'], { collection: 'profile' }, { $set: { version: 6, dbver: 1 } })
+		await DB.Update<Arena>(profile['__refid'], { collection: 'arena' }, { $set: { version: 6, dbver: 1 } })
+		await DB.Update<MusicRecord>(profile['__refid'], { collection: 'music' }, { $set: { version: 6, dbver: 1 } })
+		await DB.Update<CourseRecord>(profile['__refid'], { collection: 'course' }, { $set: { version: 6, dbver: 1 } })
+		await DB.Update<Item>(profile['__refid'], { collection: 'item' }, { $set: { version: 6, dbver: 1 } })
+		await DB.Update<Param>(profile['__refid'], { collection: 'param' }, { $set: { version: 6, dbver: 1 } })
+		await DB.Update<Rival>(profile['__refid'], { collection: 'rival' }, { $set: { version: 6, dbver: 1 } })
+		await DB.Update<Skill>(profile['__refid'], { collection: 'skill' }, { $set: { version: 6, dbver: 1 } })
+		await DB.Update<VariantPower>(profile['__refid'], { collection: 'variantpower' }, { $set: { version: 6, dbver: 1 } })
+		await DB.Update<WeeklyMusicScore>(profile['__refid'], { collection: 'weeklymusicscore' }, { $set: { version: 6, dbver: 1 } })
 
-	let courseData = await DB.Find<CourseRecord>(null, {collection: 'course', version: 6, dbver: {$exists: false}})
-	let skillData
-	courseData.forEach(async course => {
-		skillData = COURSES6.find(sd => sd.id === course['sid'])
-		if(skillData && 'courses' in skillData) {
-			let courseIndex = skillData['courses'].findIndex(cd => parseInt('' + skillData.id + cd.id) === course['cid'])
-			if(courseIndex !== -1) {
-				console.log("new - (" + course['__refid'] + ") updating cid " + course['cid'] + " -> " + course['cid'].toString().slice(skillData.id.toString().length) + " (sid " + course['sid'] + ")")
-				await DB.Upsert(course['__refid'], {collection: 'course', sid: course['sid'], cid: parseInt('' + skillData.id + skillData['courses'][courseIndex].id)}, {
-					$set: {
-						cid: parseInt(course['cid'].toString().slice(skillData.id.toString().length)),
-						dbver: 1
-					}
-				})
+		// also migrate course cids for this profile
+		const courseData = await DB.Find<CourseRecord>(profile['__refid'], { collection: 'course', version: 6, dbver: { $exists: false } })
+		let skillData
+		for (const course of (courseData || [])) {
+			skillData = COURSES6.find(sd => sd.id === course['sid'])
+			if (skillData && 'courses' in skillData) {
+				const courseIndex = skillData['courses'].findIndex(cd => parseInt('' + skillData.id + cd.id) === course['cid'])
+				if (courseIndex !== -1) {
+					console.log("new - (" + profile['__refid'] + ") updating cid " + course['cid'] + " -> " + course['cid'].toString().slice(skillData.id.toString().length) + " (sid " + course['sid'] + ")")
+					await DB.Upsert(profile['__refid'], { collection: 'course', sid: course['sid'], cid: parseInt('' + skillData.id + skillData['courses'][courseIndex].id) }, {
+						$set: {
+							cid: parseInt(course['cid'].toString().slice(skillData.id.toString().length)),
+							dbver: 1
+						}
+					})
+				}
 			}
 		}
-	})
+	}
 
 	// move customization settings to param
-	profiles = await DB.Find<Profile>(null, {collection: 'profile', bgm: {$exists: true}})
-	profiles.forEach(async profile => {
-		let customParam = await DB.FindOne<Param>(profile['__refid'], {collection: 'param', type: 2, id: 2, version: profile['version']})
-		let customize = (!customParam) ? [0, 0, (profile['version'] === 7 ? 47 : 0), 0, 0, 0, 0, 0, 0, 0, 0, 0] : customParam.param
-		const custMig = [profile['bgm'], profile['subbg'], (profile['version'] === 7 && profile['nemsys'] === 0 ? 47 : profile['nemsys'] ), profile['stampA'], profile['stampB'], profile['stampC'], profile['stampD'], profile['stampRA'], profile['stampRB'], profile['stampRC'], profile['stampRD'], profile['sysBG']]
+	const profilesBgm = await DB.Find<Profile>(null, { collection: 'profile', bgm: { $exists: true } })
+	for (const profile of (profilesBgm || [])) {
+		if (!profile['__refid']) continue
+		const customParam = await DB.FindOne<Param>(profile['__refid'], { collection: 'param', type: 2, id: 2, version: profile['version'] })
+		const customize = (!customParam) ? [0, 0, (profile['version'] === 7 ? 47 : 0), 0, 0, 0, 0, 0, 0, 0, 0, 0] : customParam.param
+		const custMig = [profile['bgm'], profile['subbg'], (profile['version'] === 7 && profile['nemsys'] === 0 ? 47 : profile['nemsys']), profile['stampA'], profile['stampB'], profile['stampC'], profile['stampD'], profile['stampRA'], profile['stampRB'], profile['stampRC'], profile['stampRD'], profile['sysBG']]
 		custMig.forEach((c, ind) => {
 			customize[ind] = c
 		})
-		await DB.Upsert<Param>(profile['__refid'], {collection: 'param', type: 2, id: 2, version: profile['version']}, {$set: {param: customize}})
-		await DB.Update<Profile>(profile['__refid'], {collection: 'profile', version: profile['version']}, {$unset: {bgm: true, subbg: true, nemsys: true, stampA: true, stampB: true, stampC: true, stampD: true, stampRA: true, stampRB: true, stampRC: true, stampRD: true, sysBG: true}})
-	})
+		await DB.Upsert<Param>(profile['__refid'], { collection: 'param', type: 2, id: 2, version: profile['version'] }, { $set: { param: customize } })
+		await DB.Update<Profile>(profile['__refid'], { collection: 'profile', version: profile['version'] }, { $unset: { bgm: true, subbg: true, nemsys: true, stampA: true, stampB: true, stampC: true, stampD: true, stampRA: true, stampRB: true, stampRC: true, stampRD: true, sysBG: true } })
+	}
 }
 
 export async function iiMigrate(refid, newName) {
@@ -240,34 +252,34 @@ export async function iiiMigrate(refid, newName) {
 
 	let itemData = await DB.Find<Item>(refid, {collection: 'item', version: 2})
 	console.log("Migrating item data")
-	itemData.forEach(async item => {
+	for (const item of itemData) {
 		await DB.Upsert<Item>(refid, {collection: 'item', version: 3, type: item.type, id: item.id}, {
 			$set: {
 				param: item.param,
 				dbver: DB_VER
 			}
 		})
-	})
+	}
 
 	let paramData = await DB.Find<Param>(refid, {collection: 'param', version: 2})
 	console.log("Migrating param data")
-	paramData.forEach(async param => {
+	for (const param of paramData) {
 		await DB.Upsert<Param>(refid, {collection: 'param', version: 3, type: param.type, id: param.id}, {
 			$set: {
 				param: param.param,
 				dbver: DB_VER
 			}
 		})
-	})
+	}
 
 	let policyBreak = await DB.Find<PolicyBreak>(refid, {collection: 'pb', version: 2})
-	policyBreak.forEach(async pb => {
+	for (const pb of policyBreak) {
 		await DB.Upsert<PolicyBreak>(refid, {collection: 'pb', version: 3, id: pb.id}, {
 			$set: {
 				exp: pb.exp
 			}
 		})
-	})
+	}
 }
 
 export async function viiMigrate(refid, newName) {
@@ -323,18 +335,18 @@ export async function viiMigrate(refid, newName) {
 
 	let itemData = await DB.Find<Item>(refid, {collection: 'item', version: 6})
 	console.log("Migrating item data")
-	itemData.forEach(async item => {
+	for (const item of itemData) {
 		await DB.Upsert<Item>(refid, {collection: 'item', version: 7, type: item.type, id: item.id}, {
 			$set: {
 				param: item.param,
 				dbver: DB_VER
 			}
 		})
-	})
+	}
 
 	let paramData = await DB.Find<Param>(refid, {collection: 'param', version: 6})
 	console.log("Migrating param data")
-	paramData.forEach(async param => {
+	for (const param of paramData) {
 		if(param.type === 2 && param.id === 1) param.param[24] = 0
 		await DB.Upsert<Param>(refid, {collection: 'param', version: 7, type: param.type, id: param.id}, {
 			$set: {
@@ -342,7 +354,7 @@ export async function viiMigrate(refid, newName) {
 				dbver: DB_VER
 			}
 		})
-	})
+	}
 
 	let exScoreResetList = [
 		{ id: 360, type: 3 }, { id: 580, type: 2 }, { id: 1121, type: 4 }, { id: 1185, type: 2 },
@@ -368,7 +380,7 @@ export async function viiMigrate(refid, newName) {
 	let mdb = JSON.parse(music_db.toString());
 	let diffName = ['novice', 'advanced', 'exhaust', 'infinite', 'maximum', 'ultimate']
 	let migRecs = await DB.Find<MusicRecord>(refid, {collection: 'music', version: 6})
-	migRecs.forEach(async rec => {
+	for (const rec of migRecs) {
 		let nblClearLamp = [0, 1, 2, 3, 5, 6, 4]
 		var foundSongIndex = mdb.mdb.music.map(function(x) {return x['id']; }).indexOf(rec.mid.toString());
 		let diffLevel = 0
@@ -395,5 +407,5 @@ export async function viiMigrate(refid, newName) {
 				}
 			})
 		}
-	})
+	}
 }

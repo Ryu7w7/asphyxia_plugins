@@ -6,6 +6,7 @@ import { spawn } from 'child_process';
 const iconv = (global as any).iconv;
 import { NauticaSong } from '../models/nautica_song';
 import { GetNextNauticaId, invalidateMusicDbCache } from '../utils';
+import { invalidateHiscoreCache } from './features';
 import { uploadSongZip, isDriveEnabled } from './drive';
 
 // Conversion queue to avoid parallel CPU-heavy operations
@@ -148,6 +149,7 @@ async function doBulkConvert(songs: NauticaSong[]): Promise<{ ok: number; failed
     try { fs.rmSync(p.tmpDir, { recursive: true, force: true }); } catch {}
   }
   invalidateMusicDbCache();
+  invalidateHiscoreCache();
 
   // Phase 5: mark everything ready.
   let ok = 0;
@@ -416,6 +418,7 @@ async function executeConversion(prepared: PreparedSong): Promise<void> {
 
     updateCustomMusicDb(song);
     invalidateMusicDbCache();
+    invalidateHiscoreCache();
   } finally {
     try { fs.rmSync(tmpDir, { recursive: true, force: true }); } catch {}
   }
@@ -718,7 +721,7 @@ function buildMusicEntry(song: NauticaSong): string {
   return (
     `  <music id="${song.mid}">\n` +
     `    <info>\n` +
-    `      <label>${song.mid}</label>\n` +
+    `      <label>RyuNET</label>\n` +
     `      <title_name>${toShiftJIS(escapeXml(song.title || ''))}</title_name>\n` +
     `      <title_yomigana>${sjisDummy}</title_yomigana>\n` +
     `      <artist_name>${toShiftJIS(escapeXml(song.artist || ''))}</artist_name>\n` +

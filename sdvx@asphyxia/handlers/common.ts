@@ -4,6 +4,7 @@ import { EVENT3, MISSION_EVENT3, MUSIC_LIMITED3, COURSES3, EXTENDS3, SP_APICAGEN
 import { EVENT6, COURSES6, EXTENDS6, APRILFOOLSSONGS, VALKYRIE_SONGS, LICENSED_SONGS6, CURRENT_ARENA, ARENA_STATION_ITEMS, VALGENE, INFORMATION6, UNLOCK_EVENTS6, MUSIC_OVERRIDE6 } from '../data/exg';
 import { EVENT7, COURSES7, EXTENDS7, LICENSED_SONGS7, CURRENT_ARENA7, ARENA_STATION_ITEMS7, VALGENE7, APIGENE7, INFORMATION7, UNLOCK_EVENTS7, EGSONGS_LOCKED, MUSIC_OVERRIDE7 } from '../data/nbl';
 import {getVersion, checkVerStart, getRandomIntInclusive} from '../utils';
+import { NauticaSong } from '../models/nautica_song';
 
 export const common: EPR = async (info, data, send) => {
   try {
@@ -430,24 +431,57 @@ export const common: EPR = async (info, data, send) => {
         }
       }
 
+      let extendIdCounter = 1000;
+
       if(omniList.length > 0) {
-        extend.push({
-          id: 1,
-          type: 3,
-          params: [
-            4,
-            0,
-            0,
-            0,
-            0,
-            '!',
-            '',
-            '',
-            omniList.join(','),
-            "Omnimix Songs",
-          ]
-        })
+        // Chunk omniList to avoid exceeding string length limits in the game's XML parser
+        for (let i = 0; i < omniList.length; i += 180) {
+          extend.push({
+            id: extendIdCounter++,
+            type: 3,
+            params: [
+              4,
+              0,
+              0,
+              0,
+              0,
+              '!',
+              '',
+              '',
+              omniList.slice(i, i + 180).join(','),
+              "Omnimix Songs",
+            ]
+          })
+        }
       }
+
+      // Add RyuNET category for approved custom charts
+      try {
+        const customSongs = await DB.Find<NauticaSong>({ collection: 'nautica_song' });
+        const ryuNetIds = (customSongs || [])
+          .filter(s => s.mid > 0 && s.status === 'ready')
+          .map(s => s.mid);
+        if (ryuNetIds.length > 0) {
+          for (let i = 0; i < ryuNetIds.length; i += 180) {
+            extend.push({
+              id: extendIdCounter++,
+              type: 3,
+              params: [
+                4,
+                0,
+                0,
+                0,
+                0,
+                '!',
+                '',
+                '',
+                ryuNetIds.slice(i, i + 180).join(','),
+                'RyuNET',
+              ]
+            });
+          }
+        }
+      } catch { /* if DB fails, skip the RyuNET category */ }
 
       if(IO.Exists('webui/asset/config/events.json')) {
         let bufEventData = await IO.ReadFile('webui/asset/json/events.json')
@@ -578,7 +612,7 @@ export const common: EPR = async (info, data, send) => {
         }
       }
 
-      let arenaOpen = BigInt(date) >= currentArena.time_start && (BigInt(date) < currentArena.time_end || U.GetConfig('arena_no_endtime'))
+      let arenaOpen = BigInt(date.getTime()) >= currentArena.time_start && (BigInt(date.getTime()) < currentArena.time_end || U.GetConfig('arena_no_endtime'))
       let shopOpen = arenaOpen && U.GetConfig('arena_station') !== 'None'
       let arenaData = {}
 
@@ -781,7 +815,7 @@ export const common: EPR = async (info, data, send) => {
             []
           ),
         },
-        weekly_music: curWeekly != [] ? curWeekly.map(w => ({
+        weekly_music: curWeekly.length > 0 ? curWeekly.map(w => ({
           week_id: K.ITEM('s32', w.weekId),
           music_id: K.ITEM('s32', w.musicId),
           time_start: K.ITEM('u64', BigInt(w.start)),

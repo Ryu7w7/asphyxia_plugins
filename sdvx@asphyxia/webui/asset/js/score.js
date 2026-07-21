@@ -12,8 +12,14 @@ function zeroPad(num, places) {
 function getSongName(musicid) {
     var ind = music_db["mdb"]["music"].findIndex(object => object["id"] == musicid);
     if (ind === -1) {
-        ind = music_db["omni"]["music"].findIndex(object => object["id"] == musicid);
-        if (ind > -1) return music_db["omni"]["music"][ind]["info"]["title_name"]
+        if (music_db["omni"] && music_db["omni"]["music"]) {
+            ind = music_db["omni"]["music"].findIndex(object => object["id"] == musicid);
+            if (ind > -1) return music_db["omni"]["music"][ind]["info"]["title_name"]
+        }
+        if (music_db["RyuNET"] && music_db["RyuNET"]["music"]) {
+            ind = music_db["RyuNET"]["music"].findIndex(object => object["id"] == musicid);
+            if (ind > -1) return music_db["RyuNET"]["music"][ind]["info"]["title_name"]
+        }
         return "Custom Song";
     }
     return music_db["mdb"]["music"][ind]["info"]["title_name"]
@@ -23,9 +29,15 @@ function getDifficulty(musicid, type) {
     let result
     var ind = music_db["mdb"]["music"].findIndex(object => object["id"] == musicid);
     if (ind === -1) {
-        ind = music_db["omni"]["music"].findIndex(object => object["id"] == musicid);
-        if(ind === -1) return "Unknown";
-        result = music_db["omni"]["music"][ind]
+        if (music_db["omni"] && music_db["omni"]["music"]) {
+            ind = music_db["omni"]["music"].findIndex(object => object["id"] == musicid);
+            if(ind > -1) result = music_db["omni"]["music"][ind]
+        }
+        if (!result && music_db["RyuNET"] && music_db["RyuNET"]["music"]) {
+            ind = music_db["RyuNET"]["music"].findIndex(object => object["id"] == musicid);
+            if(ind > -1) result = music_db["RyuNET"]["music"][ind]
+        }
+        if(!result) return "Unknown";
     } else result = music_db["mdb"]["music"][ind]
 
     var inf_ver = result["info"]["inf_ver"] ? result["info"]["inf_ver"] : 5;
@@ -247,6 +259,28 @@ $(document).ready(function() {
 
     $.getJSON("static/asset/json/music_db.json", function(json) {
         music_db = json;
+
+        // Build RyuNET section for custom charts
+        var custom_charts_text = $('#custom-charts-pass').text();
+        if (custom_charts_text) {
+            try {
+                var custom_charts = JSON.parse(custom_charts_text);
+                music_db["RyuNET"] = { music: [] };
+                for (var j in custom_charts) {
+                    if (!custom_charts[j].mid) continue;
+                    music_db["RyuNET"]["music"].push({
+                        "id": custom_charts[j].mid,
+                        "info": {
+                            "title_name": custom_charts[j].title,
+                            "inf_ver": 6 // XCD as fallback for 4th difficulty
+                        }
+                    });
+                }
+            } catch (e) {
+                console.error("Failed to parse custom charts", e);
+            }
+        }
+
         var music_data = [];
 
         for (var i in score_data) {
