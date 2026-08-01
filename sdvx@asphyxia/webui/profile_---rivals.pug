@@ -1,6 +1,7 @@
 //DATA//
   rivals: DB.Find(refid, { collection: 'rival' })
   yourprofile: DB.Find(refid, { collection: 'profile' })
+  profiles: DB.Find(null, { collection: 'profile' })
 -
 link(rel="stylesheet" href="static/asset/css/datatables.css")
 div
@@ -9,46 +10,22 @@ div
       p.card-header-title
         span.icon
           i.mdi.mdi-account-edit
-        | Manage Rivals
+        | Add rival
     .card-content
-      h5 Game Version
+      h5 Game
       .field
         .control
           .select.is-fullwidth
             select.select(id="version_select")
-      
-      h5 Search Player
-      .field.has-addons
-        .control.is-expanded
-          input.input(type="text" id="search_name" placeholder="Search by name (e.g. VOLTENizer)")
+      h5 Profile
+      .field
         .control
-          button.button.is-info(type="button" id="search_button") Search
-      
-      div(id="search_results_container" style="display: none; margin-bottom: 1.5rem;")
-        table.table.is-fullwidth.is-hoverable
-          thead
-            tr
-              th Name
-              th SDVX ID
-              th Action
-          tbody(id="search_results_body")
-
-      h5 Add New Rival (Direct ID)
-      .field.has-addons
-        .control.is-expanded
-          input.input(type="text" id="rival_sdvxid" placeholder="Enter SDVX ID (e.g. 1234-5678 or 12345678)")
-        .control
-          button.button.is-primary(type="button" id="addrival") 
-            span(id="rival-button") Add Rival
-
-      h5 Remove Rival
-      .field.has-addons
-        .control.is-expanded
           .select.is-fullwidth
-            select.select(id="rivallist_manage")
-              option(value=0) Choose rival to remove
-        .control
-          button.button.is-danger(type="button" id="deleterival") Remove Rival
+            select.select(id="profilelist")
+              option(value=0) Choose profile
+      .field
+        button.button.is-primary(type="submit" id="addrival") 
+          span(id="rival-button") Add Rival
 
   .card
     .card-header
@@ -78,5 +55,6 @@ div
 //div(hidden id='data-pass') !{JSON.stringify(profile)}
 div(hidden id='rivals-pass') !{JSON.stringify(rivals)}
 div(hidden id='profile-pass') !{JSON.stringify(yourprofile)}
+div(hidden id='profiles-pass') !{JSON.stringify(profiles)}
 script(src="static/asset/js/rivals.js") 
 script(src="static/asset/js/datatables.js")

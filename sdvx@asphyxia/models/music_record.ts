@@ -1,6 +1,5 @@
 export interface MusicRecord {
   collection: 'music';
-  __refid?: string;
 
   version: number;
   dbver: number;

@@ -1020,11 +1020,11 @@ function getArenaRank(rp) {
 }
 
 $(document).ready(function() {
-    profile_data = JSON.parse(document.getElementById("data-pass").textContent);
-    score_db = JSON.parse(document.getElementById("score-pass").textContent);
-    skill_data = JSON.parse(document.getElementById("skill-pass").textContent);
-    course_data = JSON.parse(document.getElementById("course-pass").textContent);
-    arena_data = JSON.parse(document.getElementById("arena-pass").textContent);
+    profile_data = JSON.parse(document.getElementById("data-pass").innerText);
+    score_db = JSON.parse(document.getElementById("score-pass").innerText);
+    skill_data = JSON.parse(document.getElementById("skill-pass").innerText);
+    course_data = JSON.parse(document.getElementById("course-pass").innerText);
+    arena_data = JSON.parse(document.getElementById("arena-pass").innerText);
 
     skill_data.sort(function(a, b) {
         return b.version - a.version;

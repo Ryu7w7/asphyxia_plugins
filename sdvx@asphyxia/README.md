@@ -1,6 +1,6 @@
 SOUND VOLTEX
 ===
-**Plugin Version:** fork-7.1.4
+**Plugin Version:** fork-7.1.7
 - Check for newer plugin versions [here](https://github.com/22vv0/asphyxia_plugins/releases?q=kfc&expanded=true).
 
 **Supported game versions:**
@@ -8,7 +8,7 @@ SOUND VOLTEX
 - infinite infection (2014102200)
 - GRAVITY WARS (2016121200)
 - EXCEED GEAR (2025120900)
-- ∇ (20260512xx)
+- ∇ (20260714xx)
 
 **Required Asphyxia Core version** [1.50d](https://github.com/asphyxia-core/asphyxia-core.github.io/releases/tag/v1.50d) or above
 
@@ -23,51 +23,24 @@ SOUND VOLTEX
 
 ### ∇
 
-- Added SKILL ANALYZER (音戯探偵ひなビタ♫ 黒猫探偵社入社試験)
-- Added Skill Title: 音戯探偵
-- Updated licensed songs list: new ひなビタ songs
-
-### EXCEED GEAR
-
-- Updated licensed songs list: Sakura Fubuki, LUCKY CAT (fixes ∇ SKILL ANALYZER courses that require them)
-
-### GRAVITY WARS (2016121200)
-
-- Added support (profile creation, data save/load)
-- Data transfer from infinite infection (unlocked items, INFINITE BLASTER and POLICY BREAK progress)
-- infinite infection scores loaded through `old` in `load_m` (BOOTH scores will not be displayed/transferred)
-- Added new GW songs to POLICY BREAK list. As with infinite infection, you can add 3000pw per song per session.
-- Added SKILL ANALYZER courses
-- Added MISSION mode: toggle in plugin settings
-- Added Genesis Card GENERATOR sets -- some require special GENERATOR tickets to appear and pull from; obtainable through serial code entry
-- Added Special Appeal Card GENERATOR -- shown set will be random every login
-- Added serial code entry -- usable codes listed below
+- Updated current ARENA rank season: Season 2, ARENA BATTLE, point scoring (2026/07/16-2026/08/06)
+- Added ARENA STATION set 2 data
+- Added login gift: `Grim Aloe` appeal card
+- Added event data: `Quiz Magic Academy Stamp Sheet`
+- Added event data: `QMA Quiz Popup`
+- Added questions list for `QMA Quiz Popup`
 
 ### Misc
 
-- Data migrate code for ii -> GW
-- Fix migrate codes to use and save new name input instead
-- Added labels and max points required for POLICY BREAK songs
-- Fixed ii score lamps not displaying properly in GW
-- Fixed appeal card frame/creator item loading for ii and GW
-- Fixed `unlockAppealCards` for ii
-- Updated `unlockNavigators` function to unlock GW Genesis Cards and (sub-)crews.
-- Added plugin setting to skip matchmaking objectives in MISSION mode (excl. Side Episode 01)
-- music_db.xml import cleanup and fixes ([PR #87](https://github.com/22vv0/asphyxia_plugins/pull/87))
+- Added missing banner complete reward for `PREMIUM GENERATOR (QMA)` set
+- Added new startup flag: crew outfit censors - `CHARACTER_KIND_DISABLE`
+- Removed unnecessary quotes from some obj keys in `common.ts`
+- Added PE identifiers for `getDateCodeInit()`
 
 ### WebUI
 
-- Profile Customization: Made appeal card frame/creator item selection list to only be limited to what's available per version
-- Profile Customization: Fixes to how owned skill titles are loaded to the dropdown selection
-- Profile Scores: `getMedal` update
-- Profile Scores: Clear lamp labels update (full labels, eg. `UC` -> `ULTIMATE CHAIN` etc.)
-
-
----
-## Contributions
-
-- [eamuse](https://github.com/eamuse) - Update music_db.xml import for KFC ([#87](https://github.com/22vv0/asphyxia_plugins/pull/87))
-
+- `Startup flags`: Switch default toggle for new startup flags from `true` to `false`
+- `Profile customization`: Updated max selectable item ids for profile version
 
 ---
 ## Extra notes
@@ -88,7 +61,7 @@ SOUND VOLTEX
 - Charts announced to have EX SCORES reset will be reset here as well.
 
 #### RE: Standard Start issue on version 20250422+
-This is not a plugin issue but I feel it is necessary to share. I did notice this while testing VARIANT GATE but I forgot to mention it so I apologize. As mentioned in issue [#34](https://github.com/22vv0/asphyxia_plugins/issues/34), if you're having trouble carding in after a Standard Start credit, what fixed it for me was adding these lines to your ea3-config.xml file, in ea3->pos->coin. I personally put it just under _kfc\_game\_s\_standard_:
+This is not a plugin issue but I feel it is necessary to share. I did notice this while testing VARIANT GATE but I forgot to mention it so I apologize. As mentioned in issue [#34](https://github.com/22vv0/asphyxia_plugins/issues/34), if you're having trouble carding in after a Standard Start credit, what fixed it for me was adding these lines to your ea3-config.xml file, in `ea3/pos/coin`. I personally put it just under _kfc\_game\_s\_standard_:
 ```xml
       <kfc_game_s_standard_plus>
         <type __type="str">consume</type>

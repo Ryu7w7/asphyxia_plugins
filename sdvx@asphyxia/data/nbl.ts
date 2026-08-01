@@ -119,6 +119,12 @@ export const UNLOCK_EVENTS7 = {
   gitadorastamp: UNLOCK_EVENTS6['gitadorastamp'],
   vgate1: UNLOCK_EVENTS6['vgate1'],
   vgate2: UNLOCK_EVENTS6['vgate2'],
+  vgate3: {
+    info: {
+      id: 109,
+      setid: 3
+    }
+  },
   bluediamond: {
     type: 'main',
     info: {
@@ -295,6 +301,23 @@ export const UNLOCK_EVENTS7 = {
           stmpid: 99,
           stps: 15,
           stprwrd: '1:a:6508 2:r:176 4:n:40303 6:r:177 8:n:40304 10:r:178 12:n:40304 15:r:179 req:musicid:1757,2388,2389,2390,2391 imgbg:bg_stamp_flare'
+        }
+      ]
+    }
+  },
+  qmastamp: {
+    type: 'main',
+    info: {
+      id: 0,
+      stmpHdJ: '[sz:22]SPECIAL STAMP BONUS',
+      stmpFtJ: '[sz:22]YOU CAN GET A STAMP AND BONUS! :)[br:5]TERM: 7/16～8/16',
+      stmpHd: '[sz:22]SPECIAL STAMP BONUS',
+      stmpFt: '[sz:22]YOU CAN GET A STAMP AND BONUS! :)[br:5]TERM: 7/16～8/16',
+      data: [
+        {
+          stmpid: 114,
+          stps: 30,
+          stprwrd: '1:r:196 5:b:912 10:r:197 15:b:912 20:r:198 25:b:912 30:r:199 imgbg:bg_stamp_qma boost:quiz:1'
         }
       ]
     }
@@ -560,6 +583,105 @@ export const UNLOCK_EVENTS7 = {
           stmpHd: '[sz:22][c:DAC491]SPECIAL STAMP BONUS',
           stmpFt: '[sz:22]YOU CAN GET A STAMP AND BONUS! :)[br:5]TERM: 5/25～5/31',
           stprwrd: '0:r:x103 1:p:1000 5:b:500 10:r:184 11:p:1000 15:b:500 20:p:5000 21:p:1000 25:b:500 30:p:5000'
+        },
+        {
+          stmpid: 105,
+          stps: 310030,
+          version: 20260512,
+          start: 20260601,
+          stmpHdJ: '[sz:22][c:DAC491]▽ウィークリースタンプボーナス!',
+          stmpFtJ: '[sz:22]6/1~6/7の間、ポルテを遊ぶとスタンプを獲得できます',
+          stmpHd: '[sz:22][c:DAC491]SPECIAL STAMP BONUS',
+          stmpFt: '[sz:22]YOU CAN GET A STAMP AND BONUS! :)[br:5]TERM: 6/1～6/7',
+          stprwrd: '0:r:x104 1:p:1000 5:b:500 10:r:185 11:p:1000 15:b:500 20:p:5000 21:p:1000 25:b:500 30:p:5000'
+        },
+        {
+          stmpid: 106,
+          stps: 310030,
+          version: 20260512,
+          start: 20260608,
+          stmpHdJ: '[sz:22][c:DAC491]▽ウィークリースタンプボーナス!',
+          stmpFtJ: '[sz:22]6/8~6/14の間、ポルテを遊ぶとスタンプを獲得できます',
+          stmpHd: '[sz:22][c:DAC491]SPECIAL STAMP BONUS',
+          stmpFt: '[sz:22]YOU CAN GET A STAMP AND BONUS! :)[br:5]TERM: 6/8～6/14',
+          stprwrd: '0:r:x105 1:p:1000 5:b:500 10:r:186 11:p:1000 15:b:500 20:p:5000 21:p:1000 25:b:500 30:p:5000'
+        },
+        {
+          stmpid: 107,
+          stps: 310030,
+          version: 20260512,
+          start: 20260615,
+          stmpHdJ: '[sz:22][c:DAC491]▽ウィークリースタンプボーナス!',
+          stmpFtJ: '[sz:22]6/15~6/21の間、ポルテを遊ぶとスタンプを獲得できます',
+          stmpHd: '[sz:22][c:DAC491]SPECIAL STAMP BONUS',
+          stmpFt: '[sz:22]YOU CAN GET A STAMP AND BONUS! :)[br:5]TERM: 6/15～6/21',
+          stprwrd: '0:r:x106 1:p:1000 5:b:500 10:r:187 11:p:1000 15:b:500 20:p:5000 21:p:1000 25:b:500 30:p:5000'
+        },
+        {
+          stmpid: 108,
+          stps: 310030,
+          version: 20260512,
+          start: 20260622,
+          stmpHdJ: '[sz:22][c:DAC491]▽ウィークリースタンプボーナス!',
+          stmpFtJ: '[sz:22]6/22~6/28の間、ポルテを遊ぶとスタンプを獲得できます',
+          stmpHd: '[sz:22][c:DAC491]SPECIAL STAMP BONUS',
+          stmpFt: '[sz:22]YOU CAN GET A STAMP AND BONUS! :)[br:5]TERM: 6/22～6/28',
+          stprwrd: '0:r:x107 1:p:1000 5:b:500 10:r:188 11:p:1000 15:b:500 20:p:5000 21:p:1000 25:b:500 30:p:5000'
+        },
+        {
+          stmpid: 109,
+          stps: 310030,
+          version: 20260615,
+          start: 20260629,
+          stmpHdJ: '[sz:22][c:DAC491]▽ウィークリースタンプボーナス!',
+          stmpFtJ: '[sz:22]6/29~7/5の間、ポルテを遊ぶとスタンプを獲得できます',
+          stmpHd: '[sz:22][c:DAC491]SPECIAL STAMP BONUS',
+          stmpFt: '[sz:22]YOU CAN GET A STAMP AND BONUS! :)[br:5]TERM: 6/29～7/5',
+          stprwrd: '0:r:x108 1:p:1000 5:b:500 10:d:27 11:p:1000 15:b:500 20:p:5000 21:p:1000 25:b:500 30:p:5000'
+        },
+        {
+          stmpid: 110,
+          stps: 310030,
+          version: 20260615,
+          start: 20260706,
+          stmpHdJ: '[sz:22][c:DAC491]▽ウィークリースタンプボーナス!',
+          stmpFtJ: '[sz:22]7/6~7/12の間、ポルテを遊ぶとスタンプを獲得できます',
+          stmpHd: '[sz:22][c:DAC491]SPECIAL STAMP BONUS',
+          stmpFt: '[sz:22]YOU CAN GET A STAMP AND BONUS! :)[br:5]TERM: 7/6～7/12',
+          stprwrd: '0:r:x109 1:p:1000 5:b:500 10:r:189 11:p:1000 15:b:500 20:p:5000 21:p:1000 25:b:500 30:p:5000'
+        },
+        {
+          stmpid: 111,
+          stps: 310030,
+          version: 20260615,
+          start: 20260713,
+          stmpHdJ: '[sz:22][c:DAC491]▽ウィークリースタンプボーナス!',
+          stmpFtJ: '[sz:22]7/13~7/19の間、ポルテを遊ぶとスタンプを獲得できます',
+          stmpHd: '[sz:22][c:DAC491]SPECIAL STAMP BONUS',
+          stmpFt: '[sz:22]YOU CAN GET A STAMP AND BONUS! :)[br:5]TERM: 7/13～7/19',
+          stprwrd: '0:r:x110 1:p:1000 5:b:500 10:r:190 11:p:1000 15:b:500 20:p:5000 21:p:1000 25:b:500 30:p:5000'
+        },
+        {
+          stmpid: 112,
+          stps: 310030,
+          version: 20260615,
+          start: 20260720,
+          stmpHdJ: '[sz:22][c:DAC491]▽ウィークリースタンプボーナス!',
+          stmpFtJ: '[sz:22]7/20~7/26の間、ポルテを遊ぶとスタンプを獲得できます',
+          stmpHd: '[sz:22][c:DAC491]SPECIAL STAMP BONUS',
+          stmpFt: '[sz:22]YOU CAN GET A STAMP AND BONUS! :)[br:5]TERM: 7/20～7/26',
+          stprwrd: '0:r:x111 1:p:1000 5:b:500 10:d:28 11:p:1000 15:b:500 20:p:5000 21:p:1000 25:b:500 30:p:5000'
+        },
+        {
+          stmpid: 113,
+          stps: 310030,
+          version: 20260615,
+          start: 20260727,
+          stmpHdJ: '[sz:22][c:DAC491]▽ウィークリースタンプボーナス!',
+          stmpFtJ: '[sz:22]7/27~8/2の間、ポルテを遊ぶとスタンプを獲得できます',
+          stmpHd: '[sz:22][c:DAC491]SPECIAL STAMP BONUS',
+          stmpFt: '[sz:22]YOU CAN GET A STAMP AND BONUS! :)[br:5]TERM: 7/27～8/2',
+          stprwrd: '0:r:x112 1:p:1000 5:b:500 10:r:191 11:p:1000 15:b:500 20:p:5000 21:p:1000 25:b:500 30:p:5000'
         }
       ]
     }
@@ -613,18 +735,25 @@ export const EVENT_ITEMS7 = {
   "bpls5tripletribe3_1": ['2378'],
   "bpls5tripletribe3_2": ['2380'],
   "bpls5tripletribe3_3": ['2382'],
+  "2026noryosai_1": ['2401'],
+  "2026noryosai_2": ['2402'],
+  "2026noryosai_3": ['2403'],
+  "2026noryosai_4": ['2398'],
+  "2026noryosai_5": ['2399'],
+  "2026noryosai_6": ['2400'],
+  "qmaapica": ['6509']
 }
 
 // rule: 0 score 1 point 2 vote
 // rank_match_target: 0 arena 1 single 2 mega
 export const CURRENT_ARENA7 = {
-  season: 1,
+  season: 2,
   rule: 1,
   rank_match_target: 0,
-  time_start: BigInt(Date.parse('30 Apr 2026 08:00:00 GMT')),
-  time_end: BigInt(Date.parse('30 May 2026 15:59:59 GMT')),
-  shop_start: BigInt(Date.parse('25 Apr 2026 08:00:00 GMT')),
-  shop_end: BigInt(Date.parse('30 May 2026 15:59:59 GMT'))
+  time_start: BigInt(Date.parse('16 Jul 2026 08:00:00 GMT')),
+  time_end: BigInt(Date.parse('6 Aug 2026 15:59:59 GMT')),
+  shop_start: BigInt(Date.parse('16 Jul 2026 08:00:00 GMT')),
+  shop_end: BigInt(Date.parse('6 Aug 2026 15:59:59 GMT'))
 }
 
 // catalog_id, catalog_type, price, item_type, item_id, param 
@@ -645,6 +774,19 @@ export const ARENA_STATION_ITEMS7 = {
       [1, 1, 2000, 0, 770, 8]
     ],
     version: 20260421
+  },
+  'Set 2': {
+    items: [
+      [1, 1, 1250, 11, 8, 1],
+      [1, 1, 1250, 11, 80, 1],
+      [1, 1, 1250, 11, 52, 1],
+      [1, 1, 1250, 11, 93, 1],
+      [1, 1, 3750, 11, 102, 1],
+      [1, 1, 8000, 0, 220, 8],
+      [1, 1, 4000, 0, 683, 8],
+      [1, 1, 2000, 0, 317, 8]
+    ],
+    version: 20260714
   }
 }
 
@@ -654,8 +796,16 @@ export const VALGENE7 = {
       valgene_name: "ヴァルキリージェネレーター　第18弾",
       valgene_name_english: "Valkyrie Generator Vol. 18",
       valgene_id: 19,
-      version: 20210303
+      version: 20260303,
+      start: 20260305
     },
+    {
+      valgene_name: "ヴァルキリージェネレーター　第19弾",
+      valgene_name_english: "Valkyrie Generator Vol. 19",
+      valgene_id: 20,
+      version: 20260615,
+      start: 20260618
+    }
   ],
   rarity: {
     "11": 5,
@@ -686,6 +836,27 @@ export const VALGENE7 = {
         }
       ]
     },
+    {
+      volume: 20,
+      items: [
+        {
+          type: 11,
+          item_ids: [184, 185, 186, 187, 188, 189, 190, 191, 192, 193]
+        },
+        {
+          type: 18,
+          item_ids: [862, 863, 864, 865, 866, 867, 868, 869, 870, 871]
+        },
+        {
+          type: 19,
+          item_ids: [102, 103, 104, 105, 106, 107, 108, 109, 110, 111]
+        },
+        {
+          type: 20,
+          item_ids: [49, 50, 51, 52, 53, 54, 55, 56, 57, 58]
+        }
+      ]
+    }
   ]
 }
 
@@ -726,6 +897,16 @@ export const PREGENE7 = [
       subbg: [843, 844, 845, 846, 847, 848, 849, 850, 851, 852, 853, 854, 855, 856, 857, 858, 859, 860, 861]
     },
     probability: [0.05, 0.39, 0.6]
+  },
+  {
+    id: 27,
+    items: {
+      crew: [196],
+      stamp: [575, 576, 577, 578, 579, 580, 581, 582, 583, 584],
+      subbg: [872, 873, 874, 875, 876, 877, 878, 879, 880, 881, 882, 883, 884, 885],
+      sysbg: [32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42]
+    },
+    probability: [0.05, 0.42, 0.84, 0.9]
   }
 ]
 
@@ -770,7 +951,7 @@ export const COURSES7 = [
     id: 1,
     name: "SKILL ANALYZER 第1回 Aコース",
     version: 20260512,
-    isNew: 1,
+    isNew: 0,
     hasGod: 0,
     courses: [
       {
@@ -935,7 +1116,7 @@ export const COURSES7 = [
     id: 2,
     name: "SKILL ANALYZER 第1回 Bコース",
     version: 20260512,
-    isNew: 1,
+    isNew: 0,
     hasGod: 0,
     courses: [
       {
@@ -1157,14 +1338,79 @@ export const COURSES7 = [
       },
     ],
   },
+  {
+    id: 4,
+    name: "THE VOLTENIZER 2026",
+    version: 20260512,
+    isNew: 1,
+    hasGod: 0,
+    courses: [
+      {
+        id: 1,
+        type: 0,
+        name: "THE VOLTENIZER 2026 予選コース(フリー部門)",
+        level: 0,
+        nameID: 14,
+        assist: 0,
+        tracks: [
+          { no: 0, mid: 1919, mty: 4 },
+          { no: 1, mid: 2010, mty: 4 }, 
+          { no: 2, mid: 1273, mty: 4 }, 
+          { no: 3, mid: 791, mty: 3 } 
+        ],
+      },
+      {
+        id: 2,
+        type: 0,
+        name: "THE VOLTENIZER 2026 予選コース(U-20部門)",
+        level: 0,
+        nameID: 14,
+        assist: 0,
+        tracks: [
+          { no: 0, mid: 1043, mty: 4 },
+          { no: 1, mid: 1958, mty: 4 },  
+          { no: 2, mid: 2323, mty: 4 },  
+          { no: 3, mid: 367, mty: 3 }
+        ],
+      },
+      {
+        id: 3,
+        type: 0,
+        name: "THE VOLTENIZER 2026 エンジョイコース(フリー部門)",
+        level: 0,
+        nameID: 14,
+        assist: 0,
+        tracks: [
+          { no: 0, mid: 1919, mty: 1 },
+          { no: 1, mid: 2010, mty: 1 }, 
+          { no: 2, mid: 1273, mty: 1 }, 
+          { no: 3, mid: 791, mty: 1 } 
+        ],
+      },
+      {
+        id: 4,
+        type: 0,
+        name: "THE VOLTENIZER 2026 エンジョイコース(U-20部門)",
+        level: 0,
+        nameID: 14,
+        assist: 0,
+        tracks: [
+          { no: 0, mid: 1043, mty: 1 },
+          { no: 1, mid: 1958, mty: 1 },  
+          { no: 2, mid: 2323, mty: 1 },  
+          { no: 3, mid: 367, mty: 1 }
+        ],
+      },
+    ]
+  }
 ]
 
 export const INFORMATION7 = [
-  { id: 46, version: 20260203, start: 20260205, str: '[img:info/250205_info_hatsunemiku.png:]'},
-  { id: 47, version: 20260217, start: 20260219, str: '[img:info/260219_info_cross_resonance.png:]'},
   { id: 48, version: 20260324, start: 20260326, str: '[img:info/260326_info_generator.png:]'},
   { id: 49, version: 20260324, start: 20260326, str: '[img:info/260326_info_tripletribe.png:]'},
-  { id: 50, version: 20260421, start: 20260423, str: '[img:info/260423_info_shiranui.png:]'}
+  { id: 50, version: 20260421, start: 20260423, str: '[img:info/260423_info_shiranui.png:]'},
+  { id: 51, version: 20260615, start: 20260616, str: '[img:info/260616_info_noryosai.png:]'},
+  { id: 52, version: 20260630, start: 20260702, str: '[img:info/260702_info_generator.png:]'}
 ] 
 
 export const EXTENDS7 = [
@@ -1338,14 +1584,14 @@ export const EXTENDS7 = [
   },
   {
     version: 20260512,
-    start: 20260521,
+    start: 20260512,
     id: 1,
     type: 4,
     params: [
-      0, 1, 0, 0, 0,
+      0, 1, 1, 0, 0,
       "",
-      "13,[],[sz:40]音戯探偵",
-      "",
+      "13,0,[sz:40]音戯探偵",
+      "14,0,[sz:40]風 雲",
       "",
       ""
     ]
@@ -1436,5 +1682,337 @@ export const MUSIC_OVERRIDE7 = [
     start: 20260212,
     date: 20260430,
     charts: {}
+  }
+]
+
+export const GAMEOVER_CHARA7 = {
+  l: ['chara01/go_ikuto', 'chara01/go_konoha', 'chara01/go_mitsuruco', 'chara01/go_nemurun', 'chara01/go_rasis_ver07', 
+  'chara01/go_satan', 'chara01/go_tsumabuki_ver07'],
+  r: ['chara02/go_atsushi', 'chara02/go_grace_ver07', 'chara02/go_haelequin', 
+  'chara02/go_kureha', 'chara02/go_tama'],
+  m: ['chara03/go_cawoashi', 'chara03/go_iruyoru', 'chara03/go_neno_ver06']
+}
+
+export const QUIZ7 = [
+  {
+    id: 1,
+    text: "[sz:25]クイズに正解するとクイズスタンプボーナスがさらに進みやすくなるぞ!",
+    list: [
+      [
+        {
+          text: {
+            lines: [
+              { parts: [{ text: "キャラクター 「ボルテナイザー・マキシマ」の", wait: 0 }] },
+              { parts: [{ text: "ボルテ学園高等部での担当科目は", wait: 1000 }, { text: "体育である", wait: 0 }] },  
+            ]
+          },
+          body: {
+            type: 'yesno',
+            correct: 0
+          }
+        },
+        {
+          text: {
+            lines: [
+              { parts: [{ text: "キャラクター 「ボルテナイザー・マキシマ」の", wait: 0 }] },
+              { parts: [{ text: "ボルテ学園高等部での担当科目は", wait: 1000 }, { text: "英語である", wait: 0 }] },  
+            ]
+          },
+          body: {
+            type: 'yesno',
+            correct: 1
+          }
+        },
+        {
+          text: {
+            lines: [
+              { parts: [{ text: "ネメシスクルー『レイシス』のCV担当は", wait: 1000 }] },
+              { parts: [{ text: "石橋桃である。", wait: 0 }] },  
+            ]
+          },
+          body: {
+            type: 'yesno',
+            correct: 0
+          }
+        },
+        {
+          text: {
+            lines: [
+              { parts: [{ text: "ネメシスクルー『グレイス』のCV担当は", wait: 1000 }] },
+              { parts: [{ text: "茅野愛衣である。", wait: 0 }] },  
+            ]
+          },
+          body: {
+            type: 'yesno',
+            correct: 0
+          }
+        },
+        {
+          text: {
+            lines: [
+              { parts: [{ text: "楽曲プレー中", wait: 0 }] },
+              { parts: [{ text: "エフェクトラインが流れてきた際に操作するのは", wait: 1000 }] },
+              { parts: [{ text: "BTボタンである", wait: 0 }] },
+            ]
+          },
+          body: {
+            type: 'yesno',
+            correct: 0
+          }
+        },
+        {
+          text: {
+            lines: [
+              { parts: [{ text: "BEMANI PRO LEAGUE -SEASON5-", wait: 0 }] },
+              { parts: [{ text: "オリジナル楽曲コンテストの最優秀楽曲は", wait: 1000 }] },
+              { parts: [{ text: "「NEMSYS ARENA World Hexathlon」 である。", wait: 0 }] },
+            ]
+          },
+          music: 0,
+          body: {
+            type: 'yesno',
+            correct: 0
+          }
+        },
+        {
+          text: {
+            lines: [
+              { parts: [{ text: "BEMANI PRO LEAGUE -SEASON2-", wait: 0 }] },
+              { parts: [{ text: "オリジナル楽曲コンテストの最優秀楽曲は", wait: 1000 }] },
+              { parts: [{ text: "「NEMSYS ARENA World Hexathlon」 である。", wait: 0 }] },
+            ]
+          },
+          music: 0,
+          body: {
+            type: 'yesno',
+            correct: 0
+          }
+        },
+        {
+          text: {
+            lines: [
+              { parts: [{ text: "ネメシスクルー 『つまぶき』のCV担当は", wait: 1000 }] },
+              { parts: [{ text: "伊藤節生である。", wait: 0 }] },  
+            ]
+          },
+          music: 0,
+          body: {
+            type: 'yesno',
+            correct: 1
+          }
+        },
+        {
+          text: {
+            lines: [
+              { parts: [{ text: "『SOUND VOLTEX ▽』にて", wait: 0 }] },
+              { parts: [{ text: "アピールパーツジェネレーターを利用する際に", wait: 0 }] },
+              { parts: [{ text: "消費するものは", wait: 1000 }, { text: "BLOCKである", wait: 0 }] },  
+            ]
+          },
+          music: 0,
+          body: {
+            type: 'yesno',
+            correct: 0
+          }
+        },
+        {
+          text: {
+            lines: [
+              { parts: [{ text: "ゲームモード「PREMIUM TIME」では", wait: 0 }] },
+              { parts: [{ text: "30分間の間、自由に遊ぶ事ができる", wait: 0 }] },
+            ]
+          },
+          music: 0,
+          body: {
+            type: 'yesno',
+            correct: 0
+          }
+        },
+        {
+          text: {
+            lines: [
+              { parts: [{ text: "BEMANI PRO LEAGUE -SEASON5-", wait: 0 }] },
+              { parts: [{ text: "オリジナル楽曲コンテストの最優秀楽曲は", wait: 1000 }] },
+              { parts: [{ text: "「SuddeИDeath」 である。", wait: 0 }] },
+            ]
+          },
+          music: 0,
+          body: {
+            type: 'yesno',
+            correct: 0
+          }
+        }
+      ],
+      [
+        {
+          text: {
+            lines: [
+              { parts: [{ text: "『SOUND VOLTEX ▽』において", wait: 0 }] },
+              { parts: [{ text: "オブジェクトを全てCRITICAL判定以上で", wait: 0 }] }, 
+              { parts: [{ text: "捌く事を何と呼ぶ?", wait: 0 }] },  
+            ]
+          },
+          body: {
+            type: 'selection',
+            texts: [ "ALL CRITICAL", "ALL JUSTICE", "PERFECT ULTIMATE CHAIN", "EXCELLENT CHAIN" ],
+            answer: 2
+          }
+        },
+        {
+          text: {
+            lines: [
+              { parts: [{ text: "SOUND VOLTEXシリーズ第4作目の", wait: 0 }] },
+              { parts: [{ text: "正しいサブタイトルはどれ?", wait: 0 }] },
+            ]
+          },
+          body: {
+            type: 'selection',
+            texts: [ "HEAVENLY HEAVEN", "HEAVENLY HAVEN", "HAVENLY HEAVEN", "HAVENLY HAVEN" ],
+            answer: 1
+          }
+        },
+        {
+          text: {
+            lines: [
+              { parts: [{ text: "『SOUND VOLTEX III GRAVITY WARS』 の", wait: 0 }] },
+              { parts: [{ text: "ストーリーイベントにおいて", wait: 0 }] },
+              { parts: [{ text: "「ライオット・デストルドー」 が", wait: 0 }] },
+              { parts: [{ text: "登場するミッションのタイトルはどれか?", wait: 0 }] },
+            ]
+          },
+          body: {
+            type: "selection",
+            texts: [ "東の隠密", "西の戦乙女", "南の破壊者", "北の稀人" ],
+            answer: 2
+          }
+        },
+        {
+          text: {
+            lines: [
+              { parts: [{ text: "『SOUND VOLTEX ▽』のスコアグレードで", wait: 0 }] },
+              { parts: [{ text: "最も良いものはどれ?", wait: 0 }] },
+            ]
+          },
+          body: {
+            type: "selection",
+            texts: [ "AAA", "S", "SS", "SSS" ],
+            answer: 1
+          }
+        },
+        {
+          text: {
+            lines: [
+              { parts: [{ text: "『SOUND VOLTEX ▽』において", wait: 0 }] },
+              { parts: [{ text: "オブジェクトを全てNEAR判定以上で", wait: 0 }] },
+              { parts: [{ text: "捌く事を何と呼ぶ?", wait: 0 }] },
+            ]
+          },
+          body: {
+            type: "selection",
+            texts: [ "ULTIMATE CHAIN", "CONNECT ALL", "FULL COMBO", "FULL RECALL" ],
+            answer: 0
+          }
+        },
+        {
+          text: {
+            lines: [
+              { parts: [{ text: "『SOUND VOLTEX ▽』では", wait: 0 }] },
+              { parts: [{ text: "楽曲クリアの事を何と呼ぶ?", wait: 0 }] }
+            ]
+          },
+          body: {
+            type: "selection",
+            texts: [ "MUSIC CLEARED", "TRACK COMPLETE", "EFFECT COMPLETE", "TASK COMPLETE" ],
+            answer: 1
+          }
+        },
+        {
+          text: {
+            lines: [
+              { parts: [{ text: "『SOUND VOLTEX ▽』における", wait: 0 }] },
+              { parts: [{ text: "オブジェクトの流れる速度を調整する", wait: 0 }] },
+              { parts: [{ text: "機xの名前はどれ?", wait: 0 }] } // having issues with '能' so i temporarily replaced it with an 'x'
+            ]
+          },
+          body: {
+            type: "selection",
+            texts: [ "ハイスピード", "レーンスピード", "フローティングスピード", "スクロールスピード" ],
+            answer: 1
+          }
+        },
+      ],
+      [
+        {
+          text: {
+            lines: [
+              { parts: [{ text: "キャラクター「レイシス」が映っている", wait: 0 }] },
+              { parts: [{ text: "ジャケットはどのジャケット?", wait: 0 }] }
+            ]
+          },
+          music: 0,
+          body: {
+              type: "jacket",
+              musics: [ { id: 124, diff: 0 }, { id: 123, diff: 0 }, { id: 125, diff: 0 }, { id: 126, diff: 0 }],
+              answer: 1
+          }
+        },
+        {
+          text: {
+            lines: [
+              { parts: [{ text: "『The 8th KONAMI Arcade Championship』", wait: 0 }] },
+              { parts: [{ text: "の決勝でお披露目された最優秀楽曲はどれ?", wait: 0 }] }
+            ]
+          },
+          music: 0,
+          body: {
+              type: "jacket",
+              musics: [ { id: 366, diff: 2 }, { id: 1036, diff: 4 }, { id: 1362, diff: 4 }, { id: 1766, diff: 4 }],
+              answer: 2
+          }
+        },
+        {
+          text: {
+            lines: [
+              { parts: [{ text: "『The 10th KONAMI Arcade Championship』", wait: 0 }] },
+              { parts: [{ text: "の決勝でお披露目された最優秀楽曲はどれ?", wait: 0 }] }
+            ]
+          },
+          music: 0,
+          body: {
+              type: "jacket",
+              musics: [ { id: 366, diff: 2 }, { id: 1036, diff: 4 }, { id: 1362, diff: 4 }, { id: 1766, diff: 4 }],
+              answer: 3
+          }
+        },
+        {
+          text: {
+            lines: [
+              { parts: [{ text: "『The 9th KONAMI Arcade Championship』", wait: 0 }] },
+              { parts: [{ text: "の決勝でお披露目された最優秀楽曲はどれ?", wait: 0 }] }
+            ]
+          },
+          music: 0,
+          body: {
+              type: "jacket",
+              musics: [ { id: 1580, diff: 4 }, { id: 1766, diff: 4 }, { id: 1767, diff: 4 }, { id: 2085, diff: 4 }],
+              answer: 0
+          }
+        },
+        {
+          text: {
+            lines: [
+              { parts: [{ text: "KONAMI Arcade Championship 2012』", wait: 0 }] },
+              { parts: [{ text: "の決勝でお披露目された最優秀楽曲はどれ?", wait: 0 }] }
+            ]
+          },
+          music: 0,
+          body: {
+              type: "jacket",
+              musics: [ { id: 126, diff: 4 }, { id: 636, diff: 3 }, { id: 791, diff: 3 }, { id: 1185, diff: 4 }],
+              answer: 0
+          }
+        },
+      ]
+    ]
   }
 ]

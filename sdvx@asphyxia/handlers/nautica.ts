@@ -12,6 +12,7 @@ import {
   nauticaSlotExhaustedError,
 } from '../utils';
 import { invalidateHiscoreCache } from './features';
+import { invalidateCommonCache } from './common';
 import { convertNauticaSong, bulkConvertNauticaSongs, rebuildMergedXml } from './converter';
 import { deleteDriveFile } from './drive';
 
@@ -496,6 +497,7 @@ export const nauticaRemove = async (data: { nauticaId: string; reason?: string; 
 
       invalidateMusicDbCache();
       invalidateHiscoreCache();
+      invalidateCommonCache();
     }
 
     send.json({ success: true });

@@ -17,6 +17,7 @@ import * as fs from 'fs'
 import { PNG } from '../webui/asset/js/pngjs/png.js'
 import { DB_VER } from './migrate'
 import { getDateCodeInit } from '../utils'
+import { invalidateCommonCache } from './common'
 
 const translate_table = {
       '龕': '€',
@@ -249,7 +250,7 @@ export const copyResourcesFromGame = async (data: {}, send: WebUISend) => {
     // Get new music data from music_db.xml
     logLine('Getting new music_db info')
     let prevAssetMdb = {}
-    let difLbl = ['', '', 'INF', 'GRV', 'HVN', 'VVD', 'XCD', 'NBL (tmp)']
+    let difLbl = ['', '', 'INF', 'GRV', 'HVN', 'VVD', 'XCD', 'NBL']
     if(IO.Exists('webui/asset/json/music_db.json')) {
       prevAssetMdb = JSON.parse(U.DecodeString(await IO.ReadFile('webui/asset/json/music_db.json'), 'utf8'))
     }
@@ -270,7 +271,7 @@ export const copyResourcesFromGame = async (data: {}, send: WebUISend) => {
         let distributionDate = (ver > 1) ? musicValue.info.distribution_date['@content'][0].toString() : ''
         let songTitleClean = (ver < 2) ? '' : musicValue.info.title_name['@content'].replace(/[龕釁驩曦齷骭齶彜罇雋鬻鬥鬆曩驫齲騫趁鬮盥隍頽餮黻蔕闃饌煢鑷墸鹹瀑疉鑒]/g, m => translate_table[m])
         let levelDiv = (ver > 0 && ver < 6) ? 1 : (musicValue.difficulty.exhaust.difnum['@content'][0].toString().length === 3) ? 10 : 1
-        if(ver === 7 && ['840', '1219', '1751'].includes(musicValue['@attr'].id)) levelDiv = 10
+        if(ver === 7) levelDiv = 10
         let ind = prevAssetMdb['mdb']['music'].findIndex(item => parseInt(item['id']) == parseInt(musicValue['@attr'].id))
         let dif = [{}, {}, {}, {}, {}, {}, {}, {}]
         if (ind < 0) {
@@ -621,10 +622,8 @@ export const copyResourcesFromGame = async (data: {}, send: WebUISend) => {
           bufOffset += 4
           let md5_hash = ifsBuffer.toString('hex', bufOffset, bufOffset + 16)
           bufOffset += 16
-          let md5Matched = false
           for(const texData of textureslist[listIter].data) {
             if(md5_hash === texData['md5']) {
-              md5Matched = true
               for(let texIter = 0; texIter < texData['textures'].length; texIter++) {
                 let tdFileName = texData['textures'][texIter][0]
                 let tdOffset = parseInt(texData['textures'][texIter][1].toString())
@@ -710,9 +709,6 @@ export const copyResourcesFromGame = async (data: {}, send: WebUISend) => {
               }
             }
           }
-          if(!md5Matched) {
-            logError('MD5 mismatch - ' + textureslist[listIter].file)
-          }
         } else {
           logError('IFS file "' + textureslist[listIter].file + '" unsupported/invalid.')
         }
@@ -779,15 +775,6 @@ export const copyResourcesFromGame = async (data: {}, send: WebUISend) => {
 export const getRivalScores = async (data: { rivalId: string; refid: string; version: string; }, send: WebUISend) => {
   let ver = parseInt(data.version)
   let rival = await DB.FindOne<Rival>(data.refid, {collection: 'rival', refid: data.rivalId, version: ver})
-  
-  if (!rival) {
-    return send.json({
-      rival: null,
-      yourScores: await DB.Find<MusicRecord>(data.refid, { collection: 'music', version: ver }),
-      rivalScores: []
-    });
-  }
-
   send.json({
     rival: await DB.FindOne<Profile>(data.rivalId, {collection: 'profile', version: ver}),
     yourScores: await DB.Find<MusicRecord>(data.refid, { collection: 'music', version: ver }),
@@ -795,86 +782,29 @@ export const getRivalScores = async (data: { rivalId: string; refid: string; ver
   })
 }
 
-export const addRival = async (data: { sdvxId: string; refid: string; version: string }, send: WebUISend) => {
-  let ver = parseInt(data.version)
-  let sdvxIdNum = parseInt(data.sdvxId.replace(/[^0-9]/g, ''));
-  if (isNaN(sdvxIdNum)) {
-    return send.json({ msg: "Invalid SDVX ID provided." })
-  }
-
-  let rival = await DB.FindOne<Profile>(null, {collection: 'profile', id: sdvxIdNum, version: ver})
-  if (!rival) {
-    return send.json({ msg: "Player not found." })
-  }
-  if (rival.__refid === data.refid) {
-    return send.json({ msg: "You cannot add yourself as a rival." })
-  }
-
-  let currentRivalsCount = await DB.Count<Rival>(data.refid, {collection: 'rival', version: ver})
-  if (currentRivalsCount >= 4) {
-    return send.json({ msg: "You have reached the maximum limit of 4 rivals." })
-  }
-
-  let you = await DB.FindOne<Profile>(data.refid, {collection: 'profile', version: ver})
-  let checkMutual = (await DB.Count<Rival>(rival.__refid, {collection: 'rival', refid: data.refid, version: ver}) > 0)
-  
-  if(await DB.Count<Rival>(data.refid, {collection: 'rival', refid: rival.__refid, version: ver}) === 0) {
-    if(checkMutual) {
-      DB.Upsert<Rival>(rival.__refid, {collection: "rival", sdvxID: you.id, refid: data.refid, name: you.name, version: ver}, {$set: {mutual: checkMutual, dbver: DB_VER}})
-    }
-    DB.Insert<Rival>(data.refid, {collection: "rival", sdvxID: rival.id, refid: rival.__refid, name: rival.name, version: ver, mutual: checkMutual, dbver: DB_VER})
-    send.json({
-      "msg": "Successfully added profile as rival."
-    })
-  } else {
-    send.json({
-      "msg": "Profile is already in your rival list."
-    })
-  }
-}
-
-export const removeRival = async (data: { rivalId: string; refid: string; version: string }, send: WebUISend) => {
+export const addRival = async (data: { rivalId: string; refid: string; version: string }, send: WebUISend) => {
   let ver = parseInt(data.version)
   let you = await DB.FindOne<Profile>(data.refid, {collection: 'profile', version: ver})
-
-  if(!you) {
-    return send.json({ msg: "Profile not found." })
-  }
+  let rival = await DB.FindOne<Profile>(data.rivalId, {collection: 'profile', version: ver})
 
   let checkMutual = (await DB.Count<Rival>(data.rivalId, {collection: 'rival', refid: data.refid, version: ver}) > 0)
-  
-  if(checkMutual) {
-    DB.Upsert<Rival>(data.rivalId, {collection: "rival", sdvxID: you.id, refid: data.refid, name: you.name, version: ver}, {$set: {"mutual": false, dbver: DB_VER}})
+  if(await DB.Count<Rival>(data.refid, {collection: 'rival', refid: data.rivalId, version: ver}) === 0) {
+    if(checkMutual) {
+      DB.Upsert<Rival>(data.rivalId, {collection: "rival", sdvxID: you.id, refid: data.refid, name: you.name, version: ver}, {$set: {mutual: checkMutual, dbver: DB_VER}})
+    }
+    DB.Insert<Rival>(data.refid, {collection: "rival", sdvxID: rival.id, refid: data.rivalId, name: rival.name, version: ver, mutual: checkMutual, dbver: DB_VER})
+    send.json({
+      "msg": "Successfully added profile to rival. In order for your rivals to appear in-game, they need to add you as their rival as well."
+    })
+  } else {
+    if(checkMutual) {
+      DB.Upsert<Rival>(data.rivalId, {collection: "rival", sdvxID: you.id, refid: data.refid, name: you.name, version: ver}, {$set: {"mutual": false, dbver: DB_VER}})
+    }
+    DB.Remove<Rival>(data.refid, {collection: "rival", sdvxID: rival.id, refid: data.rivalId, name: rival.name, version: ver, dbver: DB_VER})
+    send.json({
+      "msg": "Successfully removed rival."
+    })
   }
-  DB.Remove<Rival>(data.refid, {collection: "rival", refid: data.rivalId, version: ver, dbver: DB_VER})
-  send.json({
-    "msg": "Successfully removed rival."
-  })
-}
-
-export const searchPlayer = async (data: { query: string; version: string }, send: WebUISend) => {
-  let ver = parseInt(data.version);
-  if (!data.query || data.query.trim() === '') {
-    return send.json({ results: [] });
-  }
-
-  // NeDB regex search for partial name match, case-insensitive
-  let regex = new RegExp(data.query.trim(), 'i');
-  
-  let profiles = await DB.Find<Profile>(null, { 
-    collection: 'profile', 
-    version: ver,
-    name: { $regex: regex }
-  });
-
-  // Limit to top 20 results to avoid UI lag and massive payloads
-  let results = profiles.slice(0, 20).map(p => ({
-    name: p.name,
-    sdvxId: p.id,
-    refid: p.__refid
-  }));
-
-  send.json({ results });
 }
 
 export const preGeneRoll = async (data: { set: number, refid: string, items: [] }, send: WebUISend) => {
@@ -974,10 +904,12 @@ export const preGeneReward = async (data: { reward: [], refid: string }, send: W
 
 export const manageEvents = async (data: { eventConfig: {} }) => {
   IO.WriteFile('webui/asset/config/events.json', JSON.stringify(data.eventConfig, null, 4));
+  invalidateCommonCache();
 }
 
 export const manageStartupFlags = async (data: { flagConfig: {} }) => {
   IO.WriteFile('webui/asset/config/flags.json', JSON.stringify(data.flagConfig, null, 4));
+  invalidateCommonCache();
 }
 
 export const addWeekly = async(data: { mid: number }) => {
@@ -1007,8 +939,8 @@ export const addWeekly = async(data: { mid: number }) => {
     weekly.push({
       weekId: weekly[weekly.length - 1].weekId + 1,
       musicId: data.mid,
-      start: newStartDate.getTime(),
-      end: newEndDate.getTime()
+      start: Number(BigInt(newStartDate)),
+      end: Number(BigInt(newEndDate))
     })
   } else {
     let newEndDate = new Date(curWeekMonday)
@@ -1017,12 +949,13 @@ export const addWeekly = async(data: { mid: number }) => {
     weekly.push({
       weekId: 1,
       musicId: data.mid,
-      start: curWeekMonday.getTime(),
-      end: newEndDate.getTime()
+      start: Number(BigInt(curWeekMonday)),
+      end: Number(BigInt(newEndDate))
     })
   }
 
   IO.WriteFile('webui/asset/config/weeklymusic.json', JSON.stringify(weekly, null, 4));
+  invalidateCommonCache();
 }
 
 export const getWeekRankList = async(data: { week: number, mid: number, mtype: number, version: number}, send: WebUISend) => {
@@ -1032,7 +965,17 @@ export const getWeekRankList = async(data: { week: number, mid: number, mtype: n
   })
 }
 
+// Rank lists only change when someone saves a weekly score, but load (x5 per
+// login) and saveE recompute them by scanning the whole weeklymusicscore
+// collection every time. A short TTL turns the repeated scans into cache hits.
+const WEEKLY_RANK_TTL_MS = 10000;
+const weeklyRankCache = new Map<string, { expires: number; data: any[] }>();
+
 export async function getRankListDB(week, mid, mtype, version) {
+  const cacheKey = `${week}:${mid}:${mtype}:${version}`;
+  const cached = weeklyRankCache.get(cacheKey);
+  if (cached && cached.expires > Date.now()) return cached.data;
+
   let rankResults = await DB.Find<WeeklyMusicScore>(null, {collection: 'weeklymusicscore', version, week: week, mid: mid, mtype: mtype})
   let jRankResults = []
   if (rankResults.length > 0) {
@@ -1047,7 +990,8 @@ export async function getRankListDB(week, mid, mtype, version) {
       exscore: e.exscore,
       rank: ind + 1
     }))
-  } 
+  }
+  weeklyRankCache.set(cacheKey, { expires: Date.now() + WEEKLY_RANK_TTL_MS, data: jRankResults });
   return jRankResults
 }
 

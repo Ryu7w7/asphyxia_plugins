@@ -7,6 +7,7 @@ const iconv = (global as any).iconv;
 import { NauticaSong } from '../models/nautica_song';
 import { GetNextNauticaId, invalidateMusicDbCache } from '../utils';
 import { invalidateHiscoreCache } from './features';
+import { invalidateCommonCache } from './common';
 import { uploadSongZip, isDriveEnabled } from './drive';
 
 // Conversion queue to avoid parallel CPU-heavy operations
@@ -150,6 +151,7 @@ async function doBulkConvert(songs: NauticaSong[]): Promise<{ ok: number; failed
   }
   invalidateMusicDbCache();
   invalidateHiscoreCache();
+  invalidateCommonCache();
 
   // Phase 5: mark everything ready.
   let ok = 0;
@@ -419,6 +421,7 @@ async function executeConversion(prepared: PreparedSong): Promise<void> {
     updateCustomMusicDb(song);
     invalidateMusicDbCache();
     invalidateHiscoreCache();
+    invalidateCommonCache();
   } finally {
     try { fs.rmSync(tmpDir, { recursive: true, force: true }); } catch {}
   }

@@ -363,7 +363,7 @@ $('#skilltype_select').change(function() {
 });
 
 $(document).ready(function() {
-    var course_data = JSON.parse(document.getElementById("data-pass").textContent);
+    var course_data = JSON.parse(document.getElementById("data-pass").innerText);
     if(course_data.length === 0) {
         $('#course-disp').attr('hidden', 'true')
         $('#no-data').removeAttr('hidden')

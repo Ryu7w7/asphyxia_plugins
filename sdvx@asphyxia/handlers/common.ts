@@ -1,37 +1,156 @@
 import { EVENT, SDVX_STATION } from '../data/booth';
 import { EVENT2, MUSIC_LIMITED, COURSES2 } from '../data/ii';
 import { EVENT3, MISSION_EVENT3, MUSIC_LIMITED3, COURSES3, EXTENDS3, SP_APICAGENE3 } from '../data/gw';
-import { EVENT6, COURSES6, EXTENDS6, APRILFOOLSSONGS, VALKYRIE_SONGS, LICENSED_SONGS6, CURRENT_ARENA, ARENA_STATION_ITEMS, VALGENE, INFORMATION6, UNLOCK_EVENTS6, MUSIC_OVERRIDE6 } from '../data/exg';
-import { EVENT7, COURSES7, EXTENDS7, LICENSED_SONGS7, CURRENT_ARENA7, ARENA_STATION_ITEMS7, VALGENE7, APIGENE7, INFORMATION7, UNLOCK_EVENTS7, EGSONGS_LOCKED, MUSIC_OVERRIDE7 } from '../data/nbl';
+import { EVENT6, COURSES6, EXTENDS6, APRILFOOLSSONGS, VALKYRIE_SONGS, LICENSED_SONGS6, 
+          CURRENT_ARENA, ARENA_STATION_ITEMS, VALGENE, INFORMATION6, UNLOCK_EVENTS6, 
+          MUSIC_OVERRIDE6 
+} from '../data/exg';
+import { EVENT7, COURSES7, EXTENDS7, LICENSED_SONGS7, CURRENT_ARENA7, ARENA_STATION_ITEMS7, 
+          VALGENE7, APIGENE7, INFORMATION7, UNLOCK_EVENTS7, EGSONGS_LOCKED, MUSIC_OVERRIDE7,
+          GAMEOVER_CHARA7, QUIZ7
+} from '../data/nbl';
 import {getVersion, checkVerStart, getRandomIntInclusive} from '../utils';
 import { NauticaSong } from '../models/nautica_song';
 
+const parseDiff = (musicId: number, musicType: number, limNo: number) => {
+  return {
+    music_id: K.ITEM('s32', musicId),
+    music_type: K.ITEM('u8', musicType),
+    limited: K.ITEM('u8', limNo)
+  }
+}
+
+const commonCache = new Map<string, { data: any; options?: EamuseSendOption }>();
+
+export function invalidateCommonCache() {
+  commonCache.clear();
+}
+
 export const common: EPR = async (info, data, send) => {
+  const date = new Date();
+  const gameVersion = getVersion(info);
+  const unlockAllSongs = U.GetConfig('unlock_all_songs');
+  const modelInfo = info.model.split(":");
+  const version = parseInt(modelInfo[4].slice(0, -2));
+
+  // Every cabinet requests common data on boot (and periodically in some
+  // versions), and computing it reads+parses the whole music_db.json and
+  // builds a multi-thousand-item response — pure CPU blocking the event loop.
+  // When 11 cabinets boot at the same time this serializes and freezes the
+  // server for seconds. The result only changes on config/file changes, so
+  // cache it per version+config-fingerprint; invalidateCaches() is called
+  // from the WebUI handlers (flags/events/weekly) and nautica conversions.
+  const commonCacheKey = [
+    info.model,
+    unlockAllSongs ? 'u1' : 'u0',
+    U.GetConfig('gw_mission') ? 'm1' : 'm0',
+    U.GetConfig('gw_gene') ? 'g1' : 'g0',
+    U.GetConfig('arena_no_endtime') ? 'a1' : 'a0',
+    U.GetConfig('arena_station7'),
+    Math.floor(Date.now() / 60000),
+  ].join('|');
+  const cachedCommon = commonCache.get(commonCacheKey);
+  if (cachedCommon) {
+    return send.object(cachedCommon.data, cachedCommon.options);
+  }
+  const cacheCommon = (data: any, options?: EamuseSendOption) => {
+    commonCache.set(commonCacheKey, { data, options });
+  };
+
+  let station = [];
+  let events = [];
+  let courses = [];
+  let extend = [];
+  let information = [];
+  let musicOverride = [];
+  let spApica = [];
+  let unlockEvents;
+  let currentArena;
+  let arenaItems;
+  let valgene;
+  let apigene;
+  let currentDate = date.toLocaleDateString()
+  let songNum = 0;
+
+  const parseSongData = (music: any) => {
+    const id = parseInt(music.id)
+    const ver = Math.abs(gameVersion)
+    const difficulty = music.difficulty[ver]
+    const songVer = parseInt(music.info.version)
+    let limitedNo = 3
+    let result: Object[] = []
+    if (_.isEmpty(difficulty) || songVer > ver) return result;
+    const diffName = ['novice', 'advanced', 'exhaust', 'infinite']
+    if (ver >= 4) diffName.push('maximum');
+    if (ver >= 6) diffName.push('ultimate');
+
+    // Force unlock enabled
+    if (unlockAllSongs) {
+      for (let i = 0; i < diffName.length; ++i) {
+        (difficulty[diffName[i]] == '0') ? -1 : result.push(parseDiff(id, i, limitedNo))
+      }
+      return result
+    }
+
+    // Force unlock disabled
+    limitedNo = 2
+    if (ver >= 6) {
+      let distributionDate = music.info['distribution_date']
+      if (!distributionDate) return result;
+      const licensedSongs = ver === 6 ? LICENSED_SONGS6 : LICENSED_SONGS7;
+      if (licensedSongs.includes(id)) limitedNo += 1;  // Licensed songs in SV6+ need limited=3 to appear
+      
+      if (ver === 6) {
+        const isValk = (['G', 'H'].includes(modelInfo[2]))
+        if (!isValk && VALKYRIE_SONGS.includes(id)) limitedNo = -1;
+      }
+
+      // Handle old versions
+      if (ver != songVer) {
+        const egSongsMerge = [...EGSONGS_LOCKED['crossresonance']]
+        if (licensedSongs.includes(id) || (ver === 7 && egSongsMerge.includes(id))) {
+          for (let i = 0; i < diffName.length; ++i) {
+            result.push(parseDiff(id, i, limitedNo))
+          }
+        }
+        if (parseInt(music.info.inf_ver) == ver) {  // XCD/NBL
+          if (ver === 6 && id === 469) limitedNo = 2;  // Manual lock SV6; secret XCD
+          result.push(parseDiff(id, 3, limitedNo))
+        }
+        return result
+      }
+
+      // Handle unreleased songs
+      const musicOverride = ver === 6 ? MUSIC_OVERRIDE6 : MUSIC_OVERRIDE7;
+      const ovInd = musicOverride.findIndex(o => o.music_id === id)
+      if (ovInd > 0 && 'date' in musicOverride[ovInd]) {
+        distributionDate = String(musicOverride[ovInd].date)
+      }
+      if (!checkVerStart(0, 0, distributionDate, date)) {
+        console.log("Unreleased song: " + music.info.title_name)
+        return result
+      }
+    }
+
+    if (ver === 6 && id === 2034) limitedNo = 2; // Manual lock SV6; Muishiki Requiem remix
+    let musicLimited = ver === 2 ? MUSIC_LIMITED : (ver === 3 ? MUSIC_LIMITED3 : [])
+    let limIdx = musicLimited.findIndex(m => m.id === id)
+    let limitedDiffs: number[] = []
+    if (limIdx >= 0) limitedDiffs = musicLimited[limIdx]['limited'];
+    let maxDiffs = _.isEmpty(limitedDiffs) ? diffName.length : limitedDiffs.length;
+  
+    // Handle limited for remaining songs
+    for (let i = 0; i < maxDiffs; ++i) {
+      if (difficulty[diffName[i]] == '0') continue;
+      limitedNo = (limIdx >= 0) ? limitedDiffs[i] : limitedNo;
+      (limitedNo === 0) ? -1 : result.push(parseDiff(id, i, limitedNo))
+    }
+
+    return result
+  }
+
+  console.log("Retrieving common data");
   try {
-    let station = [];
-    let events = [];
-    let courses = [];
-    let extend = [];
-    let information = [];
-    let licensedSongs = [];
-    let musicLimited = [];
-    let musicOverride = [];
-    let spApica = [];
-    let unlockEvents;
-    let currentArena;
-    let arenaItems;
-    let valgene;
-    let apigene;
-    let date = new Date();
-    let currentYMDDate = parseInt([date.getFullYear(), ((date.getMonth() + 1) > 9 ? '' : '0') + (date.getMonth() + 1), (date.getDate() > 9 ? '' : '0') + date.getDate()].join(''));
-    let currentDate = date.toLocaleDateString()
-    let songNum = 0;
-    const gameVersion = getVersion(info);
-
-    console.log("Retrieving common data");
-    
-    const version = parseInt(info.model.split(":")[4].slice(0, -2));
-
     switch (info.method) {
       case 'common': {
         switch (info.module) {
@@ -45,7 +164,6 @@ export const common: EPR = async (info, data, send) => {
           case 'game_2': {
             console.log('Game: infinite infection')
             songNum = 554
-            musicLimited = MUSIC_LIMITED
             courses = COURSES2
             events = EVENT2
             break
@@ -53,7 +171,6 @@ export const common: EPR = async (info, data, send) => {
           case 'game_3': {
             console.log('Game: GRAVITY WARS')
             songNum = 953
-            musicLimited = MUSIC_LIMITED3
             spApica = SP_APICAGENE3.filter(sp => sp.version <= version)
             courses = COURSES3.filter(c => version >= c.version)
             EXTENDS3.filter(ex => checkVerStart(version, ex.version, 0, date)).forEach(val => extend.push(Object.assign({}, val)));
@@ -84,7 +201,6 @@ export const common: EPR = async (info, data, send) => {
         courses = COURSES6.filter(course => version >= course.version);
         information = INFORMATION6.filter(info => checkVerStart(version, info.version, info.start, date))
         EXTENDS6.filter(ex => checkVerStart(version, ex.version, ex.start, date)).forEach(val => extend.push(Object.assign({}, val)));
-        licensedSongs = LICENSED_SONGS6;
         unlockEvents = UNLOCK_EVENTS6;
         currentArena = CURRENT_ARENA;
         arenaItems = ARENA_STATION_ITEMS;
@@ -112,7 +228,6 @@ export const common: EPR = async (info, data, send) => {
         }
         courses = COURSES7.filter(course => version >= course.version);
         information = INFORMATION7.filter(info => checkVerStart(version, info.version, info.start, date))
-        licensedSongs = LICENSED_SONGS7;
         unlockEvents = UNLOCK_EVENTS7;
         currentArena = CURRENT_ARENA7;
         arenaItems = ARENA_STATION_ITEMS7;
@@ -124,174 +239,58 @@ export const common: EPR = async (info, data, send) => {
         }
         apigene = APIGENE7;
         EXTENDS7.filter(ex => checkVerStart(version, ex.version, ex.start, date)).forEach(val => extend.push(Object.assign({}, val)));
-        songNum = 2400
+        songNum = 2500
         break;
       }
     }
 
-    if(gameVersion === 1)  return send.object({
-      limited: {
-        music: Array.from({ length: songNum }, (_, id) => K.ATTR({id: (id + 1).toString(), flag: U.GetConfig('unlock_all_songs') ? '3' : '2'}, {}))
-      },
-      event: {
-        info: events.map(id => K.ATTR({id: id.toString()}))
-      },
-      catalog: {
-        info: [
-          ...[
-            K.ATTR({id: "1", currency: "1", price: "0"}, {}),
-            K.ATTR({id: "2", currency: "1", price: "0"}, {}),
-          ],
-          ...station.map((prc, ind) => K.ATTR({id: (ind + 1000).toString(), currency: "1", price: prc.toString()}))
-        ]
+    if(gameVersion === 1) {
+      const response = {
+        limited: {
+          music: Array.from({ length: songNum }, (_, id) => K.ATTR({id: (id + 1).toString(), flag: unlockAllSongs ? '3' : '2'}, {}))
+        },
+        event: {
+          info: events.map(id => K.ATTR({id: id.toString()}))
+        },
+        catalog: {
+          info: [
+            ...[
+              K.ATTR({id: "1", currency: "1", price: "0"}, {}),
+              K.ATTR({id: "2", currency: "1", price: "0"}, {}),
+            ],
+            ...station.map((prc, ind) => K.ATTR({id: (ind + 1000).toString(), currency: "1", price: prc.toString()}))
+          ]
+        }
       }
-    })
+      cacheCommon(response);
+      return send.object(response);
+    }
 
-    let music_db = await IO.ReadFile('webui/asset/json/music_db.json')
-    let mdb = JSON.parse(music_db.toString())
-    let songs = [];
-    let diffName = ['novice', 'advanced', 'exhaust', 'infinite', 'maximum', 'ultimate']
-    let omniList = []
+    // Load songs
+    const music_db = await IO.ReadFile('webui/asset/json/music_db.json')
+    if (music_db === null) {
+      console.warn(`music_db.json was not found.\nTo resolve, upload your music_db.xml and run "Update WebUi Assets".`)
+      return send.deny()
+    }
+    const mdb = JSON.parse(music_db.toString())
+    let songs: Object[] = []
+    let omniList: number[] = []
     let absVersion = Math.abs(gameVersion)
 
-    if(U.GetConfig('unlock_all_songs')) {
-      console.log("Unlocking songs. Make sure music_db.json is updated.");
-      for (let i = 1; i < songNum; ++i) {
-        var foundSongIndex = mdb.mdb.music.map(function(x) {return x['id']; }).indexOf(i.toString());
-        if(foundSongIndex != -1) {
-          var songData = mdb.mdb.music[foundSongIndex];
-          for (let j = 0; j < 6; ++j) {
-            if(songData.difficulty[absVersion][diffName[j]] != '0') {
-              songs.push({
-                music_id: K.ITEM('s32', i),
-                music_type: K.ITEM('u8', j),
-                limited: K.ITEM('u8', 3),
-              });
-            }
-          }
-        }
-      }
-    } 
+    if (unlockAllSongs) {
+      console.log("Unlocking songs. Make sure music_db.json is updated.")
+    }
     else {
-      let limitedNo = 2;
       songNum = (absVersion >= 6) ? Math.max(...mdb.mdb.music.map(m => parseInt(m['id']))) : songNum
       console.log("Highest music id: " + songNum)
-      for (let i = 0; i <= songNum; i++) {
-        var foundSongIndex = mdb.mdb.music.map(function(x) {return x['id']; }).indexOf(i.toString());
-        if(foundSongIndex != -1) {
-          var songData = mdb.mdb.music[foundSongIndex];
-          if(absVersion === 2 || absVersion === 3) {
-            limitedNo = 2
-            var lim = musicLimited.findIndex(m => m.id === i)
-            if (lim >= 0) {
-              for(let j = 0; j < musicLimited[lim]['limited'].length; j++) {
-                if(musicLimited[lim]['limited'][j] !== 0 && songData.difficulty[absVersion][diffName[j]] != '0') {
-                  songs.push({
-                    music_id: K.ITEM('s32', i),
-                    music_type: K.ITEM('u8', j),
-                    limited: K.ITEM('u8', musicLimited[lim]['limited'][j]),
-                  });
-                }
-              }
-            }
-          }
-          else if(absVersion === 6) {
-            if ('omnimix' in songData.info) omniList.push(i)
-            let distributionDate = songData['info']['distribution_date']
-            let ovInd = musicOverride.findIndex(o => o.music_id === i)
-            if(ovInd > 0 && 'date' in musicOverride[ovInd]) {
-              distributionDate = String(musicOverride[ovInd].date)
-            }
-            if(parseInt(songData.info.version) <= 6 && !checkVerStart(0, 0, distributionDate, date)) {
-              console.log("Unreleased song: " + songData.info.title_name)
-            }
-            else {
-              limitedNo = 2;
+    }
 
-              // if song is released during exceed gear
-              if(songData.info.version === '6') {
-                // Licensed songs released in Exceed Gear needs limited=3 to appear
-                if(licensedSongs.includes(i)) limitedNo += 1;
-                else if(VALKYRIE_SONGS.includes(i) && info.model.split(":")[2].match(/^(G|H)$/g) == null) limitedNo -= 1;
-                
-                // manual lock songs
-                if(i === 2034) limitedNo = 2;
-
-                for(let j = 0; j < 6; j++) {
-                  if(songData.difficulty[absVersion][diffName[j]] != '0') {
-                    songs.push({
-                      music_id: K.ITEM('s32', i),
-                      music_type: K.ITEM('u8', j),
-                      limited: K.ITEM('u8', limitedNo),
-                    });
-                  }
-                }
-              }
-
-              // if song has new XCD chart
-              else if (songData.info.inf_ver === '6') { 
-                // manual lock charts
-                if (i === 469) limitedNo = 2;
-                songs.push({
-                  music_id: K.ITEM('s32', i),
-                  music_type: K.ITEM('u8', 3),
-                  limited: K.ITEM('u8', limitedNo),
-                });
-              }
-            }
-          }
-          else if(absVersion === 7) {
-            if ('omnimix' in songData.info) omniList.push(i)
-            let distributionDate = songData['info']['distribution_date']
-            let ovInd = musicOverride.findIndex(o => o.music_id === i)
-            if(ovInd > 0 && 'date' in musicOverride[ovInd]) {
-              distributionDate = String(musicOverride[ovInd].date)
-            }
-            if(parseInt(songData.info.version) <= 7 && !checkVerStart(0, 0, distributionDate, date)) {
-              console.log("Unreleased song: " + songData.info.title_name)
-            }
-            else {
-              limitedNo = 2;
-
-              let egSongsMerge = [...EGSONGS_LOCKED['crossresonance']]
-              if(songData.info.version === '7' || egSongsMerge.includes(i)) {
-                if(licensedSongs.includes(i)) limitedNo += 1;
-
-                for(let j = 0; j < 6; j++) {
-                  if(songData.difficulty[absVersion][diffName[j]] != '0') {
-                    songs.push({
-                      music_id: K.ITEM('s32', i),
-                      music_type: K.ITEM('u8', j),
-                      limited: K.ITEM('u8', limitedNo),
-                    });
-                  }
-                }
-              }
-
-              // if song has new NBL chart
-              else if (songData.info.inf_ver === '7') { 
-                songs.push({
-                  music_id: K.ITEM('s32', i),
-                  music_type: K.ITEM('u8', 3),
-                  limited: K.ITEM('u8', limitedNo),
-                });
-              }
-            }
-          }
-          // Licensed songs released prior to current version
-          if (parseInt(songData.info.version) < absVersion && licensedSongs.includes(i)) {
-            limitedNo += 1;
-            for(let j = 0; j < 6; j++) {
-              if(songData.difficulty[absVersion][diffName[j]] != '0') {
-                songs.push({
-                  music_id: K.ITEM('s32', i),
-                  music_type: K.ITEM('u8', j),
-                  limited: K.ITEM('u8', limitedNo),
-                });
-              }
-            }
-          }
-        }
+    const musicById = new Map<string, any>(mdb.mdb.music.map((s: any) => [String(s.id), s] as [string, any]));
+    for (let id = 1; id <= songNum; ++id) {
+      const songData = musicById.get(id.toString());
+      if (songData) {
+        songs.push(...parseSongData(songData))
+        if (absVersion >= 6 && ('omnimix' in songData.info)) omniList.push(id)  // lazy
       }
     }
 
@@ -301,9 +300,9 @@ export const common: EPR = async (info, data, send) => {
       let extendTest = JSON.parse(bufTest.toString())
       for(const ex in extendTest) {
         extend.push({
-          'type': extendTest[ex].type,
-          'id': extendTest[ex].id,
-          'params': extendTest[ex].params
+          type: extendTest[ex].type,
+          id: extendTest[ex].id,
+          params: extendTest[ex].params
         })
       }
     }
@@ -334,7 +333,7 @@ export const common: EPR = async (info, data, send) => {
           }))
         },
         music_limited: {
-          info: U.GetConfig('unlock_all_songs') ? [] : songs
+          info: unlockAllSongs ? [] : songs
         },
         skill_course: {
           info: courses.reduce(
@@ -431,28 +430,23 @@ export const common: EPR = async (info, data, send) => {
         }
       }
 
-      let extendIdCounter = 1000;
-
       if(omniList.length > 0) {
-        // Chunk omniList to avoid exceeding string length limits in the game's XML parser
-        for (let i = 0; i < omniList.length; i += 180) {
-          extend.push({
-            id: extendIdCounter++,
-            type: 3,
-            params: [
-              4,
-              0,
-              0,
-              0,
-              0,
-              '!',
-              '',
-              '',
-              omniList.slice(i, i + 180).join(','),
-              "Omnimix Songs",
-            ]
-          })
-        }
+        extend.push({
+          id: 1,
+          type: 3,
+          params: [
+            4,
+            0,
+            0,
+            0,
+            0,
+            '!',
+            '',
+            '',
+            omniList.join(','),
+            "Omnimix Songs",
+          ]
+        })
       }
 
       // Add RyuNET category for approved custom charts
@@ -462,6 +456,7 @@ export const common: EPR = async (info, data, send) => {
           .filter(s => s.mid > 0 && s.status === 'ready')
           .map(s => s.mid);
         if (ryuNetIds.length > 0) {
+          let extendIdCounter = 1000;
           for (let i = 0; i < ryuNetIds.length; i += 180) {
             extend.push({
               id: extendIdCounter++,
@@ -482,6 +477,36 @@ export const common: EPR = async (info, data, send) => {
           }
         }
       } catch { /* if DB fails, skip the RyuNET category */ }
+
+      if(version >= 20260602) {
+        const charaPattern = ['l,r,l','r,l,r','l,m,r','r,m,l','l,r,m','m,l,r']
+        const selPattern = charaPattern[Math.floor(Math.random() * charaPattern.length)]
+        let chara = []
+        for(const pos of selPattern.split(',')) {
+          let tempChara = GAMEOVER_CHARA7[pos][Math.floor(Math.random() * GAMEOVER_CHARA7[pos].length)]
+          while(chara.includes(tempChara)) {
+            tempChara = GAMEOVER_CHARA7[pos][Math.floor(Math.random() * GAMEOVER_CHARA7[pos].length)]
+          }
+          chara.push(tempChara)
+        }
+
+        extend.push({
+          id: 1,
+          type: 1,
+          params: [
+            3,
+            0,
+            0,
+            1,
+            0,
+            "[]\t[]\t[]",
+            "[]",
+            "[]",
+            "[]",
+            "characters: " + chara.join(' ')
+          ]
+        })
+      }
 
       if(IO.Exists('webui/asset/config/events.json')) {
         let bufEventData = await IO.ReadFile('webui/asset/json/events.json')
@@ -510,11 +535,56 @@ export const common: EPR = async (info, data, send) => {
                       stmpData.stprwrd
                     ]
                   })
+
+                  if(eData.id === 'qmastamp') {
+                    for(const quiz of QUIZ7) {
+                      extend.push({
+                        type: 23,
+                        id: quiz.id,
+                        params: [
+                          0, quiz.id, 1, 0, 0,
+                          quiz.text, '', '', '', ''
+                        ]
+                      })
+
+                      for(const [ind, list] of quiz.list.entries()) {
+                        let qParamStr = []
+                        let qListStr = JSON.stringify(list)
+                        let qListEsc = qListStr.replace(/"/g, '\\"')
+                        let sliceLen = 0
+                        let paramStrCnt = 0
+                        if(qListEsc.length > 1000) {
+                          for (let i = 0; i < qListEsc.length; i += 1000) {
+                            if(paramStrCnt === 5) {
+                              paramStrCnt++
+                              console.log("ignoring list. too long - id/ind " + quiz.id + '/' + ind)
+                              break
+                            }
+                            let strAdd = qListEsc.slice(i, i + 1000).replace(/\\"/g, '"')
+                            qParamStr.push(strAdd)
+                            paramStrCnt++
+                          }
+                        } else qParamStr.push(qListEsc.replace(/\\"/g, '"'))
+
+                        while (qParamStr.length < 5) qParamStr.push('')
+
+                        if(paramStrCnt <= 5) extend.push({
+                          type: 23,
+                          id: quiz.id,
+                          params: [
+                            1, quiz.id, 0, 0, 0
+                          ].concat(qParamStr)
+                        })
+                      }
+
+
+                    }
+                  }
                 } else if(checkVerStart(version, stmpData.version, stmpData.start, date)) {
                   extend.push({
-                    'type': 3,
-                    'id': stmpData.stmpid,
-                    'params': [
+                    type: 3,
+                    id: stmpData.stmpid,
+                    params: [
                       5,
                       stmpData.stps, 
                       0, 
@@ -532,9 +602,9 @@ export const common: EPR = async (info, data, send) => {
 
               if(stmpEvntInfo.type === 'select') {
                 extend.push({
-                  'type': 3,
-                  'id': stmpEvntInfo.info.id,
-                  'params': [
+                  type: 3,
+                  id: stmpEvntInfo.info.id,
+                  params: [
                     9,
                     ((stmpEvntInfo.info.textstampval !== undefined) ? stmpEvntInfo.info.textstampval : 0),
                     0,
@@ -551,9 +621,9 @@ export const common: EPR = async (info, data, send) => {
             }
             else if(eData.type === 'completestamp' && eventConfig[eData.id] !== undefined && eventConfig[eData.id].toggle) {
               extend.push({
-                'type': 19,
-                'id': stmpEvntInfo.info.id,
-                'params': [
+                type: 19,
+                id: stmpEvntInfo.info.id,
+                params: [
                   0, 0, 0, 0, 0,
                   JSON.stringify(stmpEvntInfo.info.data),
                   '',
@@ -566,9 +636,9 @@ export const common: EPR = async (info, data, send) => {
             else if(eData.type === 'tama' && eventConfig[eData.id] !== undefined && eventConfig[eData.id].toggle) {
               events.push('TAMAADV_ENABLE')
               extend.push({
-                'type': 20,
-                'id': stmpEvntInfo.info.id,
-                'params': [
+                type: 20,
+                id: stmpEvntInfo.info.id,
+                params: [
                   0, 0, 0, 0, 0,
                   stmpEvntInfo.info.list,
                   '',
@@ -580,14 +650,14 @@ export const common: EPR = async (info, data, send) => {
             }
             else if(eData.type === 'variant' && eventConfig[eData.id] !== undefined && eventConfig[eData.id].toggle) {
               extend.push({
-                'type': 22,
-                'id': stmpEvntInfo.info.id,
-                'params': [
+                type: 22,
+                id: stmpEvntInfo.info.id,
+                params: [
                   0,
                   stmpEvntInfo.info.setid,
                   parseInt(eventConfig[eData.id].settings.minOverTrackRank),
                   parseInt(eventConfig[eData.id].settings.minSealDiff),
-                  0,
+                  parseInt(eventConfig[eData.id].settings.maxSealRetain),
                   '',
                   '',
                   '',
@@ -612,8 +682,9 @@ export const common: EPR = async (info, data, send) => {
         }
       }
 
-      let arenaOpen = BigInt(date.getTime()) >= currentArena.time_start && (BigInt(date.getTime()) < currentArena.time_end || U.GetConfig('arena_no_endtime'))
-      let shopOpen = arenaOpen && U.GetConfig('arena_station') !== 'None'
+      const arenaOpen = BigInt(date) >= currentArena.time_start && (BigInt(date) < currentArena.time_end || U.GetConfig('arena_no_endtime'))
+      const shopItemSet = arenaItems[U.GetConfig('arena_station7')]
+      const shopOpen = arenaOpen && !_.isEmpty(shopItemSet)
       let arenaData = {}
 
       const arenaStart = new Date(Number(currentArena.time_start) * 1000).toISOString().split('T')[0].split('-').join('')
@@ -628,7 +699,7 @@ export const common: EPR = async (info, data, send) => {
           shop_end: K.ITEM('u64', currentArena.shop_end),
           is_open: K.ITEM('bool', arenaOpen),
           is_shop: K.ITEM('bool', shopOpen),
-          catalog: (shopOpen && U.GetConfig('arena_station') !== 'None' && version >= arenaItems[U.GetConfig('arena_station')].version) ? arenaItems[U.GetConfig('arena_station')].items.map(item => ({
+          catalog: (shopOpen && version >= shopItemSet.version) ? shopItemSet.items.map(item => ({
             catalog_id: K.ITEM('s32', item[0]),
             catalog_type: K.ITEM('s32', item[1]),
             price: K.ITEM('s32', item[2]),
@@ -641,25 +712,23 @@ export const common: EPR = async (info, data, send) => {
       let valgene_info = []
       let valgene_items = []
 
-      valgene_info = valgene.info.filter(val => version >= val.version).map(val => ({
+      valgene_info = valgene.info.filter(val => checkVerStart(version, val.version, val.start ?? 0, date)).map(val => ({
         valgene_name: K.ITEM('str', val.valgene_name),
         valgene_name_english: K.ITEM('str', val.valgene_name_english),
         valgene_id: K.ITEM('s32', val.valgene_id)
       }))
 
       valgene.catalog.forEach((val) => {
-        if(version >= valgene.info.find(v => v.valgene_id === val.volume).version) {
-          val.items.forEach((itemVal) => {
-            itemVal.item_ids.forEach((item_id) => {
-              valgene_items.push({
-                valgene_id: K.ITEM('s32', val.volume),
-                rarity: K.ITEM('s32', valgene.rarity[itemVal.type.toString()]),
-                item_type: K.ITEM('s32', itemVal.type),
-                item_id: K.ITEM('s32', item_id)
-              })
+        val.items.forEach((itemVal) => {
+          itemVal.item_ids.forEach((item_id) => {
+            valgene_items.push({
+              valgene_id: K.ITEM('s32', val.volume),
+              rarity: K.ITEM('s32', valgene.rarity[itemVal.type.toString()]),
+              item_type: K.ITEM('s32', itemVal.type),
+              item_id: K.ITEM('s32', item_id)
             })
           })
-        }
+        })
       })
 
       let apigeneInfo = []
@@ -815,7 +884,7 @@ export const common: EPR = async (info, data, send) => {
             []
           ),
         },
-        weekly_music: curWeekly.length > 0 ? curWeekly.map(w => ({
+        weekly_music: curWeekly != [] ? curWeekly.map(w => ({
           week_id: K.ITEM('s32', w.weekId),
           music_id: K.ITEM('s32', w.musicId),
           time_start: K.ITEM('u64', BigInt(w.start)),
@@ -831,9 +900,11 @@ export const common: EPR = async (info, data, send) => {
       }
     }
 
+    const options: EamuseSendOption = { encoding: 'utf8' };
+    cacheCommon(response, options);
     send.object(
       response,
-      { encoding: 'utf8' }
+      options
     );
   } catch (error) {
     console.log(error)

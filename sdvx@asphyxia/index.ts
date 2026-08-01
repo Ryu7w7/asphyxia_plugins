@@ -5,8 +5,6 @@ import {
   copyResourcesFromGame,
   getRivalScores,
   addRival,
-  removeRival,
-  searchPlayer,
   preGeneRoll,
   preGeneReward,
   manageEvents,
@@ -14,7 +12,7 @@ import {
   addWeekly,
   getWeekRankList,
   getDateCode,
-  clearCustomChartScores,
+  clearCustomChartScores
 } from './handlers/webui';
 import {
   nauticaBrowse,
@@ -72,7 +70,7 @@ export function register() {
   R.Config('gw_mission', { type: 'boolean', default: false, name: 'Enable MISSION mode', desc: 'For GRAVITY WARS' })
   R.Config('gw_mission_skipmatch', { type: 'boolean', default: false, name: 'Skip matchmaking MISSION objectives', desc: 'In case you\'re unable to do matchmaking. Prologue and episode 10 only. Dialogue will be skipped.' })
   R.Config('gw_gene', { type: 'boolean', default: true, name: 'GENERATOR START', desc: 'For GRAVITY WARS: disable to hide in mode select in case of print problem loop (due to missing chara_card files)' })
-  
+
   R.Config('sdvx_voxcharger_path', { type: 'string', needRestart: false, default: '', name: 'VoxCharger Path', desc: 'Path to VoxCharger.exe for converting custom charts'});
   R.Config('sdvx_custom_mix_name', { type: 'string', needRestart: false, default: 'asphyxia_custom', name: 'Custom Mix Name', desc: 'Folder name under data_mods/ for curated custom charts'});
   R.Config('sdvx_nomination_mode', { type: 'string', options: ['production', 'staging'], default: 'production', name: 'Nomination Mode', desc: 'On staging servers, charts moved to testing are auto-converted for playtesting'});
@@ -83,7 +81,7 @@ export function register() {
   R.Config('sdvx_drive_oauth_refresh_token', { type: 'string', needRestart: false, default: '', name: 'Drive OAuth Refresh Token', desc: 'Populated automatically after you click "Authorize with Google Drive" on the Custom Charts Admin page. Leave empty.'});
   R.Config('sdvx_drive_folder_id', { type: 'string', needRestart: false, default: '', name: 'Drive Folder ID', desc: 'The target Google Drive folder ID (the last segment of the folder URL). Uploads go into this folder under your own Google account, counting against your personal Drive quota.'});
   R.Config('sdvx_chrome_path', { type: 'string', needRestart: false, default: '', name: 'Chrome / Chromium / Edge executable', desc: 'Absolute path to a Chromium-based browser used to render the VF Top 50 PNG endpoint (/api/sdvx/vf-top-50/<refid>.png). Leave empty to auto-detect Chrome and Edge on Windows / macOS / Linux. Only needed if auto-detect fails or you want a specific install.'});
-
+  
   R.DataFile('./webui/asset/uploads/1_mdb.xml', {name: 'music_db.xml (BOOTH)', accept: 'text/xml, .xml'});
   R.DataFile('./webui/asset/uploads/2_mdb.xml', {name: 'music_db.xml (infinite infection)', accept: 'text/xml, .xml'});
   R.DataFile('./webui/asset/uploads/3_mdb.xml', {name: 'music_db.xml (GRAVITY WARS)', accept: 'text/xml, .xml'});
@@ -96,8 +94,6 @@ export function register() {
   R.WebUIEvent('copyResourcesFromGame', copyResourcesFromGame);
   R.WebUIEvent('getRivalScores', getRivalScores);
   R.WebUIEvent('addRival', addRival);
-  R.WebUIEvent('removeRival', removeRival);
-  R.WebUIEvent('searchPlayer', searchPlayer);
   R.WebUIEvent('preGeneRoll', preGeneRoll);
   R.WebUIEvent('preGeneReward', preGeneReward);
   R.WebUIEvent('manageEvents', manageEvents);

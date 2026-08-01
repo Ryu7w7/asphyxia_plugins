@@ -18,7 +18,7 @@ export function getVersion(info: EamuseInfo) {
   const dateCode = parseInt(info.model.split(":")[4]);
   if (dateCode <= 2013052900) return 1;
   if (dateCode <= 2014112000) return 2;
-  if (dateCode <= 2016121200) return 3;
+  if (dateCode <= 2016121900) return 3;
   if (info.method.startsWith('sv4')) return 4;
   if (info.method.startsWith('sv5')) return 5;
   if (dateCode <= 2021082400) return 6;
@@ -174,16 +174,17 @@ export async function GetNextNauticaId(): Promise<number> {
   throw new Error(nauticaSlotExhaustedError());
 }
 
-export function computeForce(diff, score, medal, grade) { // computing force with EG values
-  const medalCoef = [0, 0.50, 1.0, 1.02, 1.04, 1.05, 1.10]
-  const gradeCoef = [0, 0.8, 0.82, 0.85, 0.88, 0.91, 0.94, 0.97, 1.0, 1.02, 1.05]
+export function computeForce(version, diff, score, medal, grade) {
+  var medalCoef = [0, 0.50, 1.0, 1.02, 1.04, 1.05, 1.10]
+  var gradeCoef = [0, 0.8, 0.82, 0.85, 0.88, 0.91, 0.94, 0.97, 1.0, 1.02, 1.05]
+  if(version === 7) medalCoef[5] = 1.06
   return Math.floor(diff * (score / 10000000) * (gradeCoef[grade]) * (medalCoef[medal]) * 20)
 }
 
 export function checkVerStart(gameVersion, checkVersion, checkStart, dateObj) {
-  if(checkStart === 0) return true
-  let startYr = checkStart.toString().slice(0,4)
-  let startMo = checkStart.toString().slice(4,6)
+  if(checkStart === 0) return true 
+  let startYr = checkStart.toString().slice(0,4) 
+  let startMo = checkStart.toString().slice(4,6) 
   let startDa = checkStart.toString().slice(6,8)
   let checkStartUTC = new Date(startYr + '-' + startMo + '-' + startDa +'T00:00:00Z')
 
@@ -207,7 +208,12 @@ export async function getDateCodeInit() {
     "69bb5ab5_75b7e8": 20260324,
     "69ccbc0e_75b838": 20260407,
     "69e097b6_770498": 20260421,
-    "69fd4402_772268": 20260512
+    "69fd4402_772268": 20260512,
+    "6a179570_77f988": 20260602,
+    "6a29084b_78a6c8": 20260615,
+    "6a3c9c77_8aab48": 20260630,
+    "6a4b3e8a_8ab548": 20260707,
+    "6a4f1ee9_79ef18": 20260714
   }
   let bufOffset = 60
   let gameDir = U.GetConfig('sdvx_eg_root_dir')
