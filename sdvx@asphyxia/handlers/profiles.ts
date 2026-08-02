@@ -18,6 +18,7 @@ import { POLICY_BREAK3, COURSES3 } from '../data/gw'
 import { CURRENT_ARENA, EVENT_ITEMS6, UNLOCK_EVENTS6 } from '../data/exg'
 import { CURRENT_ARENA7, EVENT_ITEMS7, UNLOCK_EVENTS7 } from '../data/nbl'
 import { getRankListDB } from './webui'
+import { invalidateHiscoreIfNew } from './features'
 import { DB_VER, iiMigrate, iiiMigrate, viiMigrate } from './migrate'
 const logging = false
 
@@ -245,6 +246,7 @@ export const saveScore: EPR = async (info, data, send) => {
         record,
       );
 
+      invalidateHiscoreIfNew(`${version}:${dVersion}`, mid, type, score, (record as any).exscore || 0);
       return send.success();
     } catch {
       return send.deny();
@@ -323,6 +325,7 @@ export const saveScore: EPR = async (info, data, send) => {
         record,
       );
 
+      invalidateHiscoreIfNew(`${version}:${dVersion}`, mid, type, record.score, (record as any).exscore || 0);
       return send.success();
     } catch {
       return send.deny();
@@ -392,6 +395,14 @@ export const saveScore: EPR = async (info, data, send) => {
           refid,
           { collection: 'music', mid, type, version: Math.abs(version) },
           record
+        );
+
+        invalidateHiscoreIfNew(
+          `${Math.abs(version)}:${dVersion}`,
+          mid,
+          type,
+          record.score,
+          record.exscore
         );
       }
 
@@ -795,8 +806,10 @@ export const load: EPR = async (info, data, send) => {
   let profile = await DB.FindOne<Profile>(refid, {
     collection: 'profile', version
   });
+  console.log("[load][dbg] profile query done");
 
   if (!profile) {
+    console.log("[load][dbg] no profile v" + version + ", counting v" + (version - 1));
     if(version > 1 && await DB.Count<Profile>(refid, {collection: 'profile', version: version - 1}) === 1) {
       profile = await DB.FindOne<Profile>(refid, {collection: 'profile', version: version - 1});
       return send.object({result: K.ITEM('u8', 2), name: K.ITEM('str', profile.name)})
@@ -806,6 +819,7 @@ export const load: EPR = async (info, data, send) => {
   } else {
     if(!('datecode' in profile) || dVersion > profile.datecode) {
       await DB.Upsert<Profile>(refid, {collection: 'profile', version: version}, {$set: {datecode: dVersion}})
+      console.log("[load][dbg] datecode upsert done");
     }
   }
 
@@ -839,6 +853,7 @@ export const load: EPR = async (info, data, send) => {
     collection: 'skill',
     version,
   })) || { base: 0, name: 0, level: 0 };
+  console.log("[load][dbg] skill done");
 
   
   if (version === 2 || version === 3) {
@@ -932,23 +947,9 @@ export const load: EPR = async (info, data, send) => {
     };
 
     await loadOwnedItems();
+    console.log("[load][dbg] ownedItems done");
     let dbOperations = [];
 
-    if(IO.Exists('webui/asset/config/events.json')) {
-      let bufEventData = await IO.ReadFile('webui/asset/json/events.json')
-      let bufEventConfig = await IO.ReadFile('webui/asset/config/events.json')
-      let eventData = JSON.parse(bufEventData.toString())
-      let eventConfig = JSON.parse(bufEventConfig.toString())
-      let eventItems
-      switch (version) {
-        case 6:
-          eventItems = EVENT_ITEMS6
-          break;
-        case 7:
-          eventItems = EVENT_ITEMS7 
-          break;
-      }
-      for(const eData of eventData['events' + version]) {
     if(IO.Exists('webui/asset/config/events.json')) {
       let bufEventData = await IO.ReadFile('webui/asset/json/events.json')
       let bufEventConfig = await IO.ReadFile('webui/asset/config/events.json')
@@ -1044,11 +1045,11 @@ export const load: EPR = async (info, data, send) => {
         }
       }
     }
-    }
 
     if (dbOperations.length > 0) {
       await Promise.all(dbOperations);
     }
+    console.log("[load][dbg] dbOperations done (" + dbOperations.length + ")");
 
     let curWeekly = []
     if(dVersion >= 20241210) {
@@ -1058,7 +1059,6 @@ export const load: EPR = async (info, data, send) => {
         let weekData
         for(let weekIter in weeklyMusic) {
           if(Number(date) > weeklyMusic[weekIter].start && Number(date) <= weeklyMusic[weekIter].end) weekData = weeklyMusic[weekIter]
-        }
         if(weekData != undefined) {
           curWeekly.push({
             weekId: weekData.weekId,
@@ -1081,6 +1081,7 @@ export const load: EPR = async (info, data, send) => {
     const arena = await DB.FindOne<Arena>(refid, { collection: 'arena', season: arenaOpen ? currentArena['season'] : 0, version: version });
     const valgeneTicket = await DB.FindOne<ValgeneTicket>(refid, { collection: 'valgene_ticket' })
     let variant = await DB.FindOne<VariantPower>(refid, { collection: 'variantpower', version: version })
+    console.log("[load][dbg] all DB reads done");
     
     if(dVersion >= 20250422) {
       if(!variant) {
@@ -1089,6 +1090,7 @@ export const load: EPR = async (info, data, send) => {
         }
       } else if(!variant.overRadar) variant.overRadar = [] 
     }
+    console.log("[load][dbg] variant prep done");
 
     let weeklyMusic = []
     if(dVersion >= 20241210) {
@@ -1127,7 +1129,8 @@ export const load: EPR = async (info, data, send) => {
     let result = 0
     if (version > profile.version) result = 2
 
-    return send.pugFile('templates/load.pug', {
+    console.log("[load][dbg] pug start");
+    const ret = await send.pugFile('templates/load.pug', {
       version,
       result,
       courses,
@@ -1146,6 +1149,8 @@ export const load: EPR = async (info, data, send) => {
       variant,
       ...profile,
     });
+    console.log("[load][dbg] pug end");
+    return ret;
   }
   }
 };
