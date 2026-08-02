@@ -58,7 +58,7 @@ async function opponentsWithRelay(room: any, otherPlayers: any[]): Promise<any[]
 // loop for hundreds of ms per request. The response only changes when a GLOBAL
 // top is beaten: profiles.ts invalidates this cache via invalidateHiscoreIfNew
 // on every save, so a long TTL just guards against missed paths.
-const HISCORE_TTL_MS = 60000;
+const HISCORE_TTL_MS = 120000;
 const hiscoreCache = new Map<string, { expires: number; data: any; d?: any[]; mids?: number[] }>();
 
 // Temporary diagnostics for sv7_hiscore "property_mem_read() failed" hunting
@@ -150,9 +150,12 @@ export const hiscore: EPR = async (info, data, send) => {
   const hasRange = Number.isFinite(offset) && Number.isFinite(limit) && limit > 0;
   // sv6 requests limit=1000; if the client omits the range entirely, serve a
   // bounded first page instead of the full table (the 8k-entry full response
-  // blows the cabinet's hiscore buffer).
+  // blows the cabinet's hiscore buffer). The page size is tunable via
+  // sdvx_hiscore_serve_limit so cabinets with bigger buffers can be covered
+  // further into the song catalog.
+  const confServeLimit = parseInt(String(U.GetConfig('sdvx_hiscore_serve_limit')));
   const effOffset = hasRange ? offset : 0;
-  const effLimit = hasRange ? limit : 1000;
+  const effLimit = hasRange ? limit : (Number.isFinite(confServeLimit) && confServeLimit > 0 ? confServeLimit : 1000);
   const maxId = effOffset + effLimit;
 
   if (hiscoreLog()) {
@@ -160,6 +163,9 @@ export const hiscore: EPR = async (info, data, send) => {
   }
 
   const cached = hiscoreCache.get(cacheKey);
+  if (hiscoreLog()) {
+    console.log(`[hiscore][diag] serve_limit_conf=${String(confServeLimit)} page=${cached ? 'cached' : 'fresh'} d_entries=${cached ? cached.d.length : '?'}`);
+  }
   if (cached && cached.expires > Date.now()) {
     return send.object(creRange(cached, true, effOffset, maxId), { status: 0 });
   }
