@@ -214,6 +214,29 @@ export function register() {
   
   R.Unhandled(undefined)
 
+  // Hiscore options (apply to sv4+/sv5+/sv6/sv7 cabinets)
+  R.Config('sdvx_hiscore_serve_limit', {
+    name: 'Hiscore Serve Limit',
+    desc: 'Max hiscore entries served per page when the cabinet omits offset/limit (default 1000). Raise it to cover more songs of the catalog; too high can overflow the cabinet buffer.',
+    type: 'integer',
+    default: 1000,
+    needRestart: true
+  });
+  R.Config('sdvx_hiscore_lfields', {
+    name: 'Hiscore Include L-Fields',
+    desc: 'Include the l_*/lx_* fields that duplicate a_*/ax_* in every hiscore entry. Set to false to halve the response size (lets the cabinet hold more entries).',
+    type: 'boolean',
+    default: true,
+    needRestart: true
+  });
+  R.Config('sdvx_hiscore_full_catalog', {
+    name: 'Hiscore Full Catalog',
+    desc: 'Fill hiscore entries for every song in the music DB, even songs nobody has played yet (they get empty score slots).',
+    type: 'boolean',
+    default: false,
+    needRestart: true
+  });
+
   SdvxRelayManager.getInstance().setConfig(
     U.GetConfig('sdvx_relay_public_ip') || '127.0.0.1',
     U.GetConfig('sdvx_relay_port_range') || '50000-50100',

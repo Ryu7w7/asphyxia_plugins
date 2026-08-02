@@ -164,7 +164,7 @@ export const hiscore: EPR = async (info, data, send) => {
 
   const cached = hiscoreCache.get(cacheKey);
   if (hiscoreLog()) {
-    console.log(`[hiscore][diag] serve_limit_conf=${String(confServeLimit)} page=${cached ? 'cached' : 'fresh'} d_entries=${cached ? cached.d.length : '?'}`);
+    console.log(`[hiscore][diag] serve_limit_conf=${String(confServeLimit)} lfields=${String(U.GetConfig('sdvx_hiscore_lfields'))} page=${cached ? 'cached' : 'fresh'} d_entries=${cached ? cached.d.length : '?'}`);
   }
   if (cached && cached.expires > Date.now()) {
     return send.object(creRange(cached, true, effOffset, maxId), { status: 0 });
@@ -260,25 +260,31 @@ export const hiscore: EPR = async (info, data, send) => {
     mids.push(rScore.mid);
     seenKeys.add(`${rScore.mid}:${rScore.type}`);
     const sq = String(prof.id).padStart(8, '0');
+    const lfields = U.GetConfig('sdvx_hiscore_lfields');
+    const useL = !(lfields === false || String(lfields) === 'false' || String(lfields) === '0');
     const item: any = {
       id: K.ITEM('u32', rScore.mid),
       ty: K.ITEM('u32', rScore.type),
       a_sq: K.ITEM('str', sq),
       a_nm: K.ITEM('str', prof.name),
       a_sc: K.ITEM('u32', rScore.score),
-      l_sq: K.ITEM('str', sq),
-      l_nm: K.ITEM('str', prof.name),
-      l_sc: K.ITEM('u32', rScore.score),
     };
+    if (useL) {
+      item.l_sq = K.ITEM('str', sq);
+      item.l_nm = K.ITEM('str', prof.name);
+      item.l_sc = K.ITEM('u32', rScore.score);
+    }
     if (rEx && rEx.exscore && profiles[rEx.__refid]) {
       const exProf = profiles[rEx.__refid][0];
       const exSq = String(exProf.id).padStart(8, '0');
       item.ax_sq = K.ITEM('str', exSq);
       item.ax_nm = K.ITEM('str', exProf.name);
       item.ax_sc = K.ITEM('u32', rEx.exscore);
-      item.lx_sq = K.ITEM('str', exSq);
-      item.lx_nm = K.ITEM('str', exProf.name);
-      item.lx_sc = K.ITEM('u32', rEx.exscore);
+      if (useL) {
+        item.lx_sq = K.ITEM('str', exSq);
+        item.lx_nm = K.ITEM('str', exProf.name);
+        item.lx_sc = K.ITEM('u32', rEx.exscore);
+      }
     }
     d.push(item);
   }
@@ -297,16 +303,21 @@ export const hiscore: EPR = async (info, data, send) => {
           if (seenKeys.has(key)) continue;
           seenKeys.add(key);
           mids.push(mid);
-          d.push({
+          const lfields = U.GetConfig('sdvx_hiscore_lfields');
+          const useL = !(lfields === false || String(lfields) === 'false' || String(lfields) === '0');
+          const filler: any = {
             id: K.ITEM('u32', mid),
             ty: K.ITEM('u32', ty),
             a_sq: K.ITEM('str', '00000000'),
             a_nm: K.ITEM('str', ''),
             a_sc: K.ITEM('u32', 0),
-            l_sq: K.ITEM('str', '00000000'),
-            l_nm: K.ITEM('str', ''),
-            l_sc: K.ITEM('u32', 0),
-          });
+          };
+          if (useL) {
+            filler.l_sq = K.ITEM('str', '00000000');
+            filler.l_nm = K.ITEM('str', '');
+            filler.l_sc = K.ITEM('u32', 0);
+          }
+          d.push(filler);
         }
       }
     }
