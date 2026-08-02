@@ -10,5 +10,5 @@ export interface VariantPower {
   tricky: number,
   onehand: number,
   handtrip: number,
-  overRadar: numbers
+  overRadar: number[]
 }

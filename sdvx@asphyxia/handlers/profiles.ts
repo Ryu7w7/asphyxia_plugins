@@ -916,6 +916,39 @@ export const load: EPR = async (info, data, send) => {
     let currentDate = date.toLocaleDateString()
     let currentYMDDate = parseInt([date.getFullYear(), ((date.getMonth() + 1) > 9 ? '' : '0') + (date.getMonth() + 1), (date.getDate() > 9 ? '' : '0') + date.getDate()].join(''));
 
+    // Gift grants ask for every item one Count each on every login (v6:
+    // ~45× per player). Load the player's owned items once into a Set and
+    // check/grant in memory — one narrow DB query instead of dozens of sync
+    // Count scans over the event loop.
+    const ownedItems = new Set<string>();
+    let ownedItemsLoaded = false;
+    const loadOwnedItems = async () => {
+      if (!ownedItemsLoaded) {
+        for (const it of await DB.Find<Item>(refid, { collection: 'item', version })) {
+          ownedItems.add(`${it.type}:${it.id}`);
+        }
+        ownedItemsLoaded = true;
+      }
+    };
+
+    await loadOwnedItems();
+    let dbOperations = [];
+
+    if(IO.Exists('webui/asset/config/events.json')) {
+      let bufEventData = await IO.ReadFile('webui/asset/json/events.json')
+      let bufEventConfig = await IO.ReadFile('webui/asset/config/events.json')
+      let eventData = JSON.parse(bufEventData.toString())
+      let eventConfig = JSON.parse(bufEventConfig.toString())
+      let eventItems
+      switch (version) {
+        case 6:
+          eventItems = EVENT_ITEMS6
+          break;
+        case 7:
+          eventItems = EVENT_ITEMS7 
+          break;
+      }
+      for(const eData of eventData['events' + version]) {
     if(IO.Exists('webui/asset/config/events.json')) {
       let bufEventData = await IO.ReadFile('webui/asset/json/events.json')
       let bufEventConfig = await IO.ReadFile('webui/asset/config/events.json')
@@ -936,19 +969,20 @@ export const load: EPR = async (info, data, send) => {
           if(typeof eventConfig[eData.id].toggle === "boolean") {
             if(eventConfig[eData.id].toggle && checkVerStart(dVersion, eData.version, eData.start, date)) {
               for(const itemIter in eventItems[eData.id]) {
-                let itemId = parseInt(eventItems[eData.id][itemIter])
-                if(await DB.Count(refid, {collection:'item', type: typeIds[eData.type][0], id: itemId, version: version}) === 0) {
-                  await DB.Upsert(
+                let itemId = parseInt(eventItems[eData.id][itemIter]);
+                if(!ownedItems.has(`${typeIds[eData.type][0]}:${itemId}`)) {
+                  dbOperations.push(DB.Upsert(
                     refid, 
                     {collection: 'item', type: typeIds[eData.type][0], id: itemId, version: version}, 
                     {$set: { param: typeIds[eData.type][1] }}
-                  )
+                  ));
+                  ownedItems.add(`${typeIds[eData.type][0]}:${itemId}`);
 
                   presents.push({
                     id: itemId,
                     type: typeIds[eData.type][0],
                     param: typeIds[eData.type][1]
-                  })
+                  });
                 }
               }
             }
@@ -957,19 +991,20 @@ export const load: EPR = async (info, data, send) => {
               if(parseInt(toggleKeys) >= eData.start.length) continue;
               if(eventConfig[eData['id']]['toggle'][Object.keys(eventConfig[eData.id].toggle)[toggleKeys]] && checkVerStart(dVersion, eData.version[toggleKeys], eData.start[toggleKeys], date)) {
                 for(const itemIter in eventItems[Object.keys(eventConfig[eData.id].toggle)[toggleKeys]]) {
-                  let itemId = parseInt(eventItems[Object.keys(eventConfig[eData.id].toggle)[toggleKeys]][itemIter])
-                  if(await DB.Count(refid, {collection:'item', type: typeIds[eData.type][0], id: itemId, version: version}) === 0) {
-                    await DB.Upsert(
+                  let itemId = parseInt(eventItems[Object.keys(eventConfig[eData.id].toggle)[toggleKeys]][itemIter]);
+                  if(!ownedItems.has(`${typeIds[eData.type][0]}:${itemId}`)) {
+                    dbOperations.push(DB.Upsert(
                       refid, 
                       {collection: 'item', type: typeIds[eData.type][0], id: itemId, version: version}, 
                       {$set: { param: typeIds[eData.type][1] }}
-                    )
+                    ));
+                    ownedItems.add(`${typeIds[eData.type][0]}:${itemId}`);
 
                     presents.push({
                       id: itemId,
                       type: typeIds[eData.type][0],
                       param: typeIds[eData.type][1]
-                    })
+                    });
                   }
                 }
               }
@@ -991,22 +1026,28 @@ export const load: EPR = async (info, data, send) => {
         addlPresents.push([5546, 1, 1])
         addlPresents.push([10244, 14, 1])
       }
-      
+
       for(const giftIter in addlPresents) {
-        if(await DB.Count(refid, {collection:'item', type: addlPresents[giftIter][1], id: addlPresents[giftIter][0], version: version}) === 0) {
-          await DB.Upsert(
+        if(!ownedItems.has(`${addlPresents[giftIter][1]}:${addlPresents[giftIter][0]}`)) {
+          dbOperations.push(DB.Upsert(
             refid, 
             {collection: 'item', type: addlPresents[giftIter][1], id: addlPresents[giftIter][0], version: version}, 
             {$set: { param: addlPresents[giftIter][2] }}
-          )
+          ));
+          ownedItems.add(`${addlPresents[giftIter][1]}:${addlPresents[giftIter][0]}`);
 
           presents.push({
             id: addlPresents[giftIter][0],
             type: addlPresents[giftIter][1],
             param: addlPresents[giftIter][2]
-          })
+          });
         }
       }
+    }
+    }
+
+    if (dbOperations.length > 0) {
+      await Promise.all(dbOperations);
     }
 
     let curWeekly = []
@@ -1032,7 +1073,7 @@ export const load: EPR = async (info, data, send) => {
     let currentArena
     if(version === 6) currentArena = CURRENT_ARENA
     else if(version === 7) currentArena = CURRENT_ARENA7 
-    let arenaOpen = U.GetConfig('arena_no_endtime') || BigInt(date) < currentArena.time_end
+    let arenaOpen = U.GetConfig('arena_no_endtime') || BigInt(date.getTime()) < currentArena.time_end
 
     const items = await DB.Find<Item>(refid, { collection: 'item', version: version });
     const courses = await DB.Find<CourseRecord>(refid, { collection: 'course', version: version });
@@ -1106,7 +1147,7 @@ export const load: EPR = async (info, data, send) => {
       ...profile,
     });
   }
-
+  }
 };
 
 export const create: EPR = async (info, data, send) => {

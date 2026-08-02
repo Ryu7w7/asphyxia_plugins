@@ -6,8 +6,51 @@ import { getVersion, IDToCode, GetCounter, checkVerStart } from '../utils';
 import { Rival } from '../models/rival';
 import { Item } from '../models/item';
 import { SERIAL3 } from '../data/gw';
+import { SdvxRelayManager } from './relay';
 
 var matchRooms = []
+
+const relayEnabled = () => U.GetConfig('sdvx_relay_enabled') === true;
+const relayPublicIp = () => U.GetConfig('sdvx_relay_public_ip') || '127.0.0.1';
+const ipToOctets = (ip: string) => ip.split('.').map(Number);
+
+// Builds the opponent list for the entry_s response. With the relay enabled,
+// every online match is routed through this server so players behind CGNAT
+// can connect (both players connect OUT to the same relay port). The relay
+// port is allocated once per room and reused on re-sends.
+async function opponentsWithRelay(room: any, otherPlayers: any[]): Promise<any[]> {
+  if (!relayEnabled()) {
+    return otherPlayers.map(e => ({
+      port: K.ITEM('u16', e.port),
+      gip: K.ITEM('4u8', e.gip),
+      lip: K.ITEM('4u8', e.lip)
+    }));
+  }
+
+  if (!room.relayPort) {
+    room.relayPort = await SdvxRelayManager.getInstance().allocatePort();
+    if (room.relayPort) {
+      console.log(`[SDVX Relay] Room ${room.c_ver}/${room.filter}/${room.mid} -> relay ${relayPublicIp()}:${room.relayPort} (${otherPlayers.length + 1} players)`);
+    } else {
+      console.warn(`[SDVX Relay] No relay port available, falling back to direct connection for room ${room.c_ver}/${room.filter}/${room.mid}`);
+    }
+  }
+
+  if (room.relayPort) {
+    const octets = ipToOctets(relayPublicIp());
+    return otherPlayers.map(e => ({
+      port: K.ITEM('u16', room.relayPort),
+      gip: K.ITEM('4u8', octets),
+      lip: K.ITEM('4u8', octets)
+    }));
+  }
+
+  return otherPlayers.map(e => ({
+    port: K.ITEM('u16', e.port),
+    gip: K.ITEM('4u8', e.gip),
+    lip: K.ITEM('4u8', e.lip)
+  }));
+}
 
 // Hiscore is requested by every cabinet whenever a player browses the song
 // list, and computing it scans ALL music records of ALL players (sync SQLite
@@ -219,6 +262,7 @@ export const globalMatch: EPR = async (info, data, send) => {
       mid: entryData.mid,
       p_rest: entryData.p_rest,
       p_num: entryData.p_num,
+      relayPort: null,
       players: [
         {
           gip: entryData.gip,
@@ -230,10 +274,9 @@ export const globalMatch: EPR = async (info, data, send) => {
 
     // delete room after sec
     setTimeout(function () {
-      console.log("[" + loglip + " | " + loggip + "] Deleting expired room: " + entryData.c_ver + " - " + entryData.filter +  -  + entryData.mid)
       const search = (element) => element.players[0].lip.join('.') === entryData.lip.join('.')
       const index = matchRooms.findIndex(search)
-      matchRooms.splice(index, 1)
+      if (index !== -1) matchRooms.splice(index, 1)
     }, entryData.sec * 1000);
 
     // new room, waiting for opponents
@@ -276,11 +319,7 @@ export const globalMatch: EPR = async (info, data, send) => {
 
             let opponents = {
               entry_id: K.ITEM('u32', entryData.entry_id),
-              entry: otherPlayers.map(e => ({
-                port: K.ITEM('u16', e.port),
-                gip: K.ITEM('4u8', e.gip),
-                lip: K.ITEM('4u8', e.lip)
-              }))
+              entry: await opponentsWithRelay(room, otherPlayers)
             }
             console.log("[" + loglip + " | " + loggip + "] Added data to player list. Sending opponent data.")
 
@@ -299,6 +338,7 @@ export const globalMatch: EPR = async (info, data, send) => {
           mid: entryData.mid,
           p_rest: entryData.p_rest,
           p_num: entryData.p_num,
+          relayPort: null,
           players: [
             {
               gip: entryData.gip,
@@ -311,8 +351,7 @@ export const globalMatch: EPR = async (info, data, send) => {
         setTimeout(function () {
           const search = (element) => element.players[0].lip.join('.') === entryData.lip.join('.')
           const index = matchRooms.findIndex(search)
-          console.log("[" + loglip + " | " + loggip + "] Deleting expired room: " + entryData.c_ver + " - " + entryData.filter +  -  + entryData.mid)
-          matchRooms.splice(index, 1)
+          if (index !== -1) matchRooms.splice(index, 1)
         }, entryData.sec * 1000);
         let opponents = {
           entry_id: K.ITEM('u32', entryData.entry_id),
@@ -329,11 +368,7 @@ export const globalMatch: EPR = async (info, data, send) => {
       otherPlayers.splice(playInd, 1)
       let opponents = {
         entry_id: K.ITEM('u32', entryData.entry_id),
-        entry: otherPlayers.map(e => ({
-          port: K.ITEM('u16', e.port),
-          gip: K.ITEM('4u8', e.gip),
-          lip: K.ITEM('4u8', e.lip)
-        }))
+        entry: await opponentsWithRelay(room, otherPlayers)
       }
       console.log("[" + loglip + " | " + loggip + "] Already in room, re-sending opponent data.")
       return send.object(opponents)

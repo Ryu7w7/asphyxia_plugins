@@ -939,8 +939,8 @@ export const addWeekly = async(data: { mid: number }) => {
     weekly.push({
       weekId: weekly[weekly.length - 1].weekId + 1,
       musicId: data.mid,
-      start: Number(BigInt(newStartDate)),
-      end: Number(BigInt(newEndDate))
+      start: Number(BigInt(newStartDate.getTime())),
+      end: Number(BigInt(newEndDate.getTime()))
     })
   } else {
     let newEndDate = new Date(curWeekMonday)
@@ -949,8 +949,8 @@ export const addWeekly = async(data: { mid: number }) => {
     weekly.push({
       weekId: 1,
       musicId: data.mid,
-      start: Number(BigInt(curWeekMonday)),
-      end: Number(BigInt(newEndDate))
+      start: Number(BigInt(curWeekMonday.getTime())),
+      end: Number(BigInt(newEndDate.getTime()))
     })
   }
 

@@ -682,7 +682,7 @@ export const common: EPR = async (info, data, send) => {
         }
       }
 
-      const arenaOpen = BigInt(date) >= currentArena.time_start && (BigInt(date) < currentArena.time_end || U.GetConfig('arena_no_endtime'))
+      const arenaOpen = BigInt(date.getTime()) >= currentArena.time_start && (BigInt(date.getTime()) < currentArena.time_end || U.GetConfig('arena_no_endtime'))
       const shopItemSet = arenaItems[U.GetConfig('arena_station7')]
       const shopOpen = arenaOpen && !_.isEmpty(shopItemSet)
       let arenaData = {}
@@ -884,7 +884,7 @@ export const common: EPR = async (info, data, send) => {
             []
           ),
         },
-        weekly_music: curWeekly != [] ? curWeekly.map(w => ({
+        weekly_music: curWeekly.length > 0 ? curWeekly.map(w => ({
           week_id: K.ITEM('s32', w.weekId),
           music_id: K.ITEM('s32', w.musicId),
           time_start: K.ITEM('u64', BigInt(w.start)),

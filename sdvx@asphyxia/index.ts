@@ -52,6 +52,7 @@ import {
 import { ARENA_STATION_ITEMS } from './data/exg';
 import { ARENA_STATION_ITEMS7 } from './data/nbl';
 import { dataUpdate } from './handlers/migrate';
+import { SdvxRelayManager } from './handlers/relay';
 
 export function register() {
 
@@ -81,6 +82,31 @@ export function register() {
   R.Config('sdvx_drive_oauth_refresh_token', { type: 'string', needRestart: false, default: '', name: 'Drive OAuth Refresh Token', desc: 'Populated automatically after you click "Authorize with Google Drive" on the Custom Charts Admin page. Leave empty.'});
   R.Config('sdvx_drive_folder_id', { type: 'string', needRestart: false, default: '', name: 'Drive Folder ID', desc: 'The target Google Drive folder ID (the last segment of the folder URL). Uploads go into this folder under your own Google account, counting against your personal Drive quota.'});
   R.Config('sdvx_chrome_path', { type: 'string', needRestart: false, default: '', name: 'Chrome / Chromium / Edge executable', desc: 'Absolute path to a Chromium-based browser used to render the VF Top 50 PNG endpoint (/api/sdvx/vf-top-50/<refid>.png). Leave empty to auto-detect Chrome and Edge on Windows / macOS / Linux. Only needed if auto-detect fails or you want a specific install.'});
+
+  R.Config('sdvx_relay_enabled', {
+    name: 'Enable Online Relay',
+    desc: 'Routes all online matching traffic through this server (TCP+UDP bridge). Lets players behind CGNAT play online without port forwarding. Set the Relay Public IP below.',
+    type: 'boolean',
+    default: false
+  });
+  R.Config('sdvx_relay_public_ip', {
+    name: 'Relay Public IP',
+    desc: 'The public IP of this server that players will connect to for relayed matches. Use a separate VPS for testing without affecting the main server.',
+    type: 'string',
+    default: '127.0.0.1'
+  });
+  R.Config('sdvx_relay_port_range', {
+    name: 'Relay Port Range',
+    desc: 'TCP+UDP ports used for relay sessions (e.g., 50000-50100). Open these in the server firewall.',
+    type: 'string',
+    default: '50000-50100'
+  });
+  R.Config('sdvx_relay_verbose', {
+    name: 'Relay Verbose Logging',
+    desc: 'Logs every connection/registration on the relay. Use only for debugging.',
+    type: 'boolean',
+    default: false
+  });
   
   R.DataFile('./webui/asset/uploads/1_mdb.xml', {name: 'music_db.xml (BOOTH)', accept: 'text/xml, .xml'});
   R.DataFile('./webui/asset/uploads/2_mdb.xml', {name: 'music_db.xml (infinite infection)', accept: 'text/xml, .xml'});
@@ -187,6 +213,15 @@ export function register() {
   }));
   
   R.Unhandled(undefined)
+
+  SdvxRelayManager.getInstance().setConfig(
+    U.GetConfig('sdvx_relay_public_ip') || '127.0.0.1',
+    U.GetConfig('sdvx_relay_port_range') || '50000-50100',
+    U.GetConfig('sdvx_relay_verbose') === true
+  );
+  if (U.GetConfig('sdvx_relay_enabled') === true) {
+    console.log(`SDVX Online Relay: enabled (${U.GetConfig('sdvx_relay_public_ip') || '127.0.0.1'})`);
+  }
 
   dataUpdate()
 }
