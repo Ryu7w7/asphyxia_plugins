@@ -2,7 +2,7 @@ import { Profile } from '../models/profile';
 import { MusicRecord } from '../models/music_record';
 import { Serial } from '../models/param';
 import { Matchmaker } from '../models/matchmaker';
-import { getVersion, IDToCode, GetCounter, checkVerStart } from '../utils';
+import { getVersion, IDToCode, GetCounter, checkVerStart, loadMusicDb } from '../utils';
 import { Rival } from '../models/rival';
 import { Item } from '../models/item';
 import { SERIAL3 } from '../data/gw';
@@ -55,14 +55,70 @@ async function opponentsWithRelay(room: any, otherPlayers: any[]): Promise<any[]
 // Hiscore is requested by every cabinet whenever a player browses the song
 // list, and computing it scans ALL music records of ALL players (sync SQLite
 // + JSON parse per row). With many concurrent players this blocks the event
-// loop for hundreds of ms per request. The result only changes when someone
-// saves a score, so a short TTL is imperceptible in-game but eliminates the
-// repeated full-table scans under load.
-const HISCORE_TTL_MS = 5000;
-const hiscoreCache = new Map<string, { expires: number; data: any }>();
+// loop for hundreds of ms per request. The response only changes when a GLOBAL
+// top is beaten: profiles.ts invalidates this cache via invalidateHiscoreIfNew
+// on every save, so a long TTL just guards against missed paths.
+const HISCORE_TTL_MS = 60000;
+const hiscoreCache = new Map<string, { expires: number; data: any; d?: any[]; mids?: number[] }>();
+
+// Temporary diagnostics for sv7_hiscore "property_mem_read() failed" hunting
+// (logs the first N request offsets/limits per boot to D:\Asphyxia\log.txt).
+const hiscoreLog = (() => { let n = 0; return () => n < 3 && n++; })();
+
+// The cabinet (sv4+/sv5+/sv6/sv7) sends game/offset + game/limit spanning a
+// range of MUSIC IDs, like MarbleBlue/Hydrogen: serve only that window and
+// only fall back to the full list when the client omits the fields.
+function creRange(cached: any, hasRange: boolean, offset: number, maxId: number) {
+  if (!hasRange || !cached.d || !cached.mids) return cached.data;
+  const d: any[] = [];
+  for (let i = 0; i < cached.d.length; i++) {
+    const m = cached.mids[i];
+    if (m >= offset && m < maxId) d.push(cached.d[i]);
+  }
+  return { sc: { d } };
+}
+
+// Per-version snapshot of the current global top per song (feeds
+// invalidateHiscoreOnTop). Nothing more than the last assembled hiscore
+// response, kept as a compact map so a save can decide in O(1) whether the
+// recorded score would CHANGE the response. If it doesn't, the cached
+// response is still valid and we avoid a full music-table rescan.
+const hiscoreTops = new Map<string, Map<string, { score: number; exscore: number }>>();
 
 export function invalidateHiscoreCache() {
   hiscoreCache.clear();
+}
+
+// Called from profiles.ts save paths. Only invalidates the hiscore cache for
+// this version when an actual top is beat — so the expensive full-table scan
+// happens on real record improvements, not on every ordinary save.
+export function invalidateHiscoreIfNew(
+  cacheKey: string,
+  mid: number,
+  type: number,
+  score: number,
+  exscore: number
+) {
+  const tops = hiscoreTops.get(cacheKey);
+  if (!tops) return;
+  const key = `${mid}:${type}`;
+  const cur = tops.get(key);
+  if (!cur) {
+    tops.set(key, { score, exscore });
+    return;
+  }
+  if (score > cur.score || exscore > cur.exscore) {
+    hiscoreCache.delete(cacheKey);
+  }
+}
+
+// Snapshot the response's tops for fast invalidateHiscoreIfNew lookups.
+function rememberHiscoreTops(cacheKey: string, records: any[]) {
+  const tops = new Map<string, { score: number; exscore: number }>();
+  for (const r of records) {
+    tops.set(`${r.mid}:${r.type}`, { score: r.score || 0, exscore: r.exscore || 0 });
+  }
+  hiscoreTops.set(cacheKey, tops);
 }
 
 export const hiscore: EPR = async (info, data, send) => {
@@ -70,9 +126,42 @@ export const hiscore: EPR = async (info, data, send) => {
   const dVersion = parseInt(info.model.split(":")[4].slice(0, -2));
 
   const cacheKey = `${version}:${dVersion}`;
+
+  // The KFC cabinet family (sv4+/sv5+/sv6/sv7) pages hiscore by a RANGE of
+  // music IDs inside <game><data><offset>/<limit>. Read both nesting levels
+  // plus attribute fallbacks so the range is never missed.
+  const gEl = data;
+  const dEl = $(gEl).element('data');
+  const pick = (el: any, name: string): string | undefined => {
+    if (el == null) return undefined;
+    const s = $(el).str(name);
+    if (s !== undefined && s !== '') return s;
+    const attrs = $(el).attr();
+    if (attrs && attrs[name] !== undefined && attrs[name] !== '') return String(attrs[name]);
+    return undefined;
+  };
+  let rawOffset = pick(dEl, 'offset');
+  let rawLimit = pick(dEl, 'limit');
+  if (rawOffset === undefined) rawOffset = pick(gEl, 'offset');
+  if (rawLimit === undefined) rawLimit = pick(gEl, 'limit');
+
+  const offset = rawOffset !== undefined ? parseInt(rawOffset) : NaN;
+  const limit = rawLimit !== undefined ? parseInt(rawLimit) : NaN;
+  const hasRange = Number.isFinite(offset) && Number.isFinite(limit) && limit > 0;
+  // sv6 requests limit=1000; if the client omits the range entirely, serve a
+  // bounded first page instead of the full table (the 8k-entry full response
+  // blows the cabinet's hiscore buffer).
+  const effOffset = hasRange ? offset : 0;
+  const effLimit = hasRange ? limit : 1000;
+  const maxId = effOffset + effLimit;
+
+  if (hiscoreLog()) {
+    console.log(`[hiscore][diag] model=${info.model} version=${version} rawOffset=${String(rawOffset)} rawLimit=${String(rawLimit)} hasRange=${hasRange} serve=[${effOffset},${maxId})`);
+  }
+
   const cached = hiscoreCache.get(cacheKey);
   if (cached && cached.expires > Date.now()) {
-    return send.object(cached.data);
+    return send.object(creRange(cached, true, effOffset, maxId), { status: 0 });
   }
 
   const records = await DB.Find<MusicRecord>(null, { collection: 'music', version });
@@ -82,8 +171,9 @@ export const hiscore: EPR = async (info, data, send) => {
     '__refid'
   );
 
-  const cache = (data: any) => {
-    hiscoreCache.set(cacheKey, { expires: Date.now() + HISCORE_TTL_MS, data });
+  const cache = (data: any, d?: any[], mids?: number[]) => {
+    rememberHiscoreTops(cacheKey, records);
+    hiscoreCache.set(cacheKey, { expires: Date.now() + HISCORE_TTL_MS, data, d, mids });
   };
 
   if (version === 1) {
@@ -151,38 +241,76 @@ export const hiscore: EPR = async (info, data, send) => {
     return send.object(response);
   }
 
-  const response = {
-    sc: {
-      d: _.map(
-        _.groupBy(records, r => `${r.mid}:${r.type}`),
-        group => {
-          const rScore = _.maxBy(group, 'score')
-          const rExscore = _.maxBy(group, 'exscore')
-          
-          return {
-            id: K.ITEM('u32', rScore.mid),
-            ty: K.ITEM('u32', rScore.type),
-            a_sq: K.ITEM('str', IDToCode(profiles[rScore.__refid][0].id)),
-            a_nm: K.ITEM('str', profiles[rScore.__refid][0].name),
-            a_sc: K.ITEM('u32', rScore.score),
-            l_sq: K.ITEM('str', IDToCode(profiles[rScore.__refid][0].id)),
-            l_nm: K.ITEM('str', profiles[rScore.__refid][0].name),
-            l_sc: K.ITEM('u32', rScore.score),
-            ...(version >= 6 && {
-              ax_sq: K.ITEM('str', IDToCode(profiles[rExscore.__refid][0].id)),
-              ax_nm: K.ITEM('str', profiles[rExscore.__refid][0].name),
-              ax_sc: K.ITEM('u32', rExscore.exscore),
-              lx_sq: K.ITEM('str', IDToCode(profiles[rExscore.__refid][0].id)),
-              lx_nm: K.ITEM('str', profiles[rExscore.__refid][0].name),
-              lx_sc: K.ITEM('u32', rExscore.exscore),
-            })
-          }
-        }
-      )
+  const groups = _.groupBy(records, r => `${r.mid}:${r.type}`);
+  const d: any[] = [];
+  const mids: number[] = [];
+  const seenKeys = new Set<string>();
+  for (const group of Object.values(groups)
+    .sort((a, b) => a[0].mid - b[0].mid || a[0].type - b[0].type)) {
+    const rScore = _.maxBy(group, 'score');
+    const rEx = _.maxBy(group, 'exscore');
+    const prof = rScore && profiles[rScore.__refid] ? profiles[rScore.__refid][0] : null;
+    if (!rScore || !prof) continue;
+    mids.push(rScore.mid);
+    seenKeys.add(`${rScore.mid}:${rScore.type}`);
+    const sq = String(prof.id).padStart(8, '0');
+    const item: any = {
+      id: K.ITEM('u32', rScore.mid),
+      ty: K.ITEM('u32', rScore.type),
+      a_sq: K.ITEM('str', sq),
+      a_nm: K.ITEM('str', prof.name),
+      a_sc: K.ITEM('u32', rScore.score),
+      l_sq: K.ITEM('str', sq),
+      l_nm: K.ITEM('str', prof.name),
+      l_sc: K.ITEM('u32', rScore.score),
+    };
+    if (rEx && rEx.exscore && profiles[rEx.__refid]) {
+      const exProf = profiles[rEx.__refid][0];
+      const exSq = String(exProf.id).padStart(8, '0');
+      item.ax_sq = K.ITEM('str', exSq);
+      item.ax_nm = K.ITEM('str', exProf.name);
+      item.ax_sc = K.ITEM('u32', rEx.exscore);
+      item.lx_sq = K.ITEM('str', exSq);
+      item.lx_nm = K.ITEM('str', exProf.name);
+      item.lx_sc = K.ITEM('u32', rEx.exscore);
     }
-  };
-  cache(response);
-  return send.object(response);
+    d.push(item);
+  }
+  if (String(U.GetConfig('sdvx_hiscore_full_catalog')) === '1') {
+    const mdb = await loadMusicDb();
+    const diffName = ['novice', 'advanced', 'exhaust', 'infinite', 'maximum', 'ultimate'];
+    if (mdb && mdb.mdb && mdb.mdb.music) {
+      for (const song of mdb.mdb.music) {
+        const mid = parseInt(song.id, 10);
+        const slot = song.difficulty && song.difficulty[6];
+        if (!Number.isFinite(mid) || !slot) continue;
+        for (let ty = 0; ty < diffName.length; ty++) {
+          const lvl = slot[diffName[ty]];
+          if (!lvl || String(lvl) === '0') continue;
+          const key = `${mid}:${ty}`;
+          if (seenKeys.has(key)) continue;
+          seenKeys.add(key);
+          mids.push(mid);
+          d.push({
+            id: K.ITEM('u32', mid),
+            ty: K.ITEM('u32', ty),
+            a_sq: K.ITEM('str', '00000000'),
+            a_nm: K.ITEM('str', ''),
+            a_sc: K.ITEM('u32', 0),
+            l_sq: K.ITEM('str', '00000000'),
+            l_nm: K.ITEM('str', ''),
+            l_sc: K.ITEM('u32', 0),
+          });
+        }
+      }
+    }
+  }
+  // Always serve ascending (mid, ty) — MarbleBlue sorts the same way.
+  d.sort((x, y) => (x.id['@content'][0] - y.id['@content'][0]) || (x.ty['@content'][0] - y.ty['@content'][0]));
+  for (let i = 0; i < d.length; i++) mids[i] = d[i].id['@content'][0];
+  const response = { sc: { d } };
+  cache(response, d, mids);
+  return send.object(creRange({ d, mids, data: response }, true, effOffset, maxId), { status: 0 });
 };
 
 export const rival: EPR = async (info, data, send) => {
