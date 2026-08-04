@@ -122,10 +122,15 @@ IIDX33pc(status="0")
   popn_cheers(music_list="65535")
   triple_tribe_5(music_list="65535")
   triple_tribe_6(music_list="65535")
+  bemani_summer(music_list="65535")
   language_setting(language=profile.language)
   movie_agreement(agreement_version="1")
   movie_setting
     hide_name(__type="bool") 0
+  if sparkle_extra_boss != null
+    extra_boss_event(phase=sparkle_extra_boss.phase progress=sparkle_extra_boss.progress progress_point_score=sparkle_extra_boss.progress_point_score progress_point_miss=sparkle_extra_boss.progress_point_miss unlock_point=sparkle_extra_boss.unlock_point)
+    - for (let ebp of sparkle_extra_boss_play)
+      extra_boss_play(phase=ebp.phase gauge_level=ebp.gauge_level extra_play_num=ebp.extra_play_num extra_clear_num=ebp.extra_clear_num onemore_play_num=ebp.onemore_play_num onemore_clear_num=ebp.onemore_clear_num)
   world_tourism
     - for (let wd of wArray)
       tour_data(tour_id=wd.tour_id progress=wd.progress)

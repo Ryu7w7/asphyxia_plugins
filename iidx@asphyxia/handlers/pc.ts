@@ -780,7 +780,7 @@ export const pcget: EPR = async (info, data, send) => {
     wArray.sort((a, b) => a.tour_id - b.tour_id);
   }
 
-  let event, gradeStr = "", exStr = "", skinStr = "";
+  let event, party, gradeStr = "", exStr = "", skinStr = "";
   if (version == 14) {
     dArray.forEach((res) => {
       gradeStr += NumArrayToString([6, 3, 2, 7], [res[1], res[2], res[0], res[3]]);
@@ -885,6 +885,11 @@ export const pcget: EPR = async (info, data, send) => {
       );
     }
 
+    party = await DB.FindOne(refid, { collection: "party", version: version });
+    if (!_.isNil(party)) {
+      party.cflg = Buffer.from(party.cflg, "base64").toString("hex");
+    }
+
     event = await DB.FindOne(refid, { collection: "event_1", version: version });
     if (!_.isNil(event)) {
       event.cf = Buffer.from(event.cf, "base64").toString("hex");
@@ -899,6 +904,7 @@ export const pcget: EPR = async (info, data, send) => {
       appendsettings,
       custom,
       rArray,
+      party,
       event,
     });
   }
@@ -978,6 +984,8 @@ export const pcget: EPR = async (info, data, send) => {
       sparkle_fl_room = [],
       sparkle_fl_crop = [],
       sparkle_vocalo = null,
+      sparkle_extra_boss = null,
+      sparkle_extra_boss_play = [],
       event_1 = null,
       event_1s = null,
       evtArray = [], evtArray2 = [], evtArray3 = [],
@@ -1113,6 +1121,8 @@ export const pcget: EPR = async (info, data, send) => {
         sparkle_fl_room = await DB.Find(refid, { collection: "event_1", version: version, event_data: "sparkle_fruit_lab" });
         sparkle_fl_crop = await DB.Find(refid, { collection: "event_1_sub", version: version, event_data: "sparkle_fruit_lab_crop" });
         sparkle_vocalo = await DB.FindOne(refid, { collection: "event_1", version: version, event_data: "sparkle_vocalo" });
+        sparkle_extra_boss = await DB.FindOne(refid, { collection: "extra_boss", version: version });
+        sparkle_extra_boss_play = await DB.Find(refid, { collection: "extra_boss_play", version: version });
         break;
 
       default:
@@ -1703,6 +1713,8 @@ export const pcget: EPR = async (info, data, send) => {
           sparkle_fl_room,
           sparkle_fl_crop,
           sparkle_vocalo,
+          sparkle_extra_boss,
+          sparkle_extra_boss_play,
         });
         break;
 
@@ -2165,6 +2177,29 @@ export const pcsave: EPR = async (info, data, send) => {
     pcdata.mcomb = Number($(data).attr().mcomb);
     pcdata.liflen = Number($(data).attr().lift);
     pcdata.fcombo[cltype] = Number($(data).attr().fcombo);
+
+    // TODO:: LEAGUE //
+
+    // pc, pf seems to be not refered but save it for future purpose //
+    if (!_.isNil($(data).element("party"))) {
+      let party_data = {
+        ev: Number($(data).attr("party").ev),
+        dif: Number($(data).attr("party").dif),
+        pc: Number($(data).attr("party").pc),
+        pf: Number($(data).attr("party").pf),
+        cflg: $(data).buffer("party").toString("base64"),
+      }
+
+      await DB.Upsert(refid,
+        {
+          collection: "party",
+          version: version,
+        },
+        {
+          $set: party_data,
+        }
+      );
+    }
 
     if (!_.isNil($(data).element("tutorial"))) {
       let clr = Number($(data).attr("tutorial").clr);
@@ -4755,16 +4790,56 @@ export const pcsave: EPR = async (info, data, send) => {
             event_data: "sparkle_vocalo",
           },
           {
-            play_num: vocaloEvt.attr().play_num,
-            last_select_music: vocaloEvt.attr().last_select_music,
-            point_get: vocaloEvt.attr().point_get,
-            point_use_0: vocaloEvt.attr().point_use_0,
-            point_use_1: vocaloEvt.attr().point_use_1,
-            booster_get: vocaloEvt.attr().booster_get,
-            booster_use_0: vocaloEvt.attr().booster_use_0,
-            booster_use_1: vocaloEvt.attr().booster_use_1,
+            $set: {
+              play_num: Number(vocaloEvt.attr().play_num),
+              last_select_music: Number(vocaloEvt.attr().last_select_music),
+              point_get: Number(vocaloEvt.attr().point_get),
+              point_use_0: Number(vocaloEvt.attr().point_use_0),
+              point_use_1: Number(vocaloEvt.attr().point_use_1),
+              booster_get: Number(vocaloEvt.attr().booster_get),
+              booster_use_0: Number(vocaloEvt.attr().booster_use_0),
+              booster_use_1: Number(vocaloEvt.attr().booster_use_1),
+            }
           });
       }
+
+      let extraBossEvt = $(data).element("extraboss_event");
+      if (!_.isNil(extraBossEvt)) {
+          await DB.Upsert(
+            refid,
+            {
+              collection: "extra_boss",
+              version: version,
+              phase: Number(extraBossEvt.attr().phase)
+            },
+            {
+              $set: {
+                progress: Number(extraBossEvt.attr().progress),
+                progress_point_score: Number(extraBossEvt.attr().progress_point_score),
+                progress_point_miss: Number(extraBossEvt.attr().progress_point_miss),
+                unlock_point: Number(extraBossEvt.attr().unlock_point),
+              }
+            });
+
+          $(data).elements("extraboss_play").forEach(res => {
+            DB.Upsert(
+              refid,
+              {
+                collection: "extra_boss_play",
+                version: version,
+                phase: Number(res.attr().phase),
+                gauge_level: Number(res.attr().gauge_level)
+              },
+              {
+                $set: {
+                  extra_play_num: Number(res.attr().extra_play_num),
+                  extra_clear_num: Number(res.attr().extra_clear_num),
+                  onemore_play_num: Number(res.attr().onemore_play_num),
+                  onemore_clear_num: Number(res.attr().onemore_clear_num),
+                }
+              });
+          });
+        }
     }
 
     if (hasWorldTourism) {
