@@ -7,6 +7,7 @@ Supported Versions
 - ノスタルジア/ First Version (Experiment-Old)
 - Forte (Experiment-Old)
 - Op.2
+- Op.3
 
 About Experiment-Old Support
 ----------------------------

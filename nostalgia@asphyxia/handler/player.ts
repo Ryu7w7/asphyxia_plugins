@@ -16,7 +16,13 @@ import { permitted_list, forte_permitted_list } from './common';
 
 const getEventInfo = (version: NosVersionHelper) => {
   const event: any[] = [];
-  const event_num = version.getEventMaxIndex()
+  const event_num = version.getEventMaxIndex();
+  
+  // We used to limit this to 3 for Op.3 thinking the texture error caused the crash.
+  // However, the texture error (career_sle_btn_bk_02) is a normal WARNING in the 2025 build.
+  // The actual crash was caused by invalid XML structure, which is now fixed.
+  // If we don't send all events, the game won't unlock Basic/Exam modes, resulting in a blank screen.
+
   for (let i = 1; i <= event_num; ++i) {
     event.push({
       type: K.ITEM('s32', 4),
@@ -158,14 +164,106 @@ const getPlayerData = async (refid: string, info: EamuseInfo, name?: string) => 
     music_list2.pop();
   }
 
+  // Build result in the EXACT field order that the Op.3 game client expects.
+  // Field ORDER in XML matters for this game's parser.
+  // Reference: hydrogen.eamu.fun NOS3/Player.php getPlayData()
+  //
+  // For Op.3: event_info_list MUST come BEFORE music_list.
+  //           linkage_data_list MUST be sent (even if empty).
+  //           cat_progress is NOT expected by Op.3.
+  //           travel goes at the very end.
+
+  const op3Last: any = {
+    music_index: K.ITEM('s32', version.numericHandler('music_index', p.music, 0)),
+    sheet_type: K.ITEM('s8', version.numericHandler('sheet_type', p.sheet, 0)),
+    brooch_index: K.ITEM('s32', version.numericHandler('brooch_index', p.brooch, 0)),
+    hi_speed_level: K.ITEM('s32', p.hispeed),
+    beat_guide: K.ITEM('s8', p.beatGuide),
+    headphone_volume: K.ITEM('s8', p.headphone),
+    judge_bar_pos: K.ITEM('s32', p.judgeBar),
+    music_group: K.ITEM('s32', p.group),
+    hands_mode: K.ITEM('s8', p.mode),
+    near_setting: K.ITEM('s8', p.near),
+    judge_delay_offset: K.ITEM('s8', p.offset),
+    bingo_index: K.ITEM('s32', p.bingo),
+    total_skill_value: K.ITEM('u64', BigInt(p.skill)),
+    key_beam_level: K.ITEM('s8', p.keyBeam),
+    orbit_type: K.ITEM('s8', p.orbit),
+    note_height: K.ITEM('s8', p.noteHeight),
+    note_width: K.ITEM('s8', p.noteWidth),
+    judge_width_type: K.ITEM('s8', p.judgeWidth),
+    beat_guide_volume: K.ITEM('s8', p.beatVolume),
+    beat_guide_type: K.ITEM('s8', p.beatType),
+    key_volume_offset: K.ITEM('s8', p.keyVolume),
+    bgm_volume_offset: K.ITEM('s8', p.bgmVolume),
+    note_disp_type: K.ITEM('s8', p.note),
+    slow_fast: K.ITEM('s8', p.sf),
+    judge_effect_adjust: K.ITEM('s8', p.judgeFX),
+    simple_bg: K.ITEM('s8', p.simple),
+    perform_type: K.ITEM('s32', 0),
+    filter_flag: K.ITEM('u64', BigInt(0)),
+    // Op.3 specific class/grade progression
+    class_basic: K.ITEM('s32', p.classBasic || 0),
+    class_recital: K.ITEM('s32', p.classRecital || 0),
+    grade_basic: K.ITEM('s32', p.gradeBasic || 0),
+    grade_recital: K.ITEM('s32', p.gradeRecital || 0),
+  };
+
+  if (version.isOp3()) {
+    // Op.3 specific response - matches hydrogen.eamu.fun field order EXACTLY
+    const events = getEventInfo(version);
+    console.log(`[nostalgia@asphyxia] Op.3 get_playdata: sending ${events.length} events in event_info_list`);
+    console.log(`[nostalgia@asphyxia] Op.3 get_playdata: class_basic=${p.classBasic || 0}, class_recital=${p.classRecital || 0}, grade_basic=${p.gradeBasic || 0}, grade_recital=${p.gradeRecital || 0}`);
+    console.log(`[nostalgia@asphyxia] Op.3 get_playdata: kentei_record count=${kentei_record.length}`);
+    return {
+      name: K.ITEM('str', p.name),
+      play_count: K.ITEM('s32', p.playCount),
+      today_play_count: K.ITEM('s32', p.todayPlayCount),
+      old_play_count: K.ITEM('s32', 0),
+      old_recital_count: K.ITEM('s32', 0),
+      permitted_list: correct_permitted_list,
+      event_info_list: { event: events },  // MUST be BEFORE music_list
+      
+      // If the player has no songs unlocked (musicList is all 0s), the game hides Basic/Exam.
+      // Cardinal Gate bypasses this by sending the permitted_list (all unlocked) for all 3 lists.
+      // We will do the same to guarantee the modes appear.
+      music_list: correct_permitted_list,
+      free_for_play_music_list: correct_permitted_list,
+      
+      last: op3Last,
+      brooch_list: { brooch },             // NO cat_progress for Op.3
+      extra_param: { param },
+      present_list: {},
+      various_music_list: {
+        data: [
+          K.ATTR({ list_type: '0' }, {
+            cond_flag: K.ITEM('s32', 0),
+            flag: K.ITEM('s32', 0, { sheet_type: '0' }),
+          }),
+        ],
+      },
+      player_information_list: {},
+      kentei_record_list: { kentei_record },
+      linkage_data_list: {},               // REQUIRED even for Op.3
+      travel: {
+        money: K.ITEM('s32', p.money),
+        fame: K.ITEM('s32', p.fame),
+        fame_index: K.ITEM('s32', p.fameId),
+        island_id: K.ITEM('s32', p.island),
+        pianist_power: K.ITEM('s32', 0),
+        kingdom_id: K.ITEM('s32', 0),
+        quest_index: K.ITEM('s32', 0),
+      },
+    };
+  }
+
+  // Non-Op.3 (First, Forte, Op.2) response - original structure
   const result: any = {
     name: K.ITEM('str', p.name),
     play_count: K.ITEM('s32', p.playCount),
     today_play_count: K.ITEM('s32', p.todayPlayCount),
     old_play_count: K.ITEM('s32', 0),
     old_recital_count: K.ITEM('s32', 0),
-    valid_quest_list: { quest: { '@attr': { index: '1' } } },
-    valid_course_list: { course: { '@attr': { index: '1' } } },
     permitted_list: correct_permitted_list,
     music_list: {
       flag: music_list,
@@ -203,12 +301,7 @@ const getPlayerData = async (refid: string, info: EamuseInfo, name?: string) => 
       perform_type: K.ITEM('s32', 0),
       filter_flag: K.ITEM('u64', BigInt(0)),
       option_setting: K.ITEM('s32', 0),
-      class_basic: K.ITEM('s32', 0),
-      class_recital: K.ITEM('s32', 0),
-      grade_basic: K.ITEM('s32', 0),
-      grade_recital: K.ITEM('s32', 0),
     },
-    // TODO: Full unlock instead of saving?
     cat_progress: {
       stair: stairs
     },
@@ -223,7 +316,6 @@ const getPlayerData = async (refid: string, info: EamuseInfo, name?: string) => 
         }),
       ],
     },
-
     travel: {
       money: K.ITEM('s32', p.money),
       fame: K.ITEM('s32', p.fame),
@@ -235,14 +327,14 @@ const getPlayerData = async (refid: string, info: EamuseInfo, name?: string) => 
     },
   };
 
-  if (!version.isOp3()) {
-    result.event_info_list = { event: getEventInfo(version) };
-    result.event_control_list = { event: getEventInfo(version) };
-    result.island_progress_list = { island_progress };
-    result.player_information_list = {};
-    result.kentei_record_list = { kentei_record };
-    result.linkage_data_list = {};
-  }
+  result.event_info_list = { event: getEventInfo(version) };
+  result.player_information_list = {};
+  result.kentei_record_list = { kentei_record };
+  result.valid_quest_list = { quest: { '@attr': { index: '1' } } };
+  result.valid_course_list = { course: { '@attr': { index: '1' } } };
+  result.event_control_list = { event: getEventInfo(version) };
+  result.island_progress_list = { island_progress };
+  result.linkage_data_list = {};
 
   return result;
 };
@@ -306,6 +398,10 @@ export const set_total_result: EPR = async (info, data, send) => {
   p.sf = last.number('slow_fast', p.sf);
   p.judgeFX = last.number('judge_effect_adjust', p.judgeFX);
   p.simple = last.number('simple_bg', p.simple);
+  p.classBasic = last.number('class_basic', p.classBasic || 0);
+  p.classRecital = last.number('class_recital', p.classRecital || 0);
+  p.gradeBasic = last.number('grade_basic', p.gradeBasic || 0);
+  p.gradeRecital = last.number('grade_recital', p.gradeRecital || 0);
 
   p.money = $(data).number('travel.money', p.money);
   p.fame = $(data).number('travel.fame', p.fame);
@@ -354,7 +450,7 @@ export const set_total_result: EPR = async (info, data, send) => {
 
     p.kentei[index] = {
       rate: isHigh ? clearRate : oldClearRate,
-      score: isHigh ? kentei.number('score', 0) : _.get(p, `kentei.${index}.score`, 0),
+      score: isHigh ? kentei.numbers('score') || [] : _.get(p, `kentei.${index}.score`, []),
       stage: Math.max(kentei.number('stage_prog', 0), _.get(p, `kentei.${index}.stage`, 0)),
       flag: Math.max(kentei.number('clear_flag', 0), _.get(p, `kentei.${index}.flag`, 0)),
       count: Math.max(kentei.number('play_count', 0), _.get(p, `kentei.${index}.count`, 0)),
@@ -610,6 +706,10 @@ const defaultProfile: Profile = {
   fame: 0,
   fameId: 0,
   island: 0,
+  classBasic: 0,
+  classRecital: 0,
+  gradeBasic: 0,
+  gradeRecital: 0,
   brooches: {
     '1': {
       level: 1,

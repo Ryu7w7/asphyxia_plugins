@@ -8,7 +8,7 @@ export class NosVersionHelper {
         music_index:  { First: 87, Forte: 195, Op2: 315, Op3: 1500 },
         brooch_index: { First: 120, Forte: 147, Op2: 148, Op3: 500 },
         sheet_type:   { First: 2, Forte: 2, Op2: 3, Op3: 3 },
-        event_index:  { First: 10, Forte: 10, Op2: 17, Op3: 100  }
+        event_index:  { First: 10, Forte: 10, Op2: 17, Op3: 30 }
     }
 
     constructor (info: EamuseInfo) {

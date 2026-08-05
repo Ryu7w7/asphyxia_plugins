@@ -118,16 +118,40 @@ export const get_music_info: EPR = async (info, data, send) => {
 
   const music_list = async () => version.version === 'Forte' ? await forteData() : await firstData()
 
-  const versionObject = version.isFirstOrForte()
-    ? {
+  let versionObject: any = {};
+  if (version.isFirstOrForte()) {
+    versionObject = {
       permitted_list: forte_permitted_list,
       music_list: await music_list()
-    }
-    : {
+    };
+  } else if (version.isOp3()) {
+    // Op.3 specific response for get_music_info
+    versionObject = {
       permitted_list,
-      island_data_list: await processIslandData(),
+      quest_data_list: {
+        quest_data: [
+          K.ATTR({ index: '1' }, {
+            name: K.ITEM('str', 'Dummy Quest'),
+            flavor: K.ITEM('str', ''),
+            route_type: K.ITEM('s32', 3),
+            cost: K.ITEM('s32', 0),
+            section: K.ITEM('s32', 1),
+            team: K.ITEM('s32', 1),
+            position: K.ITEM('s32', -1),
+            design: K.ITEM('s32', 1),
+            entry_music_sheet_list: {},
+            get_reward_index_list: {},
+            how_to_earn_point_index_list: {
+              how_to_earn_point_index: [K.ITEM('s32', 0)],
+            },
+            offline: K.ITEM('bool', 1),
+            start_date: K.ITEM('str', '2020-02-06 10:00'),
+            end_date: K.ITEM('str', '9999-12-31 23:59'),
+            flag_permitted: K.ITEM('bool', 1),
+          }),
+        ],
+      },
       course_data_list: await processCourseData(),
-
       overwrite_music_list: K.ATTR({
         revision: '21010',
         release_code: '2021071400',
@@ -135,6 +159,21 @@ export const get_music_info: EPR = async (info, data, send) => {
         music_spec: music_spec,
       }),
     };
+  } else {
+    // Op.2 specific
+    versionObject = {
+      permitted_list,
+      island_data_list: await processIslandData(),
+      course_data_list: await processCourseData(),
+      overwrite_music_list: K.ATTR({
+        revision: '21010',
+        release_code: '2021071400',
+      }, {
+        music_spec: music_spec,
+      }),
+    };
+  }
+
   send.object({
     ...versionObject,
 

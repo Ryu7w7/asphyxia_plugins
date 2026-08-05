@@ -34,6 +34,10 @@ export interface Profile {
   fame: number;
   fameId: number;
   island: number;
+  classBasic: number;
+  classRecital: number;
+  gradeBasic: number;
+  gradeRecital: number;
   params: {
     [key: string]: number[];
   };
