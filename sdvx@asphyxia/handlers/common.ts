@@ -451,7 +451,7 @@ export const common: EPR = async (info, data, send) => {
 
       // Add RyuNET category for approved custom charts
       try {
-        const customSongs = await DB.Find<NauticaSong>({ collection: 'nautica_song' });
+        const customSongs = await DB.Find<NauticaSong>(null, { collection: 'nautica_song' });
         const ryuNetIds = (customSongs || [])
           .filter(s => s.mid > 0 && s.status === 'ready')
           .map(s => s.mid);
@@ -469,7 +469,7 @@ export const common: EPR = async (info, data, send) => {
               '',
               '',
               ryuNetIds.join(','),
-              'RyuNET',
+              String(U.GetConfig('sdvx_custom_mix_name')) || 'RyuNET',
             ]
           });
         }
