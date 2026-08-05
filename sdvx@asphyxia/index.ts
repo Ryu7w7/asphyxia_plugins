@@ -5,6 +5,7 @@ import {
   copyResourcesFromGame,
   getRivalScores,
   addRival,
+  deleteAllRivals,
   preGeneRoll,
   preGeneReward,
   manageEvents,
@@ -120,6 +121,7 @@ export function register() {
   R.WebUIEvent('copyResourcesFromGame', copyResourcesFromGame);
   R.WebUIEvent('getRivalScores', getRivalScores);
   R.WebUIEvent('addRival', addRival);
+  R.WebUIEvent('deleteAllRivals', deleteAllRivals);
   R.WebUIEvent('preGeneRoll', preGeneRoll);
   R.WebUIEvent('preGeneReward', preGeneReward);
   R.WebUIEvent('manageEvents', manageEvents);

@@ -446,7 +446,7 @@ export const common: EPR = async (info, data, send) => {
             omniList.join(','),
             "Omnimix Songs",
           ]
-        })
+        });
       }
 
       // Add RyuNET category for approved custom charts
@@ -456,25 +456,22 @@ export const common: EPR = async (info, data, send) => {
           .filter(s => s.mid > 0 && s.status === 'ready')
           .map(s => s.mid);
         if (ryuNetIds.length > 0) {
-          let extendIdCounter = 1000;
-          for (let i = 0; i < ryuNetIds.length; i += 180) {
-            extend.push({
-              id: extendIdCounter++,
-              type: 3,
-              params: [
-                4,
-                0,
-                0,
-                0,
-                0,
-                '!',
-                '',
-                '',
-                ryuNetIds.slice(i, i + 180).join(','),
-                'RyuNET',
-              ]
-            });
-          }
+          extend.push({
+            id: 2,
+            type: 3,
+            params: [
+              5,
+              0,
+              0,
+              0,
+              0,
+              '!',
+              '',
+              '',
+              ryuNetIds.join(','),
+              'RyuNET',
+            ]
+          });
         }
       } catch { /* if DB fails, skip the RyuNET category */ }
 

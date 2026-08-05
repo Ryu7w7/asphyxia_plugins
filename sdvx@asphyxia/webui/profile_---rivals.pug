@@ -17,15 +17,23 @@ div
         .control
           .select.is-fullwidth
             select.select(id="version_select")
-      h5 Profile
-      .field
+      h5 Profile Search
+      .field.has-addons
+        .control.is-expanded
+          input.input(type="text" id="rival-search" placeholder="Search by name or SDVX ID..." autocomplete="off")
         .control
-          .select.is-fullwidth
-            select.select(id="profilelist")
-              option(value=0) Choose profile
-      .field
-        button.button.is-primary(type="submit" id="addrival") 
-          span(id="rival-button") Add Rival
+          button.button.is-info(type="button" id="search-btn") 
+            span.icon
+              i.mdi.mdi-magnify
+      
+      #search-results.mt-3(style="max-height: 300px; overflow-y: auto;")
+        // Dynamic search results will go here
+        
+      .field.mt-5
+        button.button.is-danger.is-outlined(type="button" id="delete-all-rivals")
+          span.icon
+            i.mdi.mdi-delete-sweep
+          span Delete All Rivals
 
   .card
     .card-header

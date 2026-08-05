@@ -41,7 +41,14 @@ async function opponentsWithRelay(room: any, otherPlayers: any[]): Promise<any[]
     return otherPlayers.map(e => ({
       port: K.ITEM('u16', room.relayPort),
       gip: K.ITEM('4u8', octets),
-      lip: K.ITEM('4u8', octets)
+      lip: K.ITEM('4u8', octets),
+      hostip_g: K.ITEM('4u8', octets),
+      hostip_l: K.ITEM('4u8', octets),
+      hostport_g: K.ITEM('u16', room.relayPort),
+      hostport_l: K.ITEM('u16', room.relayPort),
+      connport_g: K.ITEM('u16', room.relayPort),
+      connport_l: K.ITEM('u16', room.relayPort),
+      portfw: K.ITEM('u8', 0)
     }));
   }
 
@@ -163,10 +170,10 @@ export const hiscore: EPR = async (info, data, send) => {
   }
 
   const cached = hiscoreCache.get(cacheKey);
-  if (hiscoreLog()) {
-    console.log(`[hiscore][diag] serve_limit_conf=${String(confServeLimit)} lfields=${String(U.GetConfig('sdvx_hiscore_lfields'))} page=${cached ? 'cached' : 'fresh'} d_entries=${cached ? cached.d.length : '?'}`);
-  }
   if (cached && cached.expires > Date.now()) {
+    if (hiscoreLog()) {
+      console.log(`[hiscore][diag] serve_limit_conf=${String(confServeLimit)} lfields=${String(U.GetConfig('sdvx_hiscore_lfields'))} page=cached d_entries=${cached.d.length}`);
+    }
     return send.object(creRange(cached, true, effOffset, maxId), { status: 0 });
   }
 
@@ -325,6 +332,9 @@ export const hiscore: EPR = async (info, data, send) => {
   // Always serve ascending (mid, ty) — MarbleBlue sorts the same way.
   d.sort((x, y) => (x.id['@content'][0] - y.id['@content'][0]) || (x.ty['@content'][0] - y.ty['@content'][0]));
   for (let i = 0; i < d.length; i++) mids[i] = d[i].id['@content'][0];
+  if (hiscoreLog()) {
+    console.log(`[hiscore][diag] serve_limit_conf=${String(confServeLimit)} lfields=${String(U.GetConfig('sdvx_hiscore_lfields'))} page=fresh d_entries=${d.length} serve=[${effOffset},${maxId})`);
+  }
   const response = { sc: { d } };
   cache(response, d, mids);
   return send.object(creRange({ d, mids, data: response }, true, effOffset, maxId), { status: 0 });
@@ -337,7 +347,7 @@ export const rival: EPR = async (info, data, send) => {
   if (!refid) return send.deny();
 
   const rivals = (
-    await DB.Find<Rival>(refid, { collection: 'rival', mutual: true, version })
+    await DB.Find<Rival>(refid, { collection: 'rival', version })
   ).filter(p => p.refid != refid);
 
   return send.object({
@@ -381,8 +391,15 @@ export const globalMatch: EPR = async (info, data, send) => {
     lip: $(data).numbers('lip'),
   }
 
-  let loggip = entryData.gip.join(".")
-  let loglip = entryData.lip.join(".")
+  let loggip = '?.?.?.?'
+  let loglip = '?.?.?.?'
+  try {
+    loggip = entryData.gip ? entryData.gip.join(".") : '?.?.?.?'
+    loglip = entryData.lip ? entryData.lip.join(".") : '?.?.?.?'
+  } catch (e: any) {
+    loggip = 'ERR:' + e.message
+  }
+  console.log(`[entry_s] lip=${loglip} gip=${loggip} eid=${entryData.entry_id} c_ver=${entryData.c_ver} filter=${entryData.filter} mid=${entryData.mid} sec=${entryData.sec} p_num=${entryData.p_num} p_rest=${entryData.p_rest} port=${entryData.port} claim=${entryData.claim}`)
 
   // console.log("====================================")
   // console.log("   c_ver: " + entryData.c_ver)
@@ -399,7 +416,7 @@ export const globalMatch: EPR = async (info, data, send) => {
 
   if(matchRooms.length === 0) {
     // create room if not exists
-    console.log("[" + loglip + " | " + loggip + "] Creating new room: " + entryData.c_ver + " - " + entryData.filter + " - " + entryData.mid)
+    console.log(`[${loglip} | ${loggip}] Creating new room: ver=${version} c_ver=${entryData.c_ver} filter=${entryData.filter} mid=${entryData.mid} p_num=${entryData.p_num} p_rest=${entryData.p_rest} sec=${entryData.sec}`)
     matchRooms.push({
       version: version,
       c_ver: entryData.c_ver,
@@ -424,6 +441,20 @@ export const globalMatch: EPR = async (info, data, send) => {
       if (index !== -1) matchRooms.splice(index, 1)
     }, entryData.sec * 1000);
 
+    // Allocate the relay port NOW so the host-side sdvxrelay.dll tunnel can
+    // connect to it before the joiner arrives.
+    if (relayEnabled()) {
+      const room = matchRooms[matchRooms.length - 1];
+      if (!room.relayPort) {
+        room.relayPort = await SdvxRelayManager.getInstance().allocatePort();
+        if (room.relayPort) {
+          console.log(`[SDVX Relay] Room ${room.c_ver}/${room.filter}/${room.mid} -> relay ${relayPublicIp()}:${room.relayPort}`);
+        } else {
+          console.warn(`[SDVX Relay] No relay port available, room falls back to direct connection`);
+        }
+      }
+    }
+
     // new room, waiting for opponents
     let opponents = {
       entry_id: K.ITEM('u32', entryData.entry_id),
@@ -436,7 +467,7 @@ export const globalMatch: EPR = async (info, data, send) => {
 
     // check if lip already in a room
     for(const [ind, room] of matchRooms.entries()) {
-      if(room.version === version && room.c_ver === entryData.c_ver && room.filter === entryData.filter && room.mid === entryData.mid) {
+      if(room.version === version && room.c_ver === entryData.c_ver && room.filter === entryData.filter) {
         let playInd = room.players.findIndex(p => p.lip.join('.') === entryData.lip.join('.'))
         if (playInd != -1) {
           inRoom = true
@@ -448,28 +479,33 @@ export const globalMatch: EPR = async (info, data, send) => {
     // if not in room, find room with slot, add ip to players arr, get otherplayer data
     let otherPlayers = []
     if(!inRoom) {
-      console.log("[" + loglip + " | " + loggip + "] Looking for match room.")
+      console.log(`[${loglip} | ${loggip}] Looking for match room. My params: ver=${version} c_ver=${entryData.c_ver} filter=${entryData.filter} mid=${entryData.mid} p_num=${entryData.p_num} p_rest=${entryData.p_rest} sec=${entryData.sec}`)
       let dataAdded = false
       for(const [ind, room] of matchRooms.entries()) {
-        if(room.version === version && room.c_ver === entryData.c_ver && room.filter === entryData.filter && room.mid === entryData.mid) {
-          if(room.players.length < room.p_rest + room.p_num) {
-            matchRooms[ind].players.push({
-              gip: entryData.gip,
-              lip: entryData.lip,
-              port: entryData.port
-            })
-            dataAdded = true
-            otherPlayers = [...room.players]
-            otherPlayers.splice(room.players.length-1, 1)
+        let why = ''
+        if (room.version !== version) why = `version ${room.version} != ${version}`
+        else if (room.c_ver !== entryData.c_ver) why = `c_ver ${room.c_ver} != ${entryData.c_ver}`
+        else if (room.filter !== entryData.filter) why = `filter ${room.filter} != ${entryData.filter}`
+        else if (room.players.length >= room.p_rest + room.p_num) why = `full (${room.players.length}/${room.p_rest + room.p_num})`
+        else why = 'MATCH'
+        console.log(`[${loglip}] vs room ${room.version}/${room.c_ver}/${room.filter}/${room.mid} (${room.players.length}/${room.p_rest + room.p_num}): ${why}`)
+        if(why === 'MATCH') {
+          matchRooms[ind].players.push({
+            gip: entryData.gip,
+            lip: entryData.lip,
+            port: entryData.port
+          })
+          dataAdded = true
+          otherPlayers = [...room.players]
+          otherPlayers.splice(room.players.length-1, 1)
 
-            let opponents = {
-              entry_id: K.ITEM('u32', entryData.entry_id),
-              entry: await opponentsWithRelay(room, otherPlayers)
-            }
-            console.log("[" + loglip + " | " + loggip + "] Added data to player list. Sending opponent data.")
-
-            return send.object(opponents)
+          let opponents = {
+            entry_id: K.ITEM('u32', entryData.entry_id),
+            entry: await opponentsWithRelay(room, otherPlayers)
           }
+          console.log("[" + loglip + " | " + loggip + "] Added data to player list. Sending opponent data.")
+
+          return send.object(opponents)
         }
       }
 

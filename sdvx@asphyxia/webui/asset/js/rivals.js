@@ -109,30 +109,18 @@ $(document).ready(async function() {
         }));
     }
 
-    for(let ind in profiles_data_filtered) {
-        if(profiles_data_filtered[ind].__refid !== refid) {
-            $('#profilelist').append($('<option>', {
-                value: profiles_data_filtered[ind].__refid,
-                text: profiles_data_filtered[ind].name,
+    // Initialize rival selection dropdown for score comparison
+    for(let ind in rivals_data) {
+        if (rivals_data[ind].version !== currentVersion) continue;
+        
+        let rivalProfile = profiles_data.find(p => p.__refid === rivals_data[ind].refid);
+        if (rivalProfile) {
+            $('#rivallist').append($('<option>', {
+                value: rivals_data[ind].refid,
+                text: rivalProfile.name,
             }));
         }
     }
-
-    for(let ind in rivals_data) {
-        $('#rivallist').append($('<option>', {
-            value: rivals_data[ind].refid,
-            text: profiles_data.filter((p => p.__refid === rivals_data[ind].refid))[0].name,
-        }));
-    }
-
-    $('#profilelist').change(async function() {
-        console.log($('#profilelist').val())
-        if(rivals_data.filter((p => p.refid === $('#profilelist').val() && p.version === currentVersion)).length > 0) {
-            $('#rival-button').text('Delete Rival')
-        } else {
-            $('#rival-button').text('Add Rival')
-        }
-    })
 
     $('#rivallist').change(async function() {
         $('#scorecompare').DataTable().clear().destroy()
@@ -145,16 +133,82 @@ $(document).ready(async function() {
         }
     })
 
-    $('#addrival').click(async function() {
-        if($('#profilelist').val() !== '0') {
-            await emit('addRival', {rivalId: $('#profilelist').val(), refid: refid, version: currentVersion}).then(
-                function(response){
-                    alert(response.data.msg)
-                    location.reload()
-                }
-            )
+    // Search functionality
+    function renderSearchResults(query) {
+        $('#search-results').empty();
+        query = query.toLowerCase().trim();
+        if (query.length === 0) return;
+
+        // Filter profiles that match query, are not the current user, have played SDVX (packets), and match the current version.
+        let results = profiles_data.filter(p => {
+            if (p.__refid === refid || p.version !== currentVersion || p.packets === undefined) return false;
+            let nameMatch = (p.name || '').toLowerCase().includes(query);
+            let idMatch = (p.id || '').toString().toLowerCase().includes(query);
+            return nameMatch || idMatch;
+        });
+
+        if (results.length === 0) {
+            $('#search-results').append('<p class="has-text-grey">No players found.</p>');
+            return;
         }
-    })
+
+        results.forEach(p => {
+            let isRival = rivals_data.some(r => r.refid === p.__refid && r.version === currentVersion);
+            
+            let html = `
+                <div class="box p-3 mb-2 is-flex is-justify-content-space-between is-align-items-center">
+                    <div>
+                        <strong>${p.name || 'Unknown'}</strong><br>
+                        <span class="is-size-7 has-text-grey">ID: ${p.id || 'N/A'}</span>
+                    </div>
+                    <div>
+                        <button class="button is-small toggle-rival-btn ${isRival ? 'is-danger' : 'is-primary'}" data-id="${p.__refid}" data-action="${isRival ? 'remove' : 'add'}">
+                            ${isRival ? 'Remove' : 'Add Rival'}
+                        </button>
+                    </div>
+                </div>
+            `;
+            $('#search-results').append(html);
+        });
+    }
+
+    $('#rival-search').on('input', function() {
+        renderSearchResults($(this).val());
+    });
+    
+    $('#search-btn').click(function() {
+        renderSearchResults($('#rival-search').val());
+    });
+
+    $(document).on('click', '.toggle-rival-btn', async function() {
+        let rivalId = $(this).data('id');
+        let action = $(this).data('action'); // 'add' or 'remove'
+        
+        // Disable button while processing
+        $(this).addClass('is-loading');
+
+        try {
+            await emit('addRival', {rivalId: rivalId, refid: refid, version: currentVersion});
+            // Reload page to reflect changes
+            location.reload();
+        } catch (e) {
+            console.error(e);
+            $(this).removeClass('is-loading');
+        }
+    });
+
+    $('#delete-all-rivals').click(async function() {
+        if (confirm('Are you sure you want to delete all rivals for this version?')) {
+            $(this).addClass('is-loading');
+            try {
+                await emit('deleteAllRivals', {refid: refid, version: currentVersion});
+                location.reload();
+            } catch (e) {
+                console.error(e);
+                $(this).removeClass('is-loading');
+            }
+        }
+    });
 
     $('#version_select').change(function() {
         const urlParams = new URLSearchParams(location.search);

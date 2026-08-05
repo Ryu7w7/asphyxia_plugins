@@ -775,6 +775,13 @@ export const copyResourcesFromGame = async (data: {}, send: WebUISend) => {
 export const getRivalScores = async (data: { rivalId: string; refid: string; version: string; }, send: WebUISend) => {
   let ver = parseInt(data.version)
   let rival = await DB.FindOne<Rival>(data.refid, {collection: 'rival', refid: data.rivalId, version: ver})
+
+  if (!rival) {
+    return send.json({
+      error: "Rival not found."
+    });
+  }
+
   send.json({
     rival: await DB.FindOne<Profile>(data.rivalId, {collection: 'profile', version: ver}),
     yourScores: await DB.Find<MusicRecord>(data.refid, { collection: 'music', version: ver }),
@@ -794,7 +801,7 @@ export const addRival = async (data: { rivalId: string; refid: string; version: 
     }
     DB.Insert<Rival>(data.refid, {collection: "rival", sdvxID: rival.id, refid: data.rivalId, name: rival.name, version: ver, mutual: checkMutual, dbver: DB_VER})
     send.json({
-      "msg": "Successfully added profile to rival. In order for your rivals to appear in-game, they need to add you as their rival as well."
+      "msg": "Successfully added profile to rival."
     })
   } else {
     if(checkMutual) {
@@ -805,6 +812,27 @@ export const addRival = async (data: { rivalId: string; refid: string; version: 
       "msg": "Successfully removed rival."
     })
   }
+}
+
+export const deleteAllRivals = async (data: { refid: string; version: string }, send: WebUISend) => {
+  let ver = parseInt(data.version);
+  
+  // Find all rivals added by this user
+  let myRivals = await DB.Find<Rival>(data.refid, {collection: 'rival', version: ver});
+  
+  for (let r of myRivals) {
+    // If it was mutual, we need to update the other person's mutual status
+    if (r.mutual) {
+      DB.Upsert<Rival>(r.refid, {collection: "rival", sdvxID: r.sdvxID, refid: data.refid, version: ver}, {$set: {"mutual": false, dbver: DB_VER}});
+    }
+  }
+
+  // Remove all rivals from user's collection
+  await DB.Remove<Rival>(data.refid, {collection: 'rival', version: ver});
+  
+  send.json({
+    "msg": "Successfully deleted all rivals."
+  });
 }
 
 export const preGeneRoll = async (data: { set: number, refid: string, items: [] }, send: WebUISend) => {
