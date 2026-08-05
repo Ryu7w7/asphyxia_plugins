@@ -2,7 +2,6 @@ export interface Phase {
   id: number,
   p: number,
 }
-
 export interface ExtraData {
   [field: string]: {
     path: string,
@@ -43,6 +42,19 @@ export interface Scores {
       clear_type?: number,
       score: number,
       cnt: number,
+      clear_rank?: number,
+      cool?: number,
+      great?: number,
+      good?: number,
+      bad?: number,
+      combo?: number,
+      highlight?: number,
+      gauge?: number,
+      gauge_type?: number,
+      slow?: number,
+      fast?: number,
+      ex_gauge_lv?: number,
+      options?: { [key: string]: number },
     };
   };
 }

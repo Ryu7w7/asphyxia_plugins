@@ -29,7 +29,6 @@ export const addExtraData = (player: any, params: Params, extraData: ExtraData) 
         }
     }
 }
-
 export const getExtraData = (data: any, params: Params, extraData: ExtraData) => {
     for (const field in extraData) {
         const fieldName = field.replace(/(__\d*)/, '');
@@ -113,10 +112,12 @@ export const readScores = async (refid: string, version: string, forceVersion: b
                 if (objValue == undefined && srcValue != undefined) {
                     return srcValue;
                 }
+                const best = srcValue.score >= objValue.score ? srcValue : objValue;
                 return {
+                    ...best,
                     score: Math.max(objValue.score, srcValue.score),
                     cnt: objValue.cnt + srcValue.cnt,
-                    clear_type: Math.max(objValue.clear_type, srcValue.clear_type)
+                    clear_type: Math.max(objValue.clear_type || 0, srcValue.clear_type || 0)
                 }
             });
         }

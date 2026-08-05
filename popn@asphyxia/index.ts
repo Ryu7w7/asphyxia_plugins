@@ -16,7 +16,6 @@ const getVersion = (req: any) => {
       return sunny;
   }
 }
-
 export function register() {
   R.GameCode('K39');
   R.GameCode('L39');
@@ -35,6 +34,23 @@ export function register() {
     type: "boolean",
     default: true,
   });
+
+  // M39 rejects CORE's default `<item/>` response for message.get because
+  // its message receiver requires every item to have a `name` attribute.
+  // An empty message list is represented by an empty `message` node instead.
+  R.Route(`message.get`, async (_req, _data, send) => {
+    return send.object({
+      message: K.ATTR({ expire: "300", status: "0" }),
+    });
+  });
+
+  // High Cheers asks for local3 after card registration. CORE v1.60b does not
+  // advertise this newer service, so the game aborts before it can issue the
+  // request. Advertise it only for the M39 family; unsupported local3
+  // requests receive the plugin's standard empty success response.
+  R.ExtraModuleHandler((model) =>
+    model.startsWith('M39') ? ['local3'] : []
+  );
 
   R.WebUIEvent('updatePnmPlayerInfo', async (data: any) => {
     await DB.Update(data.refid, { collection: 'profile' }, { $set: { name: data.name } });
@@ -77,7 +93,7 @@ export function register() {
   eclale.setRoutes();
   usaneko.setRoutes();
 
-  R.Unhandled((req: EamuseInfo, data: any, send: EamuseSend) => {
+  R.Unhandled((_req: EamuseInfo, _data: any, send: EamuseSend) => {
     return send.success();
   });
 }
