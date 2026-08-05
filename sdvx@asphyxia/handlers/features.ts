@@ -70,7 +70,7 @@ const hiscoreCache = new Map<string, { expires: number; data: any; d?: any[]; mi
 
 // Temporary diagnostics for sv7_hiscore "property_mem_read() failed" hunting
 // (logs the first N request offsets/limits per boot to D:\Asphyxia\log.txt).
-const hiscoreLog = (() => { let n = 0; return () => n < 3 && n++; })();
+const hiscoreLog = (() => { return () => true; })();
 
 // The cabinet (sv4+/sv5+/sv6/sv7) sends game/offset + game/limit spanning a
 // range of MUSIC IDs, like MarbleBlue/Hydrogen: serve only that window and
@@ -139,34 +139,54 @@ export const hiscore: EPR = async (info, data, send) => {
   // plus attribute fallbacks so the range is never missed.
   const gEl = data;
   const dEl = $(gEl).element('data');
+  const gameEl = $(gEl).element('game');
+  // pick() reads a named field from an element, trying str first then number
+  // (sv7_hiscore sends offset/limit as u32, not str, so .str() returns undefined)
   const pick = (el: any, name: string): string | undefined => {
     if (el == null) return undefined;
     const s = $(el).str(name);
     if (s !== undefined && s !== '') return s;
+    const n = $(el).number(name);
+    if (n !== undefined && n !== null && !isNaN(n)) return String(n);
+    // Direct @content array access (sv7_hiscore sends u32 typed nodes)
+    const raw = (el as any)[name];
+    if (raw && Array.isArray(raw['@content']) && raw['@content'].length > 0) return String(raw['@content'][0]);
     const attrs = $(el).attr();
     if (attrs && attrs[name] !== undefined && attrs[name] !== '') return String(attrs[name]);
     return undefined;
   };
-  let rawOffset = pick(dEl, 'offset');
-  let rawLimit = pick(dEl, 'limit');
-  if (rawOffset === undefined) rawOffset = pick(gEl, 'offset');
-  if (rawLimit === undefined) rawLimit = pick(gEl, 'limit');
+  // sv7_hiscore: offset/limit are direct children of the root (gEl), typed u32
+  // sv6_hiscore: they may be inside <game> or <data> sub-elements
+  let rawOffset = pick(gEl, 'offset');        // root direct child (sv7)
+  let rawLimit  = pick(gEl, 'limit');
+  if (rawOffset === undefined) rawOffset = pick(gameEl, 'offset'); // <game><offset>
+  if (rawLimit  === undefined) rawLimit  = pick(gameEl, 'limit');
+  if (rawOffset === undefined) rawOffset = pick(dEl, 'offset');    // <data><offset>
+  if (rawLimit  === undefined) rawLimit  = pick(dEl, 'limit');
 
   const offset = rawOffset !== undefined ? parseInt(rawOffset) : NaN;
   const limit = rawLimit !== undefined ? parseInt(rawLimit) : NaN;
   const hasRange = Number.isFinite(offset) && Number.isFinite(limit) && limit > 0;
-  // sv6 requests limit=1000; if the client omits the range entirely, serve a
-  // bounded first page instead of the full table (the 8k-entry full response
-  // blows the cabinet's hiscore buffer). The page size is tunable via
-  // sdvx_hiscore_serve_limit so cabinets with bigger buffers can be covered
-  // further into the song catalog.
+  // When the cabinet sends offset/limit, respect the window (paginated mode).
+  // When the cabinet omits them, serve ALL entries — RyuNET-core compresses
+  // the response with LZ77 automatically (X-Compress: lz77), so even 8k+
+  // entries compress from ~3MB XML to ~300KB on the wire, which the cabinet
+  // handles fine. sdvx_hiscore_serve_limit is kept as a fallback escape hatch.
   const confServeLimit = parseInt(String(U.GetConfig('sdvx_hiscore_serve_limit')));
   const effOffset = hasRange ? offset : 0;
-  const effLimit = hasRange ? limit : (Number.isFinite(confServeLimit) && confServeLimit > 0 ? confServeLimit : 1000);
-  const maxId = effOffset + effLimit;
+  // No range = serve everything (Infinity so creRange returns all d[]).
+  // Because RyuNET-core compresses with LZ77 automatically, the full list
+  // will not blow up the cabinet buffer.
+  const effLimit = hasRange ? limit : Infinity;
+  const maxId = hasRange ? (effOffset + effLimit) : Infinity;
 
   if (hiscoreLog()) {
     console.log(`[hiscore][diag] model=${info.model} version=${version} rawOffset=${String(rawOffset)} rawLimit=${String(rawLimit)} hasRange=${hasRange} serve=[${effOffset},${maxId})`);
+    // Log raw request structure so we can find where offset/limit really are
+    try {
+      const rawStr = JSON.stringify(data, null, 2);
+      console.log(`[hiscore][diag] RAW REQUEST (first 2000 chars): ${rawStr.slice(0, 2000)}`);
+    } catch {}
   }
 
   const cached = hiscoreCache.get(cacheKey);
