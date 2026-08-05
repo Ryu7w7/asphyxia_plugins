@@ -70,7 +70,7 @@ const hiscoreCache = new Map<string, { expires: number; data: any; d?: any[]; mi
 
 // Temporary diagnostics for sv7_hiscore "property_mem_read() failed" hunting
 // (logs the first N request offsets/limits per boot to D:\Asphyxia\log.txt).
-const hiscoreLog = (() => { return () => true; })();
+const hiscoreLog = (() => { let n = 0; return () => n < 3 && n++; })();
 
 // The cabinet (sv4+/sv5+/sv6/sv7) sends game/offset + game/limit spanning a
 // range of MUSIC IDs, like MarbleBlue/Hydrogen: serve only that window and

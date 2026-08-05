@@ -34,6 +34,16 @@ div
           span.icon
             i.mdi.mdi-delete-sweep
           span Delete All Rivals
+          
+  .card
+    .card-header
+      p.card-header-title
+        span.icon
+          i.mdi.mdi-account-multiple
+        | Current Rivals
+    .card-content
+      #current-rivals-list(style="max-height: 300px; overflow-y: auto;")
+        // Dynamic current rivals will go here
 
   .card
     .card-header

@@ -172,6 +172,41 @@ $(document).ready(async function() {
         });
     }
 
+    function renderCurrentRivals() {
+        $('#current-rivals-list').empty();
+        
+        let currentRivals = rivals_data.filter(r => r.version === currentVersion);
+        
+        if (currentRivals.length === 0) {
+            $('#current-rivals-list').append('<p class="has-text-grey">You have no rivals for this version.</p>');
+            return;
+        }
+
+        currentRivals.forEach(r => {
+            let rivalProfile = profiles_data.find(p => p.__refid === r.refid);
+            let name = rivalProfile ? rivalProfile.name : r.name;
+            let id = rivalProfile ? rivalProfile.id : r.sdvxID;
+            
+            let html = `
+                <div class="box p-3 mb-2 is-flex is-justify-content-space-between is-align-items-center">
+                    <div>
+                        <strong>${name || 'Unknown'}</strong><br>
+                        <span class="is-size-7 has-text-grey">ID: ${id || 'N/A'}</span>
+                    </div>
+                    <div>
+                        <button class="button is-small toggle-rival-btn is-danger" data-id="${r.refid}" data-action="remove">
+                            Remove
+                        </button>
+                    </div>
+                </div>
+            `;
+            $('#current-rivals-list').append(html);
+        });
+    }
+
+    // Initial render of current rivals
+    renderCurrentRivals();
+
     $('#rival-search').on('input', function() {
         renderSearchResults($(this).val());
     });
