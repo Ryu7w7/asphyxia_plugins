@@ -50,15 +50,21 @@ export class SdvxRelayManager {
 
   public async allocatePort(): Promise<number | null> {
     for (let port = this.portRange.min; port <= this.portRange.max; port++) {
-      if (!this.sessions.has(port)) {
-        try {
-          const session = await this.createSession(port);
-          this.sessions.set(port, session);
-          console.log(`[SDVX Relay] Session started on port ${port}`);
-          return port;
-        } catch (e: any) {
-          console.error(`[SDVX Relay] Failed to bind port ${port}: ${e.message}`);
-        }
+      const existing = this.sessions.get(port);
+      if (existing) {
+        const hasLive =
+          existing.tcpConns.some(c => c !== null) ||
+          existing.udpClients.some(c => c !== null);
+        if (hasLive) continue;
+        this.releasePort(port);
+      }
+      try {
+        const session = await this.createSession(port);
+        this.sessions.set(port, session);
+        console.log(`[SDVX Relay] Session started on port ${port}`);
+        return port;
+      } catch (e: any) {
+        console.error(`[SDVX Relay] Failed to bind port ${port}: ${e.message}`);
       }
     }
     console.warn(`[SDVX Relay] No free ports in range ${this.portRange.min}-${this.portRange.max}`);
@@ -192,6 +198,12 @@ export class SdvxRelayManager {
 
         socket.on('data', (data) => {
           session.lastActivity = Date.now();
+          if (!(session as any).__pktLog) (session as any).__pktLog = {};
+          if ((session as any).__pktLog[idx] < 12) {
+            (session as any).__pktLog[idx] = ((session as any).__pktLog[idx] || 0) + 1;
+            const slice = data.subarray(0, 64);
+            console.log(`[SDVX Relay][Port ${session.port}] P${idx} -> relay (${data.length}B) ${slice.toString('hex')}`);
+          }
           const otherIdx = 1 - idx;
           const otherConn = session.tcpConns[otherIdx];
           if (otherConn) {
