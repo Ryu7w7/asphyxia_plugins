@@ -372,16 +372,26 @@ function getVF50() {
             top50.push({
                 'name': sinf.name,
                 'diff': getDifficulty(sinf.id, sc.type) + " " + getDifficultyNum(sinf.id, sc.type),
+                'rawDiff': getDifficulty(sinf.id, sc.type),
                 'clear': getMedal(true, sc.clear, currentVersion),
                 'score': sc.score,
-                'vf': parseFloat(toFixed(singleScoreVolforce(sc, currentVersion), 1))
+                'vf': parseFloat(toFixed(singleScoreVolforce(sc, currentVersion), 1)),
+                'exscore': sc.exscore || 0,
+                'grade': getGrade(true, sc.grade),
+                'maxChain': sc.maxChain || 0,
+                'critical': sc.critical || 0,
+                's_critical': sc.s_critical || 0,
+                'near': sc.near || 0,
+                'error': sc.error || 0,
+                'early': sc.early || 0,
+                'late': sc.late || 0
             })
         }
     }
     top50.sort(function(a, b) { return b.vf - a.vf });
     if(top50.length > 50) top50 = top50.slice(0, 50)
     for(let i in top50) top50[i]['num'] = parseInt(i)+1 
-    $('#volforce50').DataTable({
+    var table = $('#volforce50').DataTable({
         data: top50,
         order: [],
         pageLength: 50,
@@ -396,7 +406,34 @@ function getVF50() {
             { data: 'vf' },
         ]
     });
+
+    $('#volforce50 tbody').on('click', 'tr', function () {
+        var data = table.row(this).data();
+        if (data) {
+            $('#modal-songname').text(data.name);
+            $('#modal-diff').text(data.rawDiff || data.diff);
+            var rankEl = $('#modal-rank');
+            rankEl.text(data.grade);
+            rankEl.attr('data-grade', data.grade);
+            $('#modal-score').text(Number(data.score).toLocaleString());
+            $('#modal-exscore').text(Number(data.exscore).toLocaleString());
+            $('#modal-maxchain').text(Number(data.maxChain).toLocaleString());
+            $('#modal-scrit').text(Number(data.s_critical).toLocaleString());
+            $('#modal-crit').text(Number(data.critical).toLocaleString());
+            $('#modal-near').text(Number(data.near).toLocaleString());
+            $('#modal-early').text(Number(data.early).toLocaleString());
+            $('#modal-late').text(Number(data.late).toLocaleString());
+            $('#modal-error').text(Number(data.error).toLocaleString());
+            $('#modal-medal').text(data.clear);
+
+            $('#score-detail-modal').addClass('is-active');
+        }
+    });
 }
+
+window.closeScoreModal = function() {
+    $('#score-detail-modal').removeClass('is-active');
+};
 
 var diffName = ["NOV", "ADV", "EXH", "INF\nGRV\nHVN\nVVD\nXCD\nNBL", "MXM", "ULT"];
 

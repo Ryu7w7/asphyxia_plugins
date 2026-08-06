@@ -10,6 +10,7 @@
   const sdvxid = `${padded.slice(0, 4)}-${padded.slice(4)}`;
 
 link(rel="stylesheet" href="static/asset/css/detail.css")
+link(rel="stylesheet" href="static/asset/css/score_modal.css")
 div
   .card
     .card-header
@@ -49,6 +50,58 @@ div
             th FORCE
         tbody
       
+div.modal#score-detail-modal
+  div.modal-background(onclick="closeScoreModal()")
+  div.modal-content.score-modal-content
+    div.score-header
+      h2#modal-songname Song Name
+      div.score-subtitle
+        span.diff-badge#modal-diff MXM
+    
+    div.score-body
+      div.score-rank-container
+        div#modal-rank(data-grade="S") S
+
+      div.score-stats
+        div.score-number#modal-score 9,993,855
+        div.score-meta-row
+          div.score-meta-item
+            span.score-meta-label EX Score
+            span.score-meta-value#modal-exscore 0
+          div.score-meta-item
+            span.score-meta-label Max Combo
+            span.score-meta-value#modal-maxchain 0
+        div.score-medal-row
+          span#modal-medal PLAYED
+
+      div.judgements-container
+        div.judgements-title Judgements
+        div.judgement-row.j-row-scrit
+          span.j-dot
+          span.j-label S-CRITICAL
+          span.j-value#modal-scrit 0
+        div.judgement-row.j-row-crit
+          span.j-dot
+          span.j-label CRITICAL
+          span.j-value#modal-crit 0
+        div.judgement-row.j-row-near
+          span.j-dot
+          span.j-label NEAR
+          span.j-value#modal-near 0
+        div.j-sub-row
+          span.j-sub-item
+            span.arrow-early ◀
+            span#modal-early 0
+          span.j-sub-item
+            span#modal-late 0
+            span.arrow-late ▶
+        div.judgement-row.j-row-error
+          span.j-dot
+          span.j-label ERROR
+          span.j-value#modal-error 0
+
+  button.modal-close.is-large(aria-label="close" onclick="closeScoreModal()")
+
 div(hidden id='data-pass') !{JSON.stringify(profile)}
 div(hidden id='score-pass') !{JSON.stringify(score_data)}
 div(hidden id='skill-pass') !{JSON.stringify(skill_data)}

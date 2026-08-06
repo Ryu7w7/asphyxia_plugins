@@ -254,10 +254,19 @@ $(document).ready(function() {
             temp_data.exscore = ((score_data[i].exscore) ? score_data[i].exscore : 0);
             temp_data.grade = getGrade(score_data[i].grade);
             temp_data.clear = getMedal(score_data[i].clear, currentProfile.version);
+            
+            temp_data.maxChain = score_data[i].maxChain || 0;
+            temp_data.critical = score_data[i].critical || 0;
+            temp_data.s_critical = score_data[i].s_critical || 0;
+            temp_data.near = score_data[i].near || 0;
+            temp_data.error = score_data[i].error || 0;
+            temp_data.early = score_data[i].early || 0;
+            temp_data.late = score_data[i].late || 0;
+
             music_data.push(temp_data);
         }
 
-        $('#music_score').DataTable({
+        var table = $('#music_score').DataTable({
             data: music_data,
             columns: [
                 { data: 'mid' },
@@ -287,8 +296,35 @@ $(document).ready(function() {
 
         });
 
+        $('#music_score tbody').on('click', 'tr', function () {
+            var data = table.row(this).data();
+            if (data) {
+                $('#modal-songname').text(data.songname);
+                $('#modal-diff').text(data.diff);
+                $('#modal-player-name').text(currentProfile.name);
+                
+                var rankEl = $('#modal-rank');
+                rankEl.text(data.grade);
+                rankEl.attr('data-grade', data.grade);
+                $('#modal-score').text(Number(data.score).toLocaleString());
+                $('#modal-exscore').text(Number(data.exscore).toLocaleString());
+                $('#modal-maxchain').text(Number(data.maxChain).toLocaleString());
+                $('#modal-scrit').text(Number(data.s_critical).toLocaleString());
+                $('#modal-crit').text(Number(data.critical).toLocaleString());
+                $('#modal-near').text(Number(data.near).toLocaleString());
+                $('#modal-early').text(Number(data.early).toLocaleString());
+                $('#modal-late').text(Number(data.late).toLocaleString());
+                $('#modal-error').text(Number(data.error).toLocaleString());
+                $('#modal-medal').text(data.clear);
+
+                $('#score-detail-modal').addClass('is-active');
+            }
+        });
 
     });
 
+});
 
-})
+window.closeScoreModal = function() {
+    $('#score-detail-modal').removeClass('is-active');
+};

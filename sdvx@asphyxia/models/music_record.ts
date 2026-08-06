@@ -18,8 +18,11 @@ export interface MusicRecord {
 
   maxChain: number;
   critical: number;
+  s_critical?: number;
   near: number;
   error: number;
+  early?: number;
+  late?: number;
   effectiveRate: number;
   mode: number;
   gaugeType: number;

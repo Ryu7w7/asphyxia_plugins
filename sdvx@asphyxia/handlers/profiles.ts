@@ -359,17 +359,38 @@ export const saveScore: EPR = async (info, data, send) => {
           buttonRate: 0,
           longRate: 0,
           volRate: 0,
+          maxChain: 0,
+          critical: 0,
+          s_critical: 0,
+          near: 0,
+          error: 0,
+          early: 0,
+          late: 0,
         };
 
         const score = i.number('score', 0);
         const exscore = i.number('exscore', 0);
         const volforce = i.number('volforce', 0);
+        const maxChain = i.number('max_chain', 0);
+
         if (score > record.score) {
           record.score = score;
           record.buttonRate = i.number('btn_rate', 0);
           record.longRate = i.number('long_rate', 0);
           record.volRate = i.number('vol_rate', 0);
+          
+          record.critical = i.number('critical', 0);
+          record.s_critical = i.number('just', i.number('s_critical', i.number('v_crit', i.number('perf', 0))));
+          record.near = i.number('near', 0);
+          record.error = i.number('error', 0);
+          record.early = i.number('early', 0);
+          record.late = i.number('late', 0);
         }
+        
+        if (maxChain > (record.maxChain || 0)) {
+          record.maxChain = maxChain;
+        }
+
         if (exscore > record.exscore) {
           record.exscore = exscore;
         }

@@ -46,7 +46,17 @@ function populateTable(yourScore, rivalScore, music_db) {
             difficulty: difficulty,
             yourScore: yourScore[ind].score,
             rivalScore: rivalInd >= 0 ? rivalScore[rivalInd].score : 0,
-            time: Date.parse(yourScore[ind]['updatedAt'])
+            time: Date.parse(yourScore[ind]['updatedAt']),
+            exscore: yourScore[ind].exscore || 0,
+            grade: yourScore[ind].grade,
+            clear: yourScore[ind].clear,
+            maxChain: yourScore[ind].maxChain || 0,
+            critical: yourScore[ind].critical || 0,
+            s_critical: yourScore[ind].s_critical || 0,
+            near: yourScore[ind].near || 0,
+            error: yourScore[ind].error || 0,
+            early: yourScore[ind].early || 0,
+            late: yourScore[ind].late || 0
         })
     }
 
@@ -84,7 +94,45 @@ function populateTable(yourScore, rivalScore, music_db) {
             }
         },
     });
+
+    $('#scorecompare tbody').on('click', 'tr', function () {
+        var data = $('#scorecompare').DataTable().row(this).data();
+        if (data) {
+            $('#modal-songname').text(data.songname);
+            $('#modal-diff').text(data.difficulty);
+            
+            // Convert numerical grade and clear medal to string labels
+            let gradeStr = "S";
+            if (typeof getGrade === "function") {
+                gradeStr = getGrade(true, data.grade) || "S";
+            }
+            let medalStr = "PLAYED";
+            if (typeof getMedal === "function") {
+                medalStr = getMedal(true, data.clear, currentVersion) || "PLAYED";
+            }
+
+            var rankEl = $('#modal-rank');
+            rankEl.text(gradeStr);
+            rankEl.attr('data-grade', gradeStr);
+            $('#modal-score').text(Number(data.yourScore).toLocaleString());
+            $('#modal-exscore').text(Number(data.exscore).toLocaleString());
+            $('#modal-maxchain').text(Number(data.maxChain).toLocaleString());
+            $('#modal-scrit').text(Number(data.s_critical).toLocaleString());
+            $('#modal-crit').text(Number(data.critical).toLocaleString());
+            $('#modal-near').text(Number(data.near).toLocaleString());
+            $('#modal-early').text(Number(data.early).toLocaleString());
+            $('#modal-late').text(Number(data.late).toLocaleString());
+            $('#modal-error').text(Number(data.error).toLocaleString());
+            $('#modal-medal').text(medalStr);
+
+            $('#score-detail-modal').addClass('is-active');
+        }
+    });
 }
+
+window.closeScoreModal = function() {
+    $('#score-detail-modal').removeClass('is-active');
+};
 
 $(document).ready(async function() {
     var music_db
