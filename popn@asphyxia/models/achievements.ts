@@ -2,6 +2,7 @@ export interface Achievements {
   collection: 'achievements',
   version: string,
 }
+
 export interface AchievementsTuneStreet extends Achievements {
   version: 'v19',
 

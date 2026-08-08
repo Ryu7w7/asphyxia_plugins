@@ -116,6 +116,7 @@ const newPlayer = async (req: EamuseInfo, data: any, send: EamuseSend): Promise<
     if (!refid) return send.deny();
 
     const name = $(data).str('name');
+    console.log(`[popn] ${req.module}.new profile version ${getVersion(req)}`);
 
     send.object(await getProfile(refid, getVersion(req), name));
 };
@@ -169,7 +170,10 @@ const readScore = async (req: EamuseInfo, data: any, send: EamuseSend): Promise<
     const version = getVersion(req);
     if (!refid) return send.deny();
 
-    send.object({ music: await getScores(refid, version) });
+    // M39 uses this follow-up request for the current-version chart record
+    // shown as VER BEST. player.read below deliberately retains the shared
+    // all-version record used for BEST.
+    send.object({ music: await getScores(refid, version, false, version == 'v29') });
 };
 
 /**
@@ -217,9 +221,10 @@ const readOption = async (req: EamuseInfo, data: any, send: EamuseSend): Promise
  * Read the user scores and format them (profile/friend)
  * @param refid ID of the user
  * @param forFriend If true, format the output for friend request.
+ * @param ownVersionOnly Do not merge records from prior game versions.
  */
-const getScores = async (refid: string, version: string, forFriend: boolean = false) => {
-    const scoresData = await utils.readScores(refid, version);
+const getScores = async (refid: string, version: string, forFriend: boolean = false, ownVersionOnly: boolean = false) => {
+    const scoresData = await utils.readScores(refid, version, ownVersionOnly);
     const result = [];
 
     for (const key in scoresData.scores) {
@@ -268,24 +273,37 @@ const getScores = async (refid: string, version: string, forFriend: boolean = fa
             if (version == 'v29') {
                 const opts = score.options || {};
                 Object.assign(musicData, {
-                    cool: K.ITEM('s16', score.cool || 0),
-                    great: K.ITEM('s16', score.great || 0),
-                    good: K.ITEM('s16', score.good || 0),
-                    bad: K.ITEM('s16', score.bad || 0),
-                    combo: K.ITEM('s16', score.combo || 0),
-                    highlight: K.ITEM('s16', score.highlight || 0),
-                    gauge: K.ITEM('s16', score.gauge || 0),
-                    gauge_type: K.ITEM('s8', score.gauge_type || 0),
-                    slow: K.ITEM('s16', score.slow || 0),
-                    fast: K.ITEM('s16', score.fast || 0),
-                    ex_gauge_lv: K.ITEM('s8', score.ex_gauge_lv || -1),
-                    hidden: K.ITEM('bool', opts.hidden || 0),
-                    hidden_rate: K.ITEM('s16', opts.hidden_rate || -1),
-                    sudden: K.ITEM('bool', opts.sudden || 0),
-                    sudden_rate: K.ITEM('s16', opts.sudden_rate || -1),
-                    hispeed: K.ITEM('s16', opts.hispeed || 10),
-                    lift: K.ITEM('bool', opts.lift || 0),
-                    lift_rate: K.ITEM('s16', opts.lift_rate || 0),
+                    cool: K.ITEM('s16', score.cool ?? 0),
+                    great: K.ITEM('s16', score.great ?? 0),
+                    good: K.ITEM('s16', score.good ?? 0),
+                    bad: K.ITEM('s16', score.bad ?? 0),
+                    combo: K.ITEM('s16', score.combo ?? 0),
+                    highlight: K.ITEM('s16', score.highlight ?? 0),
+                    gauge: K.ITEM('s16', score.gauge ?? 0),
+                    gauge_type: K.ITEM('s8', score.gauge_type ?? 0),
+                    slow: K.ITEM('s16', score.slow ?? 0),
+                    fast: K.ITEM('s16', score.fast ?? 0),
+                    ex_gauge_lv: K.ITEM('s8', score.ex_gauge_lv ?? -1),
+                    hidden: K.ITEM('bool', opts.hidden ?? 0),
+                    hidden_rate: K.ITEM('s16', opts.hidden_rate ?? -1),
+                    sudden: K.ITEM('bool', opts.sudden ?? 0),
+                    sudden_rate: K.ITEM('s16', opts.sudden_rate ?? -1),
+                    hispeed: K.ITEM('s16', opts.hispeed ?? 10),
+                    popkun: K.ITEM('u8', opts.popkun ?? 0),
+                    randmir: K.ITEM('s8', opts.randmir ?? 0),
+                    ojama_0: K.ITEM('u8', opts.ojama_0 ?? 0),
+                    ojama_1: K.ITEM('u8', opts.ojama_1 ?? 0),
+                    forever_0: K.ITEM('bool', opts.forever_0 ?? 0),
+                    forever_1: K.ITEM('bool', opts.forever_1 ?? 0),
+                    full_setting: K.ITEM('bool', opts.full_setting ?? 1),
+                    guide_se: K.ITEM('s8', opts.guide_se ?? 0),
+                    guide_se_vol: K.ITEM('u8', opts.guide_se_vol ?? 3),
+                    lift: K.ITEM('bool', opts.lift ?? 0),
+                    lift_rate: K.ITEM('s16', opts.lift_rate ?? 0),
+                    judge_ad: K.ITEM('s8', opts.judge_ad ?? 0),
+                    roof: K.ITEM('s16', opts.roof ?? 0),
+                    long_pop: K.ITEM('s8', opts.long_pop ?? 1),
+                    judge: K.ITEM('u8', opts.judge ?? 1),
                 });
             }
             result.push(musicData);
@@ -351,6 +369,13 @@ const writeScore = async (req: EamuseInfo, data: any, send: EamuseSend): Promise
         sudden_rate: $(data).number('sudden_rate'),
         randmir: $(data).number('randmir'),
         gauge_type: $(data).number('gauge_type'),
+        ojama_0: $(data).number('ojama_0'),
+        ojama_1: $(data).number('ojama_1'),
+        forever_0: $(data).bool('forever_0') ? 1 : 0,
+        forever_1: $(data).bool('forever_1') ? 1 : 0,
+        full_setting: $(data).bool('full_setting') ? 1 : 0,
+        guide_se: $(data).number('guide_se'),
+        guide_se_vol: $(data).number('guide_se_vol'),
         lift: $(data).bool('lift') ? 1 : 0,
         lift_rate: $(data).number('lift_rate'),
         judge_ad: $(data).number('judge_ad'),
@@ -371,6 +396,18 @@ const writeScore = async (req: EamuseInfo, data: any, send: EamuseSend): Promise
         slow: $(data).number('slow'),
         fast: $(data).number('fast'),
         ex_gauge_lv: $(data).number('ex_gauge_lv'),
+        is_super_extra: $(data).number('is_super_extra'),
+        play_id: $(data).number('play_id'),
+        stage: $(data).number('stage'),
+        mode: $(data).number('mode'),
+        chara_num: $(data).number('chara_num'),
+        play_date: $(data).number('play_date'),
+        category: $(data).number('category'),
+        sub_category: $(data).number('sub_category'),
+        select_total_time: $(data).number('select_total_time'),
+        select_used_time: $(data).number('select_used_time'),
+        select_remain_time: $(data).number('select_remain_time'),
+        my_graph: $(data).numbers('my_graph'),
         options,
     };
 
@@ -399,11 +436,19 @@ const writeScore = async (req: EamuseInfo, data: any, send: EamuseSend): Promise
 
     await utils.writeScores(refid, version, scoresData);
 
-    // M39 sets this when the player asks the cabinet to retain the selected
-    // options. Save immediately rather than relying only on player.write.
-    if (version == 'v29' && isOptionSave) {
+    // `play_date` is a cabinet UTC timestamp (seconds). It is independent of
+    // the database document's update time and backs the WebUI's last-played
+    // field, so record it for every M39 chart result.
+    if (version == 'v29') {
         const params = await utils.readParams(refid, version);
-        Object.assign(params.params, options);
+        const playDate = detail.play_date;
+        if (Number.isFinite(playDate) && playDate > Number(params.params.m39_last_played_at || 0)) {
+            params.params.m39_last_played_at = playDate;
+        }
+        // M39 sets this when the player asks the cabinet to retain the
+        // selected options. Save immediately rather than relying only on
+        // player.write.
+        if (isOptionSave) Object.assign(params.params, options);
         await utils.writeParams(refid, version, params);
     }
 
@@ -418,6 +463,7 @@ const writeScore = async (req: EamuseInfo, data: any, send: EamuseSend): Promise
 const getProfile = async (refid: string, version: string, name?: string) => {
     const profile = await utils.readProfile(refid);
     const rivals = await utils.readRivals(refid);
+    const params = await utils.readParams(refid, version);
 
     if (name && name.length > 0) {
         profile.name = name;
@@ -426,6 +472,10 @@ const getProfile = async (refid: string, version: string, name?: string) => {
 
     let myBest = Array(10).fill(-1);
     const scores = await utils.readScores(refid, version, true);
+    const totalPlayCount = Object.values(scores.scores).reduce((total: number, score: any) => total + (Number(score.cnt) || 0), 0);
+    const todayPlayCount = version == 'v29' ? Number(params.params.m39_today_play_cnt || 0) : 0;
+    const totalDays = version == 'v29' ? Number(params.params.m39_total_days || 0) : 0;
+    const consecutiveDays = version == 'v29' ? Number(params.params.m39_consecutive_days || 0) : 0;
     if (Object.entries(scores.scores).length > 0) {
         const playCount = new Map();
         for (const key in scores.scores) {
@@ -451,19 +501,18 @@ const getProfile = async (refid: string, version: string, name?: string) => {
             name: K.ITEM('str', profile.name),
             g_pm_id: K.ITEM('str', profile.friendId),
             staff: K.ITEM('s8', 0),
-            item_type: K.ITEM('s16', 0),
-            item_id: K.ITEM('s16', 0),
+            item_type: K.ITEM('s16', params.params.profile_item_type || 0),
+            item_id: K.ITEM('s16', params.params.profile_item_id || 0),
             is_conv: K.ITEM('s8', 0),
             license_data: K.ARRAY('s16', Array(20).fill(-1)),
             my_best: K.ARRAY('s16', myBest),
             active_fr_num: K.ITEM('u8', rivals.rivals.length),
 
-            // TODO: replace with real data
-            total_play_cnt: K.ITEM('s16', 100),
-            today_play_cnt: K.ITEM('s16', 50),
-            consecutive_days: K.ITEM('s16', 365),
-            total_days: K.ITEM('s16', 366),
-            interval_day: K.ITEM('s16', 1),
+            total_play_cnt: K.ITEM('s16', totalPlayCount),
+            today_play_cnt: K.ITEM('s16', todayPlayCount),
+            consecutive_days: K.ITEM('s16', consecutiveDays),
+            total_days: K.ITEM('s16', totalDays),
+            interval_day: K.ITEM('s16', Number(params.params.m39_interval_day ?? -1)),
             latest_music: K.ARRAY('s16', [-1, -1, -1, -1, -1]),
         },
         netvs: {
@@ -501,6 +550,8 @@ const getProfile = async (refid: string, version: string, name?: string) => {
                 friendship: K.ITEM('s32', 0),
             },
         },
+        // player.read supplies the cross-version BEST record. M39 then asks
+        // player.read_score separately for its High Cheers-only VER BEST.
         music: await getScores(refid, version),
         mission: [],
         area: [],
@@ -512,7 +563,6 @@ const getProfile = async (refid: string, version: string, name?: string) => {
     };
 
     // Add version specific datas
-    let params = await utils.readParams(refid, version);
     utils.addExtraData(player, params, getExtraData(version));
 
     // High Cheers adds an empty event container even on a newly-created
@@ -583,7 +633,6 @@ const getProfile = async (refid: string, version: string, name?: string) => {
         const keyData = key.split(':');
         const type = parseInt(keyData[0], 10);
         const id = parseInt(keyData[1], 10);
-
 
         player.item.push({
             type: K.ITEM('u8', type),
@@ -781,6 +830,40 @@ const write = async (req: EamuseInfo, data: any, send: EamuseSend): Promise<any>
     const achievements = <AchievementsUsaneko>await utils.readAchievements(refid, version, { ...defaultAchievements, version });
 
     utils.getExtraData(data, params, getExtraData(version, true));
+
+    if (version == 'v29') {
+        // player.write is emitted once when a session ends. Unlike the old
+        // placeholder values, maintain these account counters from the
+        // actual stage list without double-counting write_music calls.
+        const day = new Date().toISOString().slice(0, 10);
+        const previousDay = String(params.params.m39_last_play_day || '');
+        const stageCount = getNodesAsArray(data, 'stage').length;
+        // These are cabinet sessions, not charts. High Cheers supplies the
+        // selected payment/play mode as start_type on the final player.write.
+        const modeField: Record<number, string> = {
+            1: 'm39_mode_normal',
+            2: 'm39_mode_extra',
+            3: 'm39_mode_time10',
+            4: 'm39_mode_time16',
+        };
+        const startType = $(data.account).number('start_type', -1);
+        if (modeField[startType]) {
+            const field = modeField[startType];
+            params.params[field] = Number(params.params[field] || 0) + 1;
+        }
+        if (previousDay === day) {
+            params.params.m39_today_play_cnt = Number(params.params.m39_today_play_cnt || 0) + stageCount;
+        } else {
+            const previous = previousDay ? new Date(`${previousDay}T00:00:00Z`).getTime() : 0;
+            const current = new Date(`${day}T00:00:00Z`).getTime();
+            params.params.m39_today_play_cnt = stageCount;
+            params.params.m39_total_days = Number(params.params.m39_total_days || 0) + 1;
+            params.params.m39_consecutive_days = previous && current - previous === 86400000
+                ? Number(params.params.m39_consecutive_days || 0) + 1 : 1;
+            params.params.m39_interval_day = previous ? Math.max(0, Math.round((current - previous) / 86400000) - 1) : -1;
+            params.params.m39_last_play_day = day;
+        }
+    }
 
     // areas
     if (!achievements.areas) {
@@ -1115,6 +1198,7 @@ const friend = async (req: EamuseInfo, data: any, send: EamuseSend): Promise<any
 
     send.object(friend);
 }
+
 const getPhase = (version: String): Phase[] => {
     let phase = [];
     switch(version) {
@@ -1175,7 +1259,7 @@ const getNodesAsArray = (data: any, nodeName: string): any[] => {
 let isOmni = false;
 
 const getVersion = (req: EamuseInfo): string => {
-    if (req.model.indexOf('J:A:X') >= 0 || req.model.indexOf('J:B:X') >= 0 || req.model.indexOf('J:C:X') >= 0|| req.model.indexOf('J:D:X') >= 0) {
+    if (req.model.indexOf('J:A:X') >= 0 || req.model.indexOf('J:B:X') >= 0 || req.model.indexOf('J:C:X') >= 0) {
         isOmni = true;
     }
 
@@ -1186,9 +1270,7 @@ const getVersion = (req: EamuseInfo): string => {
     }
 
     const date: number = parseInt(req.model.match(/:(\d*)$/)[1]);
-    if (date >= 2025121500) {
-        return 'v29';
-    }else if (date >= 2024092500) {
+    if (date >= 2024092500) {
         return 'v28';
     } else if (date >= 2022091300 && date < 2024092500) {
         return 'v27';
@@ -1316,8 +1398,8 @@ const EXTRA_DATA_COMMON: ExtraData = {
     tutorial: { type: 's16', path: 'account', default: -1 },
     area_id: { type: 's16', path: 'account', default: 51 },
     read_news: { type: 's16', path: 'account', default: 0 },
-    nice: { type: 's16', path: 'account', default: Array(30).fill(-1), isArray: true },
-    favorite_chara: { type: 's16', path: 'account', default: Array(20).fill(-1), isArray: true },
+    nice: { type: 's16', path: 'account', default: Array(100).fill(-1), isArray: true },
+    favorite_chara: { type: 's16', path: 'account', default: Array(100).fill(-1), isArray: true },
     special_area: { type: 's16', path: 'account', default: Array(8).fill(-1), isArray: true },
     chocolate_charalist: { type: 's16', path: 'account', default: Array(5).fill(-1), isArray: true },
     chocolate_sp_chara: { type: 's32', path: 'account', default: 0 },
@@ -1415,6 +1497,10 @@ const EXTRA_DATA_V29: ExtraData = {
     popn_class: { type: 's8', path: 'account', default: 1 },
     read_policy: { type: 's16', path: 'account', default: 0 },
     language: { type: 's8', path: 'account', default: -1 },
+    // `ep` is the six-segment 超EXTRA gauge. `estatus` is the companion
+    // state flag sent at the end of a High Cheers session; both must round
+    // trip or the cabinet resets the gauge / skips Super Extra eligibility.
+    estatus: { type: 'u16', path: 'info', default: 0 },
     guide_se_vol: { type: 'u8', path: 'option', default: 3 },
     lift: { type: 'bool', path: 'option', default: 0 },
     lift_rate: { type: 's16', path: 'option', default: 0 },

@@ -29,6 +29,7 @@ export const addExtraData = (player: any, params: Params, extraData: ExtraData) 
         }
     }
 }
+
 export const getExtraData = (data: any, params: Params, extraData: ExtraData) => {
     for (const field in extraData) {
         const fieldName = field.replace(/(__\d*)/, '');

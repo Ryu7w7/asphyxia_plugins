@@ -2,6 +2,7 @@ export interface Phase {
   id: number,
   p: number,
 }
+
 export interface ExtraData {
   [field: string]: {
     path: string,

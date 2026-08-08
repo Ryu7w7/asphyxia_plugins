@@ -1,0 +1,59 @@
+div
+  .card
+    .card-header
+      p.card-header-title
+        span.icon
+          i.mdi.mdi-cog
+        | Asset Update
+    .card-content
+      h2.title.is-5 High Cheers WebUI Assets
+      .notification.is-info
+        | Set Game Data Directory in plugin Config to the game-data root (the folder containing plain_data), not plain_data or tex itself. Refresh downloads official WebUI thumbnails/status assets, imports optional data_mods XML overrides, and extracts only missing game previews. Game files are never changed.
+      .field
+        button.button.is-primary#popn-update-assets(type="button")
+          span.icon
+            i.mdi.mdi-refresh
+          span Refresh assets and player-data catalog
+      .field.is-grouped
+        .control
+          strong Asset storage: 
+          span#popn-asset-size Calculating...
+        .control
+          button.button.is-danger.is-light#popn-clear-assets(type="button") Clear generated assets
+      .field
+        label.label Extraction console
+        textarea.textarea#popn-update-log(rows="24" disabled)
+  script.
+    (() => {
+      const button = document.getElementById('popn-update-assets');
+      const log = document.getElementById('popn-update-log');
+      const size = document.getElementById('popn-asset-size');
+      const formatSize = (bytes) => bytes < 1024 * 1024 ? `${Math.ceil(bytes / 1024)} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+      const refreshSize = async () => { try { const response = await emit('getPnmAssetStorage'); const data = response && response.data ? response.data : response; size.textContent = formatSize(Number(data.bytes || 0)); } catch (_) { size.textContent = 'Unavailable'; } };
+      refreshSize();
+      document.getElementById('popn-clear-assets').addEventListener('click', async () => {
+        if (!confirm('Delete generated game assets and catalogs? They can be recreated with Refresh assets.')) return;
+        const response = await emit('clearPnmGeneratedAssets'); const data = response && response.data ? response.data : response;
+        log.value = (data.logs || []).join('\n'); await refreshSize();
+      });
+      button.addEventListener('click', async () => {
+        button.disabled = true;
+        log.value = 'Running extraction...\n';
+        const renderLogs = (data) => { const lines = (data && data.logs) || []; log.value = lines.join('\n'); log.scrollTop = log.scrollHeight; };
+        const poll = setInterval(async () => {
+          try { const response = await emit('getPnmAssetUpdateLog'); renderLogs(response && response.data ? response.data : response); } catch (_) { /* extraction can temporarily hold the event worker */ }
+        }, 300);
+        try {
+          const response = await emit('syncPnmDecorationAssets');
+          const data = response && response.data ? response.data : response;
+          renderLogs(data);
+          if (!log.value) log.value = 'No result returned.';
+        } catch (error) {
+          log.value += `ERROR: ${error}`;
+        } finally {
+          clearInterval(poll);
+        }
+        button.disabled = false;
+        refreshSize();
+      });
+    })();
