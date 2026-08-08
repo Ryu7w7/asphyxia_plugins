@@ -1,4 +1,4 @@
-# 🌌 Asphyxia CORE Community Plugins (Enhanced)
+# Asphyxia CORE Community Plugins (Enhanced)
 
 [![Asphyxia CORE](https://img.shields.io/badge/Asphyxia-CORE-blueviolet?style=for-the-badge)](https://asphyxia-core.github.io/)
 [![RyuNET Compatible](https://img.shields.io/badge/RyuNET-Compatible-blue?style=for-the-badge)](https://github.com/Ryu7w7/RyuNET-core)
@@ -9,26 +9,25 @@ Welcome to the enhanced version of the **Asphyxia CORE Community Plugins**. This
 
 ---
 
-## ✨ New & Exclusive Features
+## New Features
 
-### 🚀 Tachi Sync Scores
+### Tachi Sync Scores
 Synchronize your scores seamlessly with **Tachi**.
 - Automatic or manual score reporting.
 - Support for detailed play data.
 - Easy configuration via the WebUI.
 
-### 💾 Score Migration
+### Score Migration
 Easily move your data between game versions.
 - **Eg to Nabla**: Specialized handlers to migrate your SDVX profiles
 - Integrated database update checks to keep your data safe.
 
-### 🔗 RyuNET Compatibility
+### RyuNET Compatibility
 This version of the plugins is fully optimized and compatible with [RyuNET-core](https://github.com/Ryu7w7/RyuNET-core), ensuring a stable and high-performance environment for your private server.
 
 ---
 
-## 🛠 Installation
-
+## Installation
 1. **Pre-requisites**: Ensure you have [Asphyxia CORE](https://asphyxia-core.github.io/) installed.
 2. **Download**: Get the latest source code from this repository.
 3. **Setup**:
@@ -38,19 +37,7 @@ This version of the plugins is fully optimized and compatible with [RyuNET-core]
 
 ---
 
-## 🤝 Contributing
-
-Contributions are welcome! This project follows a flexible coding style, but a **Prettier** configuration is included if you'd like to maintain consistent formatting.
-
-- **New Plugins**: Please use the `@asphyxia` identifier (e.g., `gamename@asphyxia`) to avoid database conflicts.
-- **Existing Plugins**: If submitting a Pull Request, please include a clear changelog of your changes.
-
----
-
-## 💬 Community & Support
-
-Join us to discuss new features, report bugs, or just hang out with other rhythm game enthusiasts!
-
+## Others
 - **RyuNET Discord**: [Join here](https://discord.gg/R6xUSKSykQ)
 - **Asphyxia Discord**: [Join here](https://discord.gg/3TW3BDm)
 - **Documentation**: [Asphyxia TypeDoc](https://asphyxia-core.github.io/typedoc/)
