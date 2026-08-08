@@ -17,6 +17,13 @@ const appendAssetUpdateLog = (message: string): void => {
   console.log(`[popn] ${message}`);
 };
 
+// 128x128 gray placeholder with a light border, written as
+// catalog/character/icon-missing.png so the profile page never 404s.
+const ICON_MISSING_PNG = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAIAAAACACAYAAADDPmHLAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAIvSURBVHhe7dehDYAwGAXh7j8FkhGYigSDLQF5gqC5E5/5K9+ZjmXdZpz245yDx3gUgFwByBWAXAHIvQZwP+YfuG0ByHDbApDhtgUgw20LQIbbFoAMty0AGW5bADLctgBkuG0ByHDbApDhtgUgw20LQIbbFoAMty0AGW5bADLctgBkuG0ByHDbApDhtgUgw20LQIbbFoAMty0AGW5bADLctgBkuG0ByHDbApDhtgUgw20LQIbbFoAMty0AGW5bADLctgBkuG0ByHDbApDhtgUgw20LQIbbFoAMty0AGW5bADLctgBkuG0ByHDbApDhtgUgw20LQIbbFoAMty0AGW5bADLctgBkuG0ByHDbApDhtgUgw20LQIbbFoAMty0AGW5bADLctgBkuG0ByHDbApDhtgUgw20LQIbbFoAMty0AGW5bADLctgBkuG0ByHDbApDhtgUgw20LQIbbFoAMty0AGW5bADLctgBkuG0ByHDbApDhtgUgw20LQIbbFoAMty0AGW5bADLctgBkuG0ByHDbApDhtgUgw20LQIbbFoAMty0AGW5bADLctgBkuG0ByHDbApDhtgUgw20LQIbbFoAMty0AGW5bADLctgBkuG0ByHDbApDhtgUgw20LQIbbFoAMty0AGW5bADLctgBkuG0ByHDbApDhtgUgw20LQIbbFoAMty0AGW5bADLctgBkuG0ByHDbApDhtp8CyP8VgFwByBWAXAHIFYDcEwC/DHG5ALYanY704iH4AAAAAElFTkSuQmCC',
+  'base64'
+);
+
 export const getPopnAssetUpdateLog = async (_data: any, send?: WebUISend) => send?.json({ logs: assetUpdateLogBuffer });
 
 const getAssetRoot = (): string => path.resolve('plugins', 'popn@asphyxia', 'webui', 'asset');
@@ -234,6 +241,57 @@ const findCharacterIfs = (gameRoot: string, folder: string): string | undefined 
   const expression = new RegExp(`^${escaped}_.+\\.ifs$`, 'i');
   for (const [name, source] of index) if (expression.test(name)) return source;
   return undefined;
+};
+
+const portraitArchiveCache = new Map<string, { stamp: number; root: string }>();
+
+const getPortraitArchiveRoot = async (runtime: IfsRuntime | undefined, gameRoot: string, letter: '23' | '29'): Promise<string | undefined> => {
+  const texRoot = path.join(gameRoot, 'plain_data', 'tex', 'system');
+  const source = path.join(texRoot, `ha_chara_${letter}_jka.ifs`);
+  if (!runtime || !fs.existsSync(source)) return undefined;
+  const stamp = fs.statSync(source).size;
+  const cached = portraitArchiveCache.get(source);
+  if (cached && cached.stamp === stamp && fs.existsSync(cached.root)) return cached.root;
+  const root = path.join(getAssetRoot(), 'catalog', 'character', `_ha_${letter}`);
+  const marker = path.join(root, '.done');
+  if (fs.existsSync(marker) && fs.readFileSync(marker, 'utf8') === `${stamp}`) {
+    portraitArchiveCache.set(source, { stamp, root });
+    return root;
+  }
+  fs.rmSync(root, { recursive: true, force: true });
+  fs.mkdirSync(root, { recursive: true });
+  await extractIfsArchive(runtime, source, root);
+  fs.writeFileSync(marker, `${stamp}`);
+  portraitArchiveCache.set(source, { stamp, root });
+  return root;
+};
+
+const findCharacterPortrait = (root: string, folder: string): string | undefined => {
+  if (!folder) return undefined;
+  const archiveDir = fs.readdirSync(root, { withFileTypes: true }).find((entry) => entry.isDirectory() && entry.name.startsWith('ha_chara_') && entry.name.endsWith('_ifs'));
+  if (!archiveDir) return undefined;
+  const candidate = path.join(root, archiveDir.name, `ha_${folder}_ifs`, `ha_${folder}.png`);
+  return fs.existsSync(candidate) ? candidate : undefined;
+};
+
+const extractCharacterArtwork = async (runtime: IfsRuntime, gameRoot: string, character: CharacterCatalogEntry, characterOutput: string): Promise<string | undefined> => {
+  const output = path.join(characterOutput, `${character.id}.png`);
+  const portraitArchive = await getPortraitArchiveRoot(runtime, gameRoot, '23');
+  const portrait = portraitArchive && findCharacterPortrait(portraitArchive, character.folder || '');
+  if (portrait) {
+    fs.copyFileSync(portrait, output);
+    return `catalog/character/${character.id}.png`;
+  }
+  const source = findCharacterIfs(gameRoot, character.folder || '');
+  if (!source) return undefined;
+  const temporary = path.join(characterOutput, `_ifs_${character.id}`);
+  fs.mkdirSync(temporary, { recursive: true });
+  await extractIfsArchive(runtime, source, temporary);
+  const images = listPngFiles(temporary).filter((image) => !path.basename(image).startsWith('_canvas_'));
+  if (!images.length) return undefined;
+  const portraitImage = images.find((image) => path.basename(image).toLowerCase() === 'f.png');
+  fs.copyFileSync(portraitImage || images.sort((a, b) => fs.statSync(b).size - fs.statSync(a).size)[0], output);
+  return `catalog/character/${character.id}.png`;
 };
 
 const parseMusicCatalog = (files: string[]): MusicCatalogEntry[] => {
@@ -467,9 +525,9 @@ const findIfsRuntime = async (log: (message: string) => void): Promise<IfsRuntim
 
 const extractIfsArchive = async (runtime: IfsRuntime, source: string, output: string): Promise<void> => {
   if (runtime.kind === 'python') {
-    await execFileAsync(runtime.executable, ['-c', 'from ifstools.ifstools import main; main()', '--tex-only', '--silent', '-y', '-o', output, source], { timeout: 120000, env: { ...process.env, PYTHONPATH: runtime.sitePackages } });
+    await execFileAsync(runtime.executable, ['-c', 'from ifstools.ifstools import main; main()', '--tex-only', '--silent', '-y', '-o', output, source], { timeout: 600000, env: { ...process.env, PYTHONPATH: runtime.sitePackages } });
   } else {
-    await execFileAsync(runtime.executable, ['--tex-only', '--silent', '-y', '-o', output, source], { timeout: 120000 });
+    await execFileAsync(runtime.executable, ['--tex-only', '--silent', '-y', '-o', output, source], { timeout: 600000 });
   }
 };
 
@@ -657,6 +715,12 @@ export const syncPopnDecorationAssets = async (_data: any, send?: WebUISend) => 
 
   const characterOutput = path.join(catalogRoot, 'character');
   fs.mkdirSync(characterOutput, { recursive: true });
+  // Fallback icon written once so the profile page never 404s, even for
+  // characters whose icon archive or per-character art is missing.
+  const iconMissingPath = path.join(characterOutput, 'icon-missing.png');
+  if (!fs.existsSync(iconMissingPath) || fs.statSync(iconMissingPath).size !== ICON_MISSING_PNG.length) {
+    fs.writeFileSync(iconMissingPath, ICON_MISSING_PNG);
+  }
   const iconImages = new Map<string, string>();
   const iconSource = path.join(gameRoot, 'plain_data', 'tex', 'system', 'icon.ifs');
   if (fs.existsSync(iconSource)) {
@@ -667,30 +731,28 @@ export const syncPopnDecorationAssets = async (_data: any, send?: WebUISend) => 
       for (const image of listPngFiles(iconTemporary)) iconImages.set(path.basename(image).toLowerCase(), image);
     } catch (error) { log(`ERROR character icon archive: ${String(error)}`); }
   }
-  for (const character of selectedCharacters) {
-    log(`CHARACTER ${character.id}: ${character.name}`);
-    const icon = character.icon ? iconImages.get(`${character.icon}.png`.toLowerCase()) : undefined;
+  // Portraits are a few kilobytes each, so copy them for the whole catalog;
+  // this keeps the profile page working even before any character is played.
+  let iconCopied = 0;
+  for (const character of characterCatalog) {
+    const exactIcon = character.icon ? iconImages.get(`${character.icon}.png`.toLowerCase()) : undefined;
+    const folderIcon = !exactIcon && character.folder ? iconImages.get(`cs_${character.folder}.png`.toLowerCase()) : undefined;
+    const icon = exactIcon || folderIcon;
     if (icon) {
       const output = path.join(characterOutput, `icon-${character.id}.png`);
       fs.copyFileSync(icon, output);
+      if (folderIcon && character.icon !== `cs_${character.folder}`) character.icon = `cs_${character.folder}`;
       character.iconImage = `catalog/character/icon-${character.id}.png`;
+      iconCopied++;
     }
-    const source = findCharacterIfs(gameRoot, character.folder || '');
-    if (!source) continue;
-    const temporary = path.join(characterOutput, `_ifs_${character.id}`);
-    fs.mkdirSync(temporary, { recursive: true });
+  }
+  log(`Character portraits: ${iconCopied}/${characterCatalog.length} icons available.`);
+  for (const character of selectedCharacters) {
+    log(`CHARACTER ${character.id}: ${character.name}`);
     try {
-      await extractIfsArchive(python, source, temporary);
-      const images = listPngFiles(temporary).filter((image) => !path.basename(image).startsWith('_canvas_'));
-      if (images.length) {
-        // The first texture is the game-provided character art. Copy it to a
-        // stable ID filename so the WebUI can reference it without knowing
-        // the archive's internal layout.
-        const output = path.join(characterOutput, `${character.id}.png`);
-        fs.copyFileSync(images.sort((a, b) => fs.statSync(b).size - fs.statSync(a).size)[0], output);
-        character.image = `catalog/character/${character.id}.png`;
-      }
-    } catch (error) { log(`ERROR character ${character.id} (${path.basename(source)}): ${String(error)}`); }
+      const image = await extractCharacterArtwork(python, gameRoot, character, characterOutput);
+      if (image) character.image = image;
+    } catch (error) { log(`ERROR character ${character.id}: ${String(error)}`); }
   }
   fs.writeFileSync(path.join(catalogRoot, 'character.json'), JSON.stringify(characterCatalog, null, 2));
   if (dllMusicCatalog.length) log(`Catalog: extracted ${dllMusicCatalog.length} base songs directly from modules\\popn.dll.`);
@@ -702,3 +764,62 @@ export const syncPopnDecorationAssets = async (_data: any, send?: WebUISend) => 
   log(`Done: ${sealPreviews.length} seal previews, ${seatPreviews.length} seat previews, ${touchCatalog.length} touch themes, ${covers.length + stages.length + highlights.length} play assets.`);
   send?.json({ status: 'ok', logs: assetUpdateLogBuffer, decorations: sealPreviews.length, seats: seatPreviews.length, touchThemes: touchCatalog.length, playAssets: covers.length + stages.length + highlights.length, songs: musicCatalog.length, characters: characterCatalog.length });
 };
+
+// Extract the full-body artwork for a single character on demand, keeping the
+// profile page up to date even after the profile's chosen character changes.
+export const syncPopnCharacterArt = async (data: any, send?: WebUISend) => {
+  assetUpdateLogBuffer.length = 0;
+  const log = (message: string) => appendAssetUpdateLog(message);
+  const gameRoot = String(U.GetConfig('popn_m39_root_dir') || '').trim();
+  const id = Number.parseInt(String(data?.characterId ?? data?.id ?? ''), 10);
+  if (!gameRoot) {
+    log('ERROR: Configure a valid Game Data Directory first.');
+    send?.json({ status: 'error', logs: assetUpdateLogBuffer });
+    return;
+  }
+  if (!Number.isInteger(id) || id < 0) {
+    log(`ERROR: Invalid character id: ${String(data?.characterId ?? data?.id)}`);
+    send?.json({ status: 'error', logs: assetUpdateLogBuffer });
+    return;
+  }
+  const python = await findIfsRuntime(log);
+  if (!python) {
+    log('ERROR: ifstools runtime is unavailable. The asset refresh needs ifstools (portable Python build or the official ifstools.exe, which this page can download automatically).');
+    send?.json({ status: 'error', logs: assetUpdateLogBuffer });
+    return;
+  }
+  const assetRoot = getAssetRoot();
+  const catalogRoot = path.join(assetRoot, 'catalog');
+  const catalogPath = path.join(catalogRoot, 'character.json');
+  if (!fs.existsSync(catalogPath)) {
+    log('ERROR: character.json not found. Run a full asset update first.');
+    send?.json({ status: 'error', logs: assetUpdateLogBuffer });
+    return;
+  }
+  const characterCatalog = JSON.parse(fs.readFileSync(catalogPath, 'utf8')) as CharacterCatalogEntry[];
+  const character = characterCatalog.find((entry) => entry.id === id);
+  if (!character) {
+    log(`ERROR: Character ${id} is not in the local catalog.`);
+    send?.json({ status: 'error', logs: assetUpdateLogBuffer });
+    return;
+  }
+  const characterOutput = path.join(catalogRoot, 'character');
+  fs.mkdirSync(characterOutput, { recursive: true });
+  try {
+    const image = await extractCharacterArtwork(python, gameRoot, character, characterOutput);
+    if (!image) {
+      log(`ERROR: No character archive found for ${character.name} (folder "${character.folder || '?'}").`);
+      send?.json({ status: 'error', logs: assetUpdateLogBuffer });
+      return;
+    }
+    character.image = image;
+    fs.writeFileSync(catalogPath, JSON.stringify(characterCatalog, null, 2));
+    log(`Character ${character.id} (${character.name}) artwork extracted: ${image}`);
+    send?.json({ status: 'ok', image, characterId: id, logs: assetUpdateLogBuffer });
+  } catch (error) {
+    log(`ERROR character ${character.id}: ${String(error)}`);
+    send?.json({ status: 'error', logs: assetUpdateLogBuffer });
+  }
+};
+
+

@@ -60,6 +60,8 @@ div
     .popn-status { display: grid; grid-template-columns: minmax(180px, .8fr) minmax(300px, 1fr); gap: 1.25rem; padding: 1.1rem 1.4rem; }
     .popn-character-placeholder { display: flex; min-height: 255px; align-items: center; justify-content: center; overflow:hidden; border: 7px solid #8f6fcd; border-radius: 22px; background: repeating-linear-gradient(135deg,#fff6bd 0 18px,#e4f7df 18px 36px); color: #514184; text-align: center; font-size: 1.1rem; font-weight: bold; }
     .popn-character-placeholder > img { display:block; width:100%; height:100%; min-height:255px; object-fit:cover; object-position:center; }
+    .popn-character-placeholder button { position:absolute; left:50%; bottom:12px; transform:translateX(-50%); border:0; border-radius:12px; padding:.5rem .95rem; background:#ff5880; color:#fff; font-weight:900; cursor:pointer; box-shadow:0 2px 0 #9d2f4b; }
+    .popn-character-placeholder button:hover { filter:brightness(1.08); }
     .popn-status-list { margin: 0; } .popn-status-list div { display: grid; grid-template-columns: 155px 1fr; min-height: 2.15rem; align-items: center; border-bottom: 2px solid #343b65; } .popn-status-list dt { font-weight: 800; } .popn-status-list dt:before { content: '◆'; color: #2e539c; margin-right: .25rem; } .popn-character-detail { display:flex; min-height:42px; align-items:center; gap:.5rem; } .popn-character-detail img { width:44px; height:44px; object-fit:cover; } .popn-character-detail img[hidden] { display:none; } .popn-super-extra { display:block; width:auto; height:30px; max-width:100%; object-fit:contain; }
     .popn-mode-table { width:100%; margin:.3rem 0 .8rem; border-collapse:collapse; color:#08205c; font-size:.88rem; font-weight:800; } .popn-mode-table td { padding:.3rem .45rem; } .popn-mode-table td:first-child { width:155px; white-space:nowrap; } .popn-mode-table tr:nth-child(1) { background:#d9ffb5; } .popn-mode-table tr:nth-child(2) { background:#ffd69b; } .popn-mode-table tr:nth-child(3) { background:#efc5fa; } .popn-mode-table tr:nth-child(4) { background:#efd3fa; } .popn-setting-grid { display:grid; grid-template-columns:repeat(4, 1fr); gap:.55rem; margin-top:.75rem; } .popn-setting-grid div { min-height:76px; padding:.6rem .35rem; border:3px solid #8dc6da; border-radius:9px; background:linear-gradient(135deg,#fffef1,#eaf8ff); color:#173a7a; text-align:center; } .popn-setting-label { display:block; font-size:.76rem; font-weight:900; letter-spacing:.05em; } .popn-setting-value { display:block; margin-top:.35rem; font-size:1.35rem; font-weight:900; line-height:1; } .popn-setting-icon { display:block; width:auto; height:29px; max-width:55px; margin:.35rem auto 0; object-fit:contain; } .popn-popclass { display:flex; flex-direction:column; align-items:flex-start; gap:.2rem; } .popn-popclass img { width:76px; height:76px; object-fit:contain; } .popn-popclass span { min-width:76px; text-align:center; font-weight:800; }
     .popn-song-table { width: 100%; border-collapse: collapse; font-size: .9rem; } .popn-song-table th { padding: .45rem; border-bottom: 2px solid #41416b; background: #d9d9df; } .popn-song-table td { padding: .45rem; border-bottom: 1px solid #555675; text-align: center; } .popn-song-table td:first-child { min-width: 205px; background:#eeeeee; text-align:left; } .popn-song-table th:nth-child(2), .popn-song-table td:nth-child(2) { background:#d9eeff; } .popn-song-table th:nth-child(3), .popn-song-table td:nth-child(3) { background:#def9c4; } .popn-song-table th:nth-child(4), .popn-song-table td:nth-child(4) { background:#fffbc9; } .popn-song-table th:nth-child(5), .popn-song-table td:nth-child(5) { background:#f8d5fc; } .popn-song-title { display:block; color:#9a3864; font-weight:bold; } .popn-song-id { display:block; color:#62667d; font-size:.78rem; } .popn-score-record { display:flex; flex-direction:column; align-items:center; gap:.08rem; line-height:1; } .popn-score-art { display:flex; justify-content:center; align-items:center; height:22px; gap:2px; } .popn-score-art img { max-width:26px; max-height:21px; object-fit:contain; } .popn-score-number { font-size:.78rem; }
@@ -69,6 +71,7 @@ div
       h2.popn-playdata-title() Status
       .popn-status
         .popn-character-placeholder#popn-character-preview(data-character-id=playParams.chara != null ? playParams.chara : '')
+          button#popn-character-extract(type="button" hidden) Extract artwork
         div
           dl.popn-status-list
             div
@@ -189,6 +192,7 @@ div
     .popn-deco-slot { position: absolute; width: 240px; min-height: 170px; }
     .popn-deco-slot label { display: block; margin: 0 0 .25rem; color: #4a4a4a; font-size: .8rem; font-weight: 700; }
     .popn-deco-thumb { display:block; width:220px; height:150px; margin:.55rem auto 0; object-fit:contain; }
+    .popn-deco-thumb[hidden] { display: none; }
     .popn-deco-slot[data-slot="0"] { left: 0; top: 32px; } .popn-deco-slot[data-slot="1"] { left: 0; top: 306px; }
     .popn-deco-slot[data-slot="2"] { left: 50%; top: 0; transform: translateX(-50%); } .popn-deco-slot[data-slot="3"] { left: 50%; top: 205px; transform: translateX(-50%); } .popn-deco-slot[data-slot="4"] { left: 50%; top: 410px; transform: translateX(-50%); }
     .popn-deco-slot[data-slot="5"] { right: 0; top: 32px; } .popn-deco-slot[data-slot="6"] { right: 0; top: 306px; }
@@ -242,12 +246,12 @@ div
                 const label = document.createElement('label'); label.htmlFor = select.id; label.textContent = labels[slot];
                 const control = document.createElement('div'); control.className = 'select is-fullwidth'; control.append(select);
                 const thumbnail = document.createElement('img'); thumbnail.className = 'popn-deco-thumb'; thumbnail.alt = `${labels[slot]} thumbnail`;
-              const updateThumbnail = () => { const item = items.find((entry) => String(entry.id) === select.value); const fallback = gameSeals.find((entry) => String(entry.id) === select.value); thumbnail.onerror = () => { if (fallback && item !== fallback) { thumbnail.onerror = null; thumbnail.src = `static/asset/${fallback.image}`; } else thumbnail.hidden = true; }; thumbnail.src = item ? `static/asset/${item.image}` : ''; thumbnail.hidden = !item; };
+              const updateThumbnail = () => { const item = items.find((entry) => String(entry.id) === select.value); const fallback = gameSeals.find((entry) => String(entry.id) === select.value); thumbnail.onerror = () => { if (fallback && item !== fallback) { thumbnail.onerror = null; thumbnail.src = `static/asset/${fallback.image}`; } else thumbnail.hidden = true; }; if (item) { thumbnail.src = `static/asset/${item.image}`; thumbnail.hidden = false; } else { thumbnail.removeAttribute('src'); thumbnail.hidden = true; } };
                 select.addEventListener('change', updateThumbnail); updateThumbnail();
                 const wrapper = document.createElement('div'); wrapper.className = 'popn-deco-slot'; wrapper.dataset.slot = String(slot); wrapper.append(label, control, thumbnail); picker.append(wrapper);
               }
               const seat = document.getElementById('popn-decoration-seat'); const seatThumbnail = document.getElementById('popn-decoration-seat-thumb'); makeOptions(seat, 'None', seatItems); seat.value = String(savedSeat || 0);
-              const updateSeatThumbnail = () => { const item = seatItems.find((entry) => String(entry.id) === seat.value); const fallback = gameSeats.find((entry) => String(entry.id) === seat.value); seatThumbnail.onerror = () => { if (fallback && item !== fallback) { seatThumbnail.onerror = null; seatThumbnail.src = `static/asset/${fallback.image}`; } else seatThumbnail.hidden = true; }; seatThumbnail.src = item ? `static/asset/${item.image}` : ''; seatThumbnail.hidden = !item; };
+              const updateSeatThumbnail = () => { const item = seatItems.find((entry) => String(entry.id) === seat.value); const fallback = gameSeats.find((entry) => String(entry.id) === seat.value); seatThumbnail.onerror = () => { if (fallback && item !== fallback) { seatThumbnail.onerror = null; seatThumbnail.src = `static/asset/${fallback.image}`; } else seatThumbnail.hidden = true; }; if (item) { seatThumbnail.src = `static/asset/${item.image}`; seatThumbnail.hidden = false; } else { seatThumbnail.removeAttribute('src'); seatThumbnail.hidden = true; } };
               seat.addEventListener('change', updateSeatThumbnail); updateSeatThumbnail();
             });
         })();
@@ -403,13 +407,36 @@ div
         if (!character) return;
         const detail = document.getElementById('popn-character-detail'); const icon = document.getElementById('popn-character-icon');
         detail.textContent = character.name;
-        // Keep a visible broken-image marker when this dump's icon.ifs has no
-        // matching source icon; do not substitute the full-body character art.
-        icon.src = character.iconImage ? `static/asset/${character.iconImage}` : `static/asset/catalog/character/icon-missing-${character.id}.png`;
+        // iconImage is the pre-copied portrait (icon-<id>.png). When this dump
+        // predates that step, fall back to the raw extracted icon archive, then
+        // to the generated placeholder. Never show a broken image.
+        const iconFallback = character.icon ? `static/asset/catalog/character/_icon_ifs/icon_ifs/${character.icon}.png` : null;
+        const iconSource = character.iconImage ? `static/asset/${character.iconImage}` : iconFallback || `static/asset/catalog/character/icon-missing.png`;
+        icon.src = iconSource;
         icon.hidden = false;
-        if (character.image) {
-          const image = document.createElement('img'); image.src = `static/asset/${character.image}`; image.alt = character.name;
+        icon.onerror = () => { icon.src = `static/asset/catalog/character/icon-missing.png`; };
+        const art = character.image ? `static/asset/${character.image}` : null;
+        if (art) {
+          const image = document.createElement('img'); image.src = art; image.alt = character.name;
           image.style.cssText = 'width:100%;height:100%;min-height:255px;object-fit:cover;object-position:center;'; image.onerror = () => image.remove(); preview.prepend(image);
+        } else {
+          // No full-body art extracted for this character yet. Fill the
+          // placeholder with the portrait icon and offer one-click extraction.
+          const image = document.createElement('img'); image.src = icon.src; image.alt = character.name;
+          image.style.cssText = 'width:100%;height:100%;min-height:255px;object-fit:contain;background:transparent;'; image.onerror = () => image.remove(); preview.prepend(image);
+          const extract = document.getElementById('popn-character-extract'); if (!extract) return;
+          extract.hidden = false;
+          extract.onclick = async () => {
+            extract.disabled = true; extract.textContent = 'Extracting...';
+            try {
+              const response = await fetch('/emit/syncPnmCharacterArt', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ characterId: preview.dataset.characterId }) });
+              const result = await response.json();
+              if (result && result.status === 'ok' && result.image) location.reload();
+              else { extract.textContent = `Failed (${result && result.logs && result.logs.length ? result.logs[result.logs.length - 1] : 'no data dir?'})`; extract.disabled = false; }
+            } catch {
+              extract.textContent = 'Failed to reach server'; extract.disabled = false;
+            }
+          };
         }
       });
     })();

@@ -100,7 +100,7 @@ def extract(filename):
                 break
             continue
         empty_run = 0
-        icon = text(u64(data, row + 0x28))
+        icon = text(u64(data, row + 0x20))
         catalog.append({'id': chara_id, 'name': display_name, 'folder': folder, 'icon': icon or None})
     return catalog
 

@@ -4,7 +4,7 @@ import * as sunny from "./handler/sunny";
 import * as lapistoria from "./handler/lapistoria";
 import * as eclale from "./handler/eclale";
 import * as usaneko from "./handler/usaneko";
-import { clearPopnGeneratedAssets, getPopnAssetStorage, getPopnAssetUpdateLog, syncPopnDecorationAssets } from './handler/webui';
+import { clearPopnGeneratedAssets, getPopnAssetStorage, getPopnAssetUpdateLog, syncPopnCharacterArt, syncPopnDecorationAssets } from './handler/webui';
 import { Rivals } from "./models/common";
 
 const getVersion = (req: any) => {
@@ -97,6 +97,7 @@ export function register() {
   });
 
   R.WebUIEvent('syncPnmDecorationAssets', syncPopnDecorationAssets);
+  R.WebUIEvent('syncPnmCharacterArt', syncPopnCharacterArt);
 
   R.WebUIEvent('updatePnmTouchTheme', async (data: any) => {
     const refid = String(data.refid || '').trim();
