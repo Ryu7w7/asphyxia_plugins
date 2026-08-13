@@ -222,12 +222,16 @@ const getCharacterIfsIndex = (gameRoot: string): Map<string, string> => {
     .filter((entry) => entry.isDirectory())
     .map((entry) => entry.name)
     .sort((a, b) => (a === '29' ? -1 : b === '29' ? 1 : b.localeCompare(a, undefined, { numeric: true })));
-  for (const version of versionDirs) {
-    const dir = path.join(texRoot, version);
-    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-      if (entry.isFile() && entry.name.toLowerCase().endsWith('.ifs') && !index.has(entry.name.toLowerCase())) index.set(entry.name.toLowerCase(), path.join(dir, entry.name));
+  // Bug 1 fix: scan recursively so IFS files in subdirectories are also indexed.
+  const indexIfsDir = (directory: string): void => {
+    for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+      const fullPath = path.join(directory, entry.name);
+      if (entry.isDirectory()) indexIfsDir(fullPath);
+      else if (entry.isFile() && entry.name.toLowerCase().endsWith('.ifs') && !index.has(entry.name.toLowerCase()))
+        index.set(entry.name.toLowerCase(), fullPath);
     }
-  }
+  };
+  for (const version of versionDirs) indexIfsDir(path.join(texRoot, version));
   characterIfsIndex.set(gameRoot, index);
   return index;
 };
@@ -239,7 +243,13 @@ const findCharacterIfs = (gameRoot: string, folder: string): string | undefined 
   if (exact) return exact;
   const escaped = folder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const expression = new RegExp(`^${escaped}_.+\\.ifs$`, 'i');
-  for (const [name, source] of index) if (expression.test(name)) return source;
+  // Bug 2 fix: exclude _diff variants (they have no tex node and will always produce
+  // zero images), then pick the candidate with the fewest extra suffix characters so
+  // akane_22a.ifs is preferred over akane_22a_hi.ifs / akane_22a_a.ifs etc.
+  const candidates = [...index.entries()]
+    .filter(([name]) => expression.test(name) && !/_diff\.ifs$/i.test(name))
+    .sort(([a], [b]) => a.length - b.length);
+  if (candidates.length) return candidates[0][1];
   return undefined;
 };
 
@@ -268,18 +278,37 @@ const getPortraitArchiveRoot = async (gameRoot: string, letter: '23' | '29'): Pr
 
 const findCharacterPortrait = (root: string, folder: string): string | undefined => {
   if (!folder) return undefined;
-  const archiveDir = fs.readdirSync(root, { withFileTypes: true }).find((entry) => entry.isDirectory() && entry.name.startsWith('ha_chara_') && entry.name.endsWith('_ifs'));
-  if (!archiveDir) return undefined;
-  const candidate = path.join(root, archiveDir.name, `ha_${folder}_ifs`, `ha_${folder}.png`);
-  return fs.existsSync(candidate) ? candidate : undefined;
+  // Bug 4 fix: scan all archive subdirectories ending in _ifs (not just ha_chara_* ones),
+  // try the canonical path first, then fall back to the largest PNG in the folder subdir.
+  const archiveDirs = fs.readdirSync(root, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory() && entry.name.endsWith('_ifs'));
+  for (const archiveDir of archiveDirs) {
+    const subDir = path.join(root, archiveDir.name, `ha_${folder}_ifs`);
+    if (!fs.existsSync(subDir)) continue;
+    const canonical = path.join(subDir, `ha_${folder}.png`);
+    if (fs.existsSync(canonical)) return canonical;
+    // Fallback: largest PNG in the character subdirectory (same heuristic as individual IFS).
+    const images = listPngFiles(subDir).filter((img) => !path.basename(img).startsWith('_canvas_'));
+    if (images.length) return images.sort((a, b) => fs.statSync(b).size - fs.statSync(a).size)[0];
+  }
+  return undefined;
 };
 
 const extractCharacterArtwork = async (gameRoot: string, character: CharacterCatalogEntry, characterOutput: string): Promise<string | undefined> => {
   const output = path.join(characterOutput, `${character.id}.png`);
-  const portraitArchive = await getPortraitArchiveRoot(gameRoot, '23');
-  const portrait = portraitArchive && findCharacterPortrait(portraitArchive, character.folder || '');
-  if (portrait) {
-    fs.copyFileSync(portrait, output);
+  // Check ha_chara_23 (older versions) first.
+  const portraitArchive23 = await getPortraitArchiveRoot(gameRoot, '23');
+  const portrait23 = portraitArchive23 && findCharacterPortrait(portraitArchive23, character.folder || '');
+  if (portrait23) {
+    fs.copyFileSync(portrait23, output);
+    return `catalog/character/${character.id}.png`;
+  }
+  // Bug 3 fix: also try ha_chara_29 (High Cheers / M39 portrait archive) before
+  // falling back to extracting individual IFS files, which is much slower.
+  const portraitArchive29 = await getPortraitArchiveRoot(gameRoot, '29');
+  const portrait29 = portraitArchive29 && findCharacterPortrait(portraitArchive29, character.folder || '');
+  if (portrait29) {
+    fs.copyFileSync(portrait29, output);
     return `catalog/character/${character.id}.png`;
   }
   const source = findCharacterIfs(gameRoot, character.folder || '');
@@ -291,6 +320,9 @@ const extractCharacterArtwork = async (gameRoot: string, character: CharacterCat
   if (!images.length) return undefined;
   const portraitImage = images.find((image) => path.basename(image).toLowerCase() === 'f.png');
   fs.copyFileSync(portraitImage || images.sort((a, b) => fs.statSync(b).size - fs.statSync(a).size)[0], output);
+  // The full archive is only needed for the copy above; discard it so a full
+  // catalog refresh does not leave hundreds of extracted frame folders behind.
+  fs.rmSync(temporary, { recursive: true, force: true });
   return `catalog/character/${character.id}.png`;
 };
 
@@ -637,16 +669,10 @@ export const syncPopnDecorationAssets = async (_data: any, send?: WebUISend) => 
   const characterCatalog = [...new Map([...dllCharacterCatalog, ...xmlCharacterCatalog].map((entry) => [entry.id, entry])).values()].sort((a, b) => a.id - b.id);
   fs.writeFileSync(path.join(catalogRoot, 'music.json'), JSON.stringify(musicCatalog, null, 2));
 
-  // The catalog is complete, but extracting every full-body archive consumes
-  // a very large amount of disk and time. Cache art only for characters that
-  // are actually selected by a local High Cheers profile.
-  const currentCharacterIds = new Set<number>();
-  for (const profile of await DB.Find<any>(null, { collection: 'params', version: 'v29' })) {
-    const id = Number(profile.params?.chara);
-    if (Number.isInteger(id) && id >= 0) currentCharacterIds.add(id);
-  }
-  const selectedCharacters = characterCatalog.filter((character) => currentCharacterIds.has(character.id));
-  log(`Character art: ${selectedCharacters.length}/${characterCatalog.length} currently selected profile character(s).`);
+  // Full-body archives are large, so extraction is incremental: every refresh
+  // skips characters whose art file already exists on disk. Run Asset Update
+  // once after the first installation to cache the whole catalog.
+  log(`Character art: ${characterCatalog.length} catalog characters (incremental cache).`);
 
   const characterOutput = path.join(catalogRoot, 'character');
   fs.mkdirSync(characterOutput, { recursive: true });
@@ -682,7 +708,12 @@ export const syncPopnDecorationAssets = async (_data: any, send?: WebUISend) => 
     }
   }
   log(`Character portraits: ${iconCopied}/${characterCatalog.length} icons available.`);
-  for (const character of selectedCharacters) {
+  for (const character of characterCatalog) {
+    const output = path.join(characterOutput, `${character.id}.png`);
+    if (fs.existsSync(output) && fs.statSync(output).size > 0) {
+      character.image = `catalog/character/${character.id}.png`;
+      continue;
+    }
     log(`CHARACTER ${character.id}: ${character.name}`);
     try {
       const image = await extractCharacterArtwork(gameRoot, character, characterOutput);
@@ -698,57 +729,6 @@ export const syncPopnDecorationAssets = async (_data: any, send?: WebUISend) => 
   if (charaFiles.length) log(`Catalog: merged ${xmlCharacterCatalog.length} character override entries from ${charaFiles.map((file) => path.basename(file)).join(', ')}.`);
   log(`Done: ${sealPreviews.length} seal previews, ${seatPreviews.length} seat previews, ${touchCatalog.length} touch themes, ${covers.length + stages.length + highlights.length} play assets.`);
   send?.json({ status: 'ok', logs: assetUpdateLogBuffer, decorations: sealPreviews.length, seats: seatPreviews.length, touchThemes: touchCatalog.length, playAssets: covers.length + stages.length + highlights.length, songs: musicCatalog.length, characters: characterCatalog.length });
-};
-
-// Extract the full-body artwork for a single character on demand, keeping the
-// profile page up to date even after the profile's chosen character changes.
-export const syncPopnCharacterArt = async (data: any, send?: WebUISend) => {
-  assetUpdateLogBuffer.length = 0;
-  const log = (message: string) => appendAssetUpdateLog(message);
-  const gameRoot = String(U.GetConfig('popn_m39_root_dir') || '').trim();
-  const id = Number.parseInt(String(data?.characterId ?? data?.id ?? ''), 10);
-  if (!gameRoot) {
-    log('ERROR: Configure a valid Game Data Directory first.');
-    send?.json({ status: 'error', logs: assetUpdateLogBuffer });
-    return;
-  }
-  if (!Number.isInteger(id) || id < 0) {
-    log(`ERROR: Invalid character id: ${String(data?.characterId ?? data?.id)}`);
-    send?.json({ status: 'error', logs: assetUpdateLogBuffer });
-    return;
-  }
-  const assetRoot = getAssetRoot();
-  const catalogRoot = path.join(assetRoot, 'catalog');
-  const catalogPath = path.join(catalogRoot, 'character.json');
-  if (!fs.existsSync(catalogPath)) {
-    log('ERROR: character.json not found. Run a full asset update first.');
-    send?.json({ status: 'error', logs: assetUpdateLogBuffer });
-    return;
-  }
-  const characterCatalog = JSON.parse(fs.readFileSync(catalogPath, 'utf8')) as CharacterCatalogEntry[];
-  const character = characterCatalog.find((entry) => entry.id === id);
-  if (!character) {
-    log(`ERROR: Character ${id} is not in the local catalog.`);
-    send?.json({ status: 'error', logs: assetUpdateLogBuffer });
-    return;
-  }
-  const characterOutput = path.join(catalogRoot, 'character');
-  fs.mkdirSync(characterOutput, { recursive: true });
-  try {
-    const image = await extractCharacterArtwork(gameRoot, character, characterOutput);
-    if (!image) {
-      log(`ERROR: No character archive found for ${character.name} (folder "${character.folder || '?'}").`);
-      send?.json({ status: 'error', logs: assetUpdateLogBuffer });
-      return;
-    }
-    character.image = image;
-    fs.writeFileSync(catalogPath, JSON.stringify(characterCatalog, null, 2));
-    log(`Character ${character.id} (${character.name}) artwork extracted: ${image}`);
-    send?.json({ status: 'ok', image, characterId: id, logs: assetUpdateLogBuffer });
-  } catch (error) {
-    log(`ERROR character ${character.id}: ${String(error)}`);
-    send?.json({ status: 'error', logs: assetUpdateLogBuffer });
-  }
 };
 
 

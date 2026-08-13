@@ -236,15 +236,36 @@ const decodePixels = (format: string, data: Buffer, width: number, height: numbe
 const findChild = (node: KNode, name: string): KNode | undefined => node.children.find((child) => fixedName(child.name) === name);
 const walk = function* (node: KNode): IterableIterator<KNode> { yield node; for (const child of node.children) yield* walk(child); };
 
-/** Extracts the texture images in an IFS without Python or external tools. */
+/** Extracts the texture images in an IFS without Python or external tools.
+ *
+ * Reads only the manifest section first (at most a few kilobytes) to decide
+ * whether the archive contains extractable textures. Files like
+ * ha_chara_23_jka.ifs (1.1 GB) are nested-IFS containers with no tex node
+ * and are skipped immediately without loading their data section into memory.
+ */
 export const extractIfsTextures = (source: string, outputRoot: string): string[] => {
-  const input = fs.readFileSync(source);
-  if (input.length < 36 || input.readUInt32BE(0) !== 0x6cad8f89) throw new Error('Unsupported or invalid IFS file');
-  const manifestEnd = input.readUInt32BE(16);
-  if (manifestEnd <= 36 || manifestEnd > input.length) throw new Error('Invalid IFS manifest size');
-  const manifest = readKBin(input.subarray(36, manifestEnd));
+  // --- Phase 1: read just the header + manifest to check for a tex node ---
+  const fd = fs.openSync(source, 'r');
+  const header = Buffer.alloc(36);
+  const headerRead = fs.readSync(fd, header, 0, 36, 0);
+  if (headerRead < 36 || header.readUInt32BE(0) !== 0x6cad8f89) {
+    fs.closeSync(fd);
+    throw new Error('Unsupported or invalid IFS file');
+  }
+  const manifestEnd = header.readUInt32BE(16);
+  if (manifestEnd <= 36) { fs.closeSync(fd); throw new Error('Invalid IFS manifest size'); }
+  const manifestBuf = Buffer.alloc(manifestEnd - 36);
+  fs.readSync(fd, manifestBuf, 0, manifestBuf.length, 36);
+  fs.closeSync(fd);
+  const manifest = readKBin(manifestBuf);
   const tex = findChild(manifest, 'tex');
+  // No tex node means this is a nested-IFS container or an animation-only
+  // archive; skip it without reading the (potentially gigabyte-scale) data.
   if (!tex) return [];
+
+  // --- Phase 2: now safe to load the full file ---
+  const input = fs.readFileSync(source);
+  if (manifestEnd > input.length) throw new Error('Invalid IFS manifest size');
   const files = new Map<string, { offset: number; size: number }>();
   for (const entry of tex.children) if (entry.values.length >= 2) files.set(fixedName(entry.name), { offset: Number(entry.values[0]), size: Number(entry.values[1]) });
   const textureListEntry = [...files.entries()].find(([name]) => name.endsWith('.xml'));
