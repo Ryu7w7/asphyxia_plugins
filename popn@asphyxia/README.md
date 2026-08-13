@@ -1,6 +1,6 @@
 # Pop'n Music
 
-Plugin Version: **v4.2.1**
+Plugin Version: **v4.2.3**
 
 ## Supported Versions
 - pop'n music 19 Tune Street
@@ -19,6 +19,14 @@ High Cheers support is tested with Asphyxia CORE **v1.60b**. Older game
 versions require Asphyxia CORE **v1.31** or later.
 
 ## Changelog
+
+### 4.2.3
+* High Cheers: Make WebUI Asset Update self-contained with a built-in IFS texture extractor
+* High Cheers: Extract music and character catalogs directly from game data
+
+### 4.2.2
+* High Cheers: Fix WebUI play data score/medal display, per-song options, and high-score handling
+* Jam&Fizz: Fix version detection, per-song option saving, repeated tutorial prompts, and profile conversion
 
 ### 4.2.1
 * Save data bug fixes

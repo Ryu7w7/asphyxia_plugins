@@ -1,10 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as https from 'https';
-import { execFile, execFileSync } from 'child_process';
-import { promisify } from 'util';
-
-const execFileAsync = promisify(execFile);
+import { extractIfsTextures } from './ifs_texture';
 
 type DecorationAsset = { id: number; image: string; label: string };
 type MusicCatalogEntry = { id: number; title: string; genre: string; artist: string; chara1?: number; chara2?: number };
@@ -53,13 +50,16 @@ export const clearPopnGeneratedAssets = async (_data: any, send?: WebUISend) => 
 // remain readable and a dumped XML catalogue can still override the fallback.
 const decodeShiftJis = (bytes: Buffer): string => {
   try {
+    return U.DecodeString(bytes, 'shift_jis');
+  } catch {}
+  try {
     return new TextDecoder('shift_jis').decode(bytes);
   } catch {
     return bytes.toString('latin1');
   }
 };
 
-const downloadFile = async (url: string, output: string, redirects = 0, timeoutMs = 20000): Promise<void> => {
+const downloadFile = async (url: string, output: string, redirects = 0): Promise<void> => {
   if (redirects > 4) throw new Error(`Too many redirects for ${url}`);
   await new Promise<void>((resolve, reject) => {
     const request = https.get(url, (response) => {
@@ -67,7 +67,7 @@ const downloadFile = async (url: string, output: string, redirects = 0, timeoutM
       if (status >= 300 && status < 400 && response.headers.location) {
         response.resume();
         const next = new URL(response.headers.location, url).toString();
-        downloadFile(next, output, redirects + 1, timeoutMs).then(resolve, reject);
+        downloadFile(next, output, redirects + 1).then(resolve, reject);
         return;
       }
       if (status !== 200) {
@@ -80,7 +80,7 @@ const downloadFile = async (url: string, output: string, redirects = 0, timeoutM
       stream.on('finish', () => stream.close(() => resolve()));
       stream.on('error', reject);
     });
-    request.setTimeout(timeoutMs, () => request.destroy(new Error(`Timed out downloading ${url}`)));
+    request.setTimeout(20000, () => request.destroy(new Error(`Timed out downloading ${url}`)));
     request.on('error', reject);
   });
 };
@@ -245,10 +245,10 @@ const findCharacterIfs = (gameRoot: string, folder: string): string | undefined 
 
 const portraitArchiveCache = new Map<string, { stamp: number; root: string }>();
 
-const getPortraitArchiveRoot = async (runtime: IfsRuntime | undefined, gameRoot: string, letter: '23' | '29'): Promise<string | undefined> => {
+const getPortraitArchiveRoot = async (gameRoot: string, letter: '23' | '29'): Promise<string | undefined> => {
   const texRoot = path.join(gameRoot, 'plain_data', 'tex', 'system');
   const source = path.join(texRoot, `ha_chara_${letter}_jka.ifs`);
-  if (!runtime || !fs.existsSync(source)) return undefined;
+  if (!fs.existsSync(source)) return undefined;
   const stamp = fs.statSync(source).size;
   const cached = portraitArchiveCache.get(source);
   if (cached && cached.stamp === stamp && fs.existsSync(cached.root)) return cached.root;
@@ -260,7 +260,7 @@ const getPortraitArchiveRoot = async (runtime: IfsRuntime | undefined, gameRoot:
   }
   fs.rmSync(root, { recursive: true, force: true });
   fs.mkdirSync(root, { recursive: true });
-  await extractIfsArchive(runtime, source, root);
+  extractIfsTextures(source, root);
   fs.writeFileSync(marker, `${stamp}`);
   portraitArchiveCache.set(source, { stamp, root });
   return root;
@@ -274,9 +274,9 @@ const findCharacterPortrait = (root: string, folder: string): string | undefined
   return fs.existsSync(candidate) ? candidate : undefined;
 };
 
-const extractCharacterArtwork = async (runtime: IfsRuntime, gameRoot: string, character: CharacterCatalogEntry, characterOutput: string): Promise<string | undefined> => {
+const extractCharacterArtwork = async (gameRoot: string, character: CharacterCatalogEntry, characterOutput: string): Promise<string | undefined> => {
   const output = path.join(characterOutput, `${character.id}.png`);
-  const portraitArchive = await getPortraitArchiveRoot(runtime, gameRoot, '23');
+  const portraitArchive = await getPortraitArchiveRoot(gameRoot, '23');
   const portrait = portraitArchive && findCharacterPortrait(portraitArchive, character.folder || '');
   if (portrait) {
     fs.copyFileSync(portrait, output);
@@ -286,7 +286,7 @@ const extractCharacterArtwork = async (runtime: IfsRuntime, gameRoot: string, ch
   if (!source) return undefined;
   const temporary = path.join(characterOutput, `_ifs_${character.id}`);
   fs.mkdirSync(temporary, { recursive: true });
-  await extractIfsArchive(runtime, source, temporary);
+  extractIfsTextures(source, temporary);
   const images = listPngFiles(temporary).filter((image) => !path.basename(image).startsWith('_canvas_'));
   if (!images.length) return undefined;
   const portraitImage = images.find((image) => path.basename(image).toLowerCase() === 'f.png');
@@ -340,37 +340,64 @@ type PeSection = { rva: number; size: number; raw: number };
 
 export const extractM39CharacterCatalog = (gameRoot: string): CharacterCatalogEntry[] => {
   const dllPath = path.join(gameRoot, 'modules', 'popn.dll');
-  const python = findPortablePython();
-  const extractor = path.join(__dirname, 'm39_character_catalog.py');
-  if (!fs.existsSync(dllPath) || !python || !fs.existsSync(extractor)) return [];
-  try {
-    const stdout = execFileSync(python.executable, [extractor, dllPath], { encoding: 'utf8', env: { ...process.env, PYTHONPATH: python.sitePackages }, maxBuffer: 16 * 1024 * 1024 });
-    return JSON.parse(stdout) as CharacterCatalogEntry[];
-  } catch (error) {
-    console.log(`[popn] M39 character catalog Python decoder failed: ${String(error)}`);
-    return [];
+  if (!fs.existsSync(dllPath)) return [];
+  const dll = fs.readFileSync(dllPath);
+  const peOffset = dll.readUInt32LE(0x3c);
+  if (dll.toString('ascii', peOffset, peOffset + 4) !== 'PE\0\0' || dll.readUInt16LE(peOffset + 24) !== 0x20b) return [];
+  const optionalOffset = peOffset + 24;
+  const imageBase = Number(dll.readBigUInt64LE(optionalOffset + 24));
+  const sectionOffset = optionalOffset + dll.readUInt16LE(peOffset + 20);
+  const sections: PeSection[] = [];
+  for (let index = 0; index < dll.readUInt16LE(peOffset + 6); index++) {
+    const offset = sectionOffset + index * 40;
+    sections.push({ rva: dll.readUInt32LE(offset + 12), size: Math.max(dll.readUInt32LE(offset + 8), dll.readUInt32LE(offset + 16)), raw: dll.readUInt32LE(offset + 20) });
   }
+  const rawToRva = (raw: number): number | undefined => { const section = sections.find((entry) => raw >= entry.raw && raw < entry.raw + entry.size); return section ? section.rva + raw - section.raw : undefined; };
+  const rvaToRaw = (rva: number): number | undefined => { const section = sections.find((entry) => rva >= entry.rva && rva < entry.rva + entry.size); return section ? section.raw + rva - section.rva : undefined; };
+  const text = (pointer: number): string | undefined => {
+    if (pointer < imageBase || pointer >= imageBase + 0x10000000) return undefined;
+    const raw = rvaToRaw(pointer - imageBase);
+    if (raw === undefined || raw >= dll.length) return undefined;
+    const end = dll.indexOf(0, raw);
+    if (end < raw || end - raw > 1024) return undefined;
+    return decodeShiftJis(dll.subarray(raw, end));
+  };
+  const anchor = Buffer.from('\0bamb_1a\0', 'ascii');
+  const anchorRaw = dll.indexOf(anchor);
+  const anchorRva = anchorRaw >= 0 ? rawToRva(anchorRaw + 1) : undefined;
+  if (anchorRva === undefined) return [];
+  const target = Buffer.alloc(8); target.writeBigUInt64LE(BigInt(imageBase + anchorRva));
+  const references: number[] = [];
+  for (let offset = dll.indexOf(target); offset >= 0; offset = dll.indexOf(target, offset + 1)) references.push(offset);
+  let table: number | undefined;
+  let best = -1;
+  for (const candidate of references) {
+    let score = 0;
+    for (let row = 0; row < 32 && candidate + row * 0x80 + 0x70 <= dll.length; row++) {
+      const offset = candidate + row * 0x80;
+      if (text(Number(dll.readBigUInt64LE(offset))) && text(Number(dll.readBigUInt64LE(offset + 0x48))) && text(Number(dll.readBigUInt64LE(offset + 0x50)))) score++;
+    }
+    if (score > best) { table = candidate; best = score; }
+  }
+  if (table === undefined || best < 30) return [];
+  const catalog: CharacterCatalogEntry[] = [];
+  let emptyRun = 0;
+  for (let id = 0; id < 4096; id++) {
+    const row = table + id * 0x80;
+    if (row + 0x70 > dll.length) break;
+    const folder = text(Number(dll.readBigUInt64LE(row)));
+    const sortName = text(Number(dll.readBigUInt64LE(row + 0x48)));
+    const displayName = text(Number(dll.readBigUInt64LE(row + 0x50)));
+    if (!folder || !sortName || !displayName) { emptyRun++; if (id > 100 && emptyRun >= 128) break; continue; }
+    emptyRun = 0;
+    catalog.push({ id, name: displayName, folder, icon: text(Number(dll.readBigUInt64LE(row + 0x28))) });
+  }
+  return catalog;
 };
 
 export const extractM39MusicCatalog = (gameRoot: string): MusicCatalogEntry[] => {
   const dllPath = path.join(gameRoot, 'modules', 'popn.dll');
   if (!fs.existsSync(dllPath)) return [];
-  // CORE v1.60b's Node has no Shift-JIS decoder. Use the bundled Python
-  // runtime (whose standard library has CP932) for this one complete pass.
-  const python = findPortablePython();
-  const extractor = path.join(__dirname, 'm39_music_catalog.py');
-  if (python && fs.existsSync(extractor)) {
-    try {
-      const stdout = execFileSync(python.executable, [extractor, dllPath], { encoding: 'utf8', env: { ...process.env, PYTHONPATH: python.sitePackages }, maxBuffer: 16 * 1024 * 1024 });
-      const catalog = JSON.parse(stdout) as MusicCatalogEntry[];
-      if (catalog.length) return catalog;
-    } catch (error) {
-      console.log(`[popn] M39 music catalog Python decoder failed: ${String(error)}`);
-    }
-  }
-  // Do not write mojibake when neither decoder is available. XML overrides
-  // may still provide a catalog until the bundled Python runtime is restored.
-  try { new TextDecoder('shift_jis'); } catch { return []; }
   const dll = fs.readFileSync(dllPath);
   const peOffset = dll.readUInt32LE(0x3c);
   if (dll.toString('ascii', peOffset, peOffset + 4) !== 'PE\0\0' || dll.readUInt16LE(peOffset + 24) !== 0x20b) return [];
@@ -445,92 +472,6 @@ export const extractM39MusicCatalog = (gameRoot: string): MusicCatalogEntry[] =>
   return catalog;
 };
 
-const findPortablePython = (): { executable: string; sitePackages: string } | null => {
-  // CORE can run plugins from either asphyxia_160b or its plugins directory.
-  // Probe both layouts so the asset refresh does not depend on the launch CWD.
-  const toolRoot = [
-    path.resolve(process.cwd(), '.tools', 'ifs-preview'),
-    path.resolve(process.cwd(), '..', '.tools', 'ifs-preview'),
-    path.resolve(process.cwd(), '..', '..', '.tools', 'ifs-preview'),
-  ].find((candidate) => fs.existsSync(path.join(candidate, 'python')) && fs.existsSync(path.join(candidate, 'cache', 'archive-v0')));
-  if (!toolRoot) return null;
-  const pythonRoot = path.join(toolRoot, 'python');
-  const archiveRoot = path.join(toolRoot, 'cache', 'archive-v0');
-  const executables: string[] = [];
-  const findPython = (dir: string) => {
-    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-      const entryPath = path.join(dir, entry.name);
-      if (entry.isDirectory()) findPython(entryPath);
-      else if (entry.isFile() && entry.name.toLowerCase() === 'python.exe') executables.push(entryPath);
-    }
-  };
-  findPython(pythonRoot);
-  const executable = executables.find((file) => !file.includes(`${path.sep}venv${path.sep}`));
-  if (!executable) return null;
-  for (const archive of fs.readdirSync(archiveRoot)) {
-    const sitePackages = path.join(archiveRoot, archive, 'Lib', 'site-packages');
-    if (fs.existsSync(path.join(sitePackages, 'ifstools'))) return { executable, sitePackages };
-  }
-  return null;
-};
-
-// Official Windows build of https://github.com/mon/ifstools. When no portable
-// Python runtime is present the plugin fetches this single executable and uses
-// it directly, so no local Python install is required.
-const IFS_TOOLS_DOWNLOAD_URL = 'https://github.com/mon/ifstools/releases/latest/download/ifstools.exe';
-
-const ifsToolsExeCandidates = (): string[] => [
-  path.resolve(process.cwd(), 'plugins', 'popn@asphyxia', '.tools', 'ifstools.exe'),
-  path.resolve(process.cwd(), '..', 'plugins', 'popn@asphyxia', '.tools', 'ifstools.exe'),
-  path.resolve(process.cwd(), '..', '..', 'plugins', 'popn@asphyxia', '.tools', 'ifstools.exe'),
-];
-
-const findBundledIfsToolsExe = (): string | null =>
-  ifsToolsExeCandidates().find((candidate) => fs.existsSync(candidate) && fs.statSync(candidate).size > 0) || null;
-
-const downloadIfsToolsExe = async (log: (message: string) => void): Promise<string | null> => {
-  const target = [...ifsToolsExeCandidates()].find((candidate) => {
-    try { fs.mkdirSync(path.dirname(candidate), { recursive: true }); return true; } catch { return false; }
-  });
-  if (!target) return null;
-  log('ifstools runtime: downloading ifstools.exe from GitHub releases...');
-  const temporary = `${target}.part`;
-  try {
-    fs.rmSync(temporary, { force: true });
-    await downloadFile(IFS_TOOLS_DOWNLOAD_URL, temporary, 0, 300000);
-    if (!fs.existsSync(temporary) || fs.statSync(temporary).size === 0) throw new Error('Empty download');
-    fs.rmSync(target, { force: true });
-    fs.renameSync(temporary, target);
-    log(`ifstools runtime: installed (${(fs.statSync(target).size / 1024 / 1024).toFixed(1)} MB).`);
-    return target;
-  } catch (error) {
-    fs.rmSync(temporary, { force: true });
-    log(`ERROR: could not download ifstools.exe (${String(error)}).`);
-    return null;
-  }
-};
-
-type IfsRuntime =
-  | { kind: 'python'; executable: string; sitePackages: string }
-  | { kind: 'exe'; executable: string };
-
-const findIfsRuntime = async (log: (message: string) => void): Promise<IfsRuntime | null> => {
-  const python = findPortablePython();
-  if (python) return { kind: 'python', ...python };
-  const bundled = findBundledIfsToolsExe();
-  if (bundled) return { kind: 'exe', executable: bundled };
-  const downloaded = await downloadIfsToolsExe(log);
-  return downloaded ? { kind: 'exe', executable: downloaded } : null;
-};
-
-const extractIfsArchive = async (runtime: IfsRuntime, source: string, output: string): Promise<void> => {
-  if (runtime.kind === 'python') {
-    await execFileAsync(runtime.executable, ['-c', 'from ifstools.ifstools import main; main()', '--tex-only', '--silent', '-y', '-o', output, source], { timeout: 600000, env: { ...process.env, PYTHONPATH: runtime.sitePackages } });
-  } else {
-    await execFileAsync(runtime.executable, ['--tex-only', '--silent', '-y', '-o', output, source], { timeout: 600000 });
-  }
-};
-
 export const syncPopnDecorationAssets = async (_data: any, send?: WebUISend) => {
   assetUpdateLogBuffer.length = 0;
   const log = (message: string) => appendAssetUpdateLog(message);
@@ -549,12 +490,6 @@ export const syncPopnDecorationAssets = async (_data: any, send?: WebUISend) => 
     return;
   }
 
-  const python = await findIfsRuntime(log);
-  if (!python) {
-    log('ERROR: ifstools runtime is unavailable. The asset refresh needs ifstools (portable Python build or the official ifstools.exe, which this page can download automatically).');
-    send?.json({ status: 'error', logs: assetUpdateLogBuffer });
-    return;
-  }
   log(`Using game data: ${ifsDirectory}`);
 
   fs.mkdirSync(outputRoot, { recursive: true });
@@ -608,7 +543,7 @@ export const syncPopnDecorationAssets = async (_data: any, send?: WebUISend) => 
     fs.mkdirSync(output, { recursive: true });
     log(`${label}: extracting ${sourceName}.ifs`);
     try {
-      await extractIfsArchive(python, source, output);
+      extractIfsTextures(source, output);
     } catch (error) { log(`ERROR ${sourceName}.ifs: ${String(error)}`); return []; }
     const result = listPngFiles(output).map((image) => ({ image, match: new RegExp(`^${prefix}(\\d{4})\\.png$`).exec(path.basename(image)) }))
       .filter((entry): entry is { image: string; match: RegExpExecArray } => entry.match !== null)
@@ -642,7 +577,7 @@ export const syncPopnDecorationAssets = async (_data: any, send?: WebUISend) => 
       log(`THEME: extracting ${name}`);
       fs.mkdirSync(destination, { recursive: true });
       try {
-        await extractIfsArchive(python, path.join(touchDirectory, name), destination);
+        extractIfsTextures(path.join(touchDirectory, name), destination);
       } catch (error) {
         log(`ERROR ${name}: ${String(error)}`);
         continue;
@@ -670,7 +605,7 @@ export const syncPopnDecorationAssets = async (_data: any, send?: WebUISend) => 
       log(`${label}: extracting ${name}`);
       fs.mkdirSync(destination, { recursive: true });
       try {
-        await extractIfsArchive(python, path.join(sourceDirectory, name), destination);
+        extractIfsTextures(path.join(sourceDirectory, name), destination);
       } catch (error) { log(`ERROR ${name}: ${String(error)}`); continue; }
       const images = listPngFiles(destination).filter((image) => !path.basename(image).startsWith('_canvas_')).sort();
       if (images.length) result.push({ id, image: `${outputName}/${path.relative(outputDirectory, images[0]).replace(/\\/g, '/')}`, label: `${label} ${id}` });
@@ -727,7 +662,7 @@ export const syncPopnDecorationAssets = async (_data: any, send?: WebUISend) => 
     const iconTemporary = path.join(characterOutput, '_icon_ifs');
     fs.mkdirSync(iconTemporary, { recursive: true });
     try {
-      await extractIfsArchive(python, iconSource, iconTemporary);
+      extractIfsTextures(iconSource, iconTemporary);
       for (const image of listPngFiles(iconTemporary)) iconImages.set(path.basename(image).toLowerCase(), image);
     } catch (error) { log(`ERROR character icon archive: ${String(error)}`); }
   }
@@ -750,7 +685,7 @@ export const syncPopnDecorationAssets = async (_data: any, send?: WebUISend) => 
   for (const character of selectedCharacters) {
     log(`CHARACTER ${character.id}: ${character.name}`);
     try {
-      const image = await extractCharacterArtwork(python, gameRoot, character, characterOutput);
+      const image = await extractCharacterArtwork(gameRoot, character, characterOutput);
       if (image) character.image = image;
     } catch (error) { log(`ERROR character ${character.id}: ${String(error)}`); }
   }
@@ -782,12 +717,6 @@ export const syncPopnCharacterArt = async (data: any, send?: WebUISend) => {
     send?.json({ status: 'error', logs: assetUpdateLogBuffer });
     return;
   }
-  const python = await findIfsRuntime(log);
-  if (!python) {
-    log('ERROR: ifstools runtime is unavailable. The asset refresh needs ifstools (portable Python build or the official ifstools.exe, which this page can download automatically).');
-    send?.json({ status: 'error', logs: assetUpdateLogBuffer });
-    return;
-  }
   const assetRoot = getAssetRoot();
   const catalogRoot = path.join(assetRoot, 'catalog');
   const catalogPath = path.join(catalogRoot, 'character.json');
@@ -806,7 +735,7 @@ export const syncPopnCharacterArt = async (data: any, send?: WebUISend) => {
   const characterOutput = path.join(catalogRoot, 'character');
   fs.mkdirSync(characterOutput, { recursive: true });
   try {
-    const image = await extractCharacterArtwork(python, gameRoot, character, characterOutput);
+    const image = await extractCharacterArtwork(gameRoot, character, characterOutput);
     if (!image) {
       log(`ERROR: No character archive found for ${character.name} (folder "${character.folder || '?'}").`);
       send?.json({ status: 'error', logs: assetUpdateLogBuffer });

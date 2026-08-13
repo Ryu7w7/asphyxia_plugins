@@ -97,6 +97,21 @@ export const readParams = async (refid: string, version: string): Promise<Params
     return params || { collection: 'params', version, params: {} };
 }
 
+// readParams/readAchievements/readScores intentionally return defaults when a
+// document is absent. Version migration needs to distinguish that from a real,
+// already-created profile, so perform an existence check without materializing
+// any defaults.
+export const hasVersionData = async (refid: string, version: string): Promise<boolean> => {
+    const params = await DB.FindOne<Params>(refid, { collection: 'params', version });
+    if (params !== undefined && params !== null) return true;
+
+    const achievements = await DB.FindOne<Achievements>(refid, { collection: 'achievements', version });
+    if (achievements !== undefined && achievements !== null) return true;
+
+    const scores = await DB.FindOne<Scores>(refid, { collection: 'scores', version });
+    return scores !== undefined && scores !== null;
+}
+
 export const writeParams = async (refid: string, version: string, params: Params) => {
     await DB.Upsert<Params>(refid, { collection: 'params', version }, params);
 }

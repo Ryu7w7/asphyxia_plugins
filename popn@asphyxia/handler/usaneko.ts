@@ -7,6 +7,8 @@ export const setRoutes = () => {
     R.Route(`info.common`, getInfo);
     R.Route(`player24.new`, newPlayer);
     R.Route(`player.new`, newPlayer);
+    R.Route(`player24.conversion`, conversion);
+    R.Route(`player.conversion`, conversion);
     R.Route(`player24.read`, read);
     R.Route(`player.read`, read);
     R.Route(`player24.start`, start);
@@ -15,6 +17,7 @@ export const setRoutes = () => {
     R.Route(`player.buy`, buy);
     R.Route(`player24.read_score`, readScore);
     R.Route(`player.read_score`, readScore);
+    R.Route(`player24.read_option`, readOption);
     R.Route(`player.read_option`, readOption);
     R.Route(`player24.write_music`, writeScore);
     R.Route(`player.write_music`, writeScore);
@@ -22,7 +25,29 @@ export const setRoutes = () => {
     R.Route(`player.write`, write);
     R.Route(`player24.friend`, friend);
     R.Route(`player.friend`, friend);
+    R.Route(`player24.logout`, logout);
+    R.Route(`player.logout`, logout);
 }
+
+const logout = async (_req: EamuseInfo, _data: any, send: EamuseSend): Promise<any> => {
+    return send.success();
+};
+
+// The lower two digits are the navigation tutorial state. Jam&Fizz keeps
+// asking the same question while a declined tutorial moves through 0, 1 and
+// 2; 8 is the terminal "do not ask again" state. Preserve states 3-5 so a
+// player who accepted the tutorial can still finish it normally.
+const normalizeV28Tutorial = (tutorial: number): number => {
+    if (!Number.isFinite(tutorial) || tutorial < 0) return tutorial;
+    const state = tutorial % 100;
+    return state <= 2 ? Math.floor(tutorial / 100) * 100 + 8 : tutorial;
+};
+
+// e-amusement's daily boundaries for these Japanese releases use JST.
+// Korea shares the same UTC+9 offset, so this also matches the local cabinet
+// day without depending on the host process timezone.
+const getGameDay = (): string => new Date(Date.now() + 9 * 60 * 60 * 1000)
+    .toISOString().slice(0, 10);
 
 /**
  * Return current state of the game (phase, good prices, etc...)
@@ -116,9 +141,135 @@ const newPlayer = async (req: EamuseInfo, data: any, send: EamuseSend): Promise<
     if (!refid) return send.deny();
 
     const name = $(data).str('name');
-    console.log(`[popn] ${req.module}.new profile version ${getVersion(req)}`);
+    const version = getVersion(req);
+    console.log(`[popn] ${req.module}.new profile version ${version}`);
 
-    send.object(await getProfile(refid, getVersion(req), name));
+    // A profile marker is necessary because the shared name/profile document
+    // is not versioned. Without it, a newly-created v29 account which also has
+    // older data would be offered conversion again on its next login.
+    if (version == 'v29') {
+        const params = await utils.readParams(refid, version);
+        params.params.m39_profile_initialized = true;
+        await utils.writeParams(refid, version, params);
+    }
+
+    send.object(await getProfile(refid, version, name));
+};
+
+/**
+ * Return the previous-version summary used by the cabinet's migration screen.
+ * `result = 1` is distinct from a normal profile (`result = 0`) and a missing
+ * profile (`result = 2`). The game sends player.conversion only after the user
+ * accepts this preview.
+ */
+const getConversionPreview = async (refid: string, sourceVersion: string) => {
+    const profile = await utils.readProfile(refid);
+    const params = await utils.readParams(refid, sourceVersion);
+    return {
+        name: K.ITEM('str', profile.name),
+        chara: K.ITEM('s16', Number(params.params.chara ?? -1)),
+        con_type: K.ITEM('s8', 0),
+        result: K.ITEM('s8', 1),
+        music: await getScores(refid, sourceVersion, false, true),
+    };
+};
+
+// These fields have the same meaning on both sides of the Jam&Fizz -> High
+// Cheers boundary. Menu cursor/category fields are intentionally excluded:
+// category tables changed in v29 and restoring the old indexes makes the song
+// and character selectors open in unrelated folders.
+const V29_CONVERSION_FIELDS = [
+    'tutorial', 'read_news', 'nice', 'favorite_chara', 'use_navi',
+    'power_point', 'player_point', 'power_point_list',
+    'hispeed', 'popkun', 'hidden', 'hidden_rate', 'sudden', 'sudden_rate',
+    'randmir', 'gauge_type', 'ojama_0', 'ojama_1', 'forever_0', 'forever_1',
+    'full_setting', 'guide_se', 'guide_se_vol', 'lift', 'lift_rate',
+];
+
+const normalizeConvertedV29Params = (params: any, sourceParams?: any) => {
+    // Keep the selected character itself, but reset version-specific menu
+    // positions and the last selected chart. High Cheers supplies its own safe
+    // defaults for new-only presentation/customization fields.
+    params.mode = 0;
+    params.music = 0;
+    params.sheet = 0;
+    params.category = 0;
+    params.sub_category = 0;
+    params.chara_category = 0;
+    params.judge = 1;
+
+    if (!Array.isArray(params.latest_music) || params.latest_music.every((id: any) => Number(id) < 0)) {
+        const lastMusic = Number(sourceParams?.music ?? -1);
+        params.latest_music = [
+            ...(lastMusic >= 0 ? [lastMusic] : []),
+            ...Array(30).fill(-1),
+        ].slice(0, 30);
+    }
+    params.m39_conversion_revision = 2;
+};
+
+/**
+ * Create the High Cheers profile after the player accepts Jam&Fizz migration.
+ */
+const conversion = async (req: EamuseInfo, data: any, send: EamuseSend): Promise<any> => {
+    const refid = $(data).str('ref_id');
+    if (!refid) return send.deny();
+
+    const version = getVersion(req);
+    const name = $(data).str('name');
+    if (version != 'v29') {
+        return send.object(await getProfile(refid, version, name));
+    }
+
+    const sourceVersion = 'v28';
+    if (!await utils.hasVersionData(refid, sourceVersion)) {
+        return send.object({ result: K.ITEM('s8', 2) });
+    }
+
+    const sourceParams = await utils.readParams(refid, sourceVersion);
+    const targetParams = await utils.readParams(refid, version);
+    // Carry only fields whose semantics are stable across the version change.
+    // In particular, v28's category/chara_category and judge values are not
+    // valid v29 defaults even though their XML field names are unchanged.
+    for (const field of V29_CONVERSION_FIELDS) {
+        if (sourceParams.params[field] !== undefined) {
+            targetParams.params[field] = _.cloneDeep(sourceParams.params[field]);
+        }
+    }
+    const requestedChara = $(data).number('chara', Number(sourceParams.params.chara ?? 0));
+    targetParams.params.chara = requestedChara;
+    targetParams.params.favorite_chara = (targetParams.params.favorite_chara || [])
+        .slice(0, 100).concat(Array(100).fill(-1)).slice(0, 100);
+    targetParams.params.power_point_list = (targetParams.params.power_point_list || [])
+        .slice(0, 20).concat(Array(20).fill(-1)).slice(0, 20);
+    normalizeConvertedV29Params(targetParams.params, sourceParams.params);
+
+    const sourceScores = await utils.readScores(refid, sourceVersion, true);
+    targetParams.params.m39_converted_play_cnt = Object.values(sourceScores.scores)
+        .reduce((total: number, score: any) => total + (Number(score.cnt) || 0), 0);
+    targetParams.params.m39_profile_initialized = true;
+    targetParams.params.m39_converted_from = sourceVersion;
+    await utils.writeParams(refid, version, targetParams);
+
+    const sourceAchievements = <AchievementsUsaneko>await utils.readAchievements(
+        refid, sourceVersion, { ...defaultAchievements, version: sourceVersion }
+    );
+    const targetAchievements = <AchievementsUsaneko>await utils.readAchievements(
+        refid, version, { ...defaultAchievements, version }
+    );
+    targetAchievements.items = _.cloneDeep(sourceAchievements.items || {});
+    targetAchievements.charas = _.cloneDeep(sourceAchievements.charas || {});
+    targetAchievements.stamps = _.cloneDeep(sourceAchievements.stamps || {});
+
+    // The conversion request may contain unlock items assembled by the game.
+    for (const item of getNodesAsArray(data, 'item')) {
+        const type = $(item).number('type');
+        const id = $(item).number('id');
+        targetAchievements.items[`${type}:${id}`] = $(item).number('param');
+    }
+    await utils.writeAchievements(refid, version, targetAchievements);
+
+    send.object(await getProfile(refid, version, name));
 };
 
 /**
@@ -128,7 +279,14 @@ const read = async (req: EamuseInfo, data: any, send: EamuseSend): Promise<any> 
     const refid = $(data).str('ref_id');
     if (!refid) return send.deny();
 
-    send.object(await getProfile(refid, getVersion(req)));
+    const version = getVersion(req);
+    if (version == 'v29' &&
+        !await utils.hasVersionData(refid, version) &&
+        await utils.hasVersionData(refid, 'v28')) {
+        return send.object(await getConversionPreview(refid, 'v28'));
+    }
+
+    send.object(await getProfile(refid, version));
 };
 
 /**
@@ -192,7 +350,7 @@ const readOption = async (req: EamuseInfo, data: any, send: EamuseSend): Promise
     const options = scores.scores[`${music}:${sheet}`]?.options || params.params;
     const value = (name: string, fallback: number) => options[name] ?? fallback;
 
-    return send.object({
+    const option = {
         hispeed: K.ITEM('s16', value('hispeed', 10)),
         popkun: K.ITEM('u8', value('popkun', 0)),
         hidden: K.ITEM('bool', value('hidden', 0)),
@@ -213,8 +371,12 @@ const readOption = async (req: EamuseInfo, data: any, send: EamuseSend): Promise
         judge_ad: K.ITEM('s8', value('judge_ad', 0)),
         roof: K.ITEM('s16', value('roof', 0)),
         long_pop: K.ITEM('s8', value('long_pop', 1)),
-        judge: K.ITEM('u8', value('judge', 1)),
-    });
+        judge: K.ITEM('u8', value('judge', version == 'v29' ? 1 : 0)),
+    };
+
+    // player24 (Jam&Fizz) imports a named option structure, while the newer
+    // player protocol used by High Cheers imports these fields directly.
+    return send.object(version == 'v28' ? { option } : option);
 };
 
 /**
@@ -244,6 +406,7 @@ const getScores = async (refid: string, version: string, forFriend: boolean = fa
             900: 9,
             1000: 10,
             1100: 11,
+            1200: 12,
         }[score.clear_type] || 0;
 
         if (!isOmni && (music > GAME_MAX_MUSIC_ID[version])) {
@@ -259,7 +422,7 @@ const getScores = async (refid: string, version: string, forFriend: boolean = fa
                 sheet_num: sheet.toString(),
                 score: score.score.toString(),
                 cleartype: clearType.toString(),
-                clearrank: getRank(score.score).toString()
+                clearrank: (score.clear_rank !== undefined ? score.clear_rank : getRank(score.score)).toString()
             }));
         } else {
             const musicData: any = {
@@ -267,7 +430,7 @@ const getScores = async (refid: string, version: string, forFriend: boolean = fa
                 sheet_num: K.ITEM('u8', sheet),
                 score: K.ITEM('s32', score.score),
                 clear_type: K.ITEM('u8', clearType),
-                clear_rank: K.ITEM('u8', version == 'v29' && score.clear_rank !== undefined ? score.clear_rank : getRank(score.score)),
+                clear_rank: K.ITEM('u8', score.clear_rank !== undefined ? score.clear_rank : getRank(score.score)),
                 cnt: K.ITEM('s16', score.cnt),
             };
             if (version == 'v29') {
@@ -323,16 +486,24 @@ const getRank = (score: number): number => {
         return 2
     } else if (score < 72000) {
         return 3
-    } else if (score < 82000) {
+    } else if (score < 77000) {
         return 4
-    } else if (score < 90000) {
+    } else if (score < 82000) {
         return 5
-    } else if (score < 95000) {
+    } else if (score < 86000) {
         return 6
-    } else if (score < 98000) {
+    } else if (score < 90000) {
         return 7
+    } else if (score < 93000) {
+        return 8
+    } else if (score < 95000) {
+        return 9
+    } else if (score < 98000) {
+        return 10
+    } else if (score < 99000) {
+        return 11
     }
-    return 8
+    return 12
 }
 
 /**
@@ -357,6 +528,7 @@ const writeScore = async (req: EamuseInfo, data: any, send: EamuseSend): Promise
         9: 900,
         10: 1000,
         11: 1100,
+        12: 1200,
     }[$(data).number('clear_type')];
     const score = $(data).number('score');
     const isOptionSave = $(data).bool('is_option_save');
@@ -408,8 +580,13 @@ const writeScore = async (req: EamuseInfo, data: any, send: EamuseSend): Promise
         select_used_time: $(data).number('select_used_time'),
         select_remain_time: $(data).number('select_remain_time'),
         my_graph: $(data).numbers('my_graph'),
-        options,
     };
+
+    // The cabinet explicitly controls whether the current chart settings
+    // replace the saved per-chart settings. A result can still be a new best
+    // while is_option_save is false, so keep score details and options
+    // independent.
+    const savedOptions = isOptionSave ? { options } : {};
 
     const key = `${music}:${sheet}`;
 
@@ -420,6 +597,7 @@ const writeScore = async (req: EamuseInfo, data: any, send: EamuseSend): Promise
             cnt: 1,
             clear_type,
             ...detail,
+            ...savedOptions,
         };
     } else {
         const isNewBest = score >= scoresData.scores[key].score;
@@ -428,9 +606,10 @@ const writeScore = async (req: EamuseInfo, data: any, send: EamuseSend): Promise
             score: Math.max(score, scoresData.scores[key].score),
             cnt: scoresData.scores[key].cnt + 1,
             clear_type: Math.max(clear_type, scoresData.scores[key].clear_type || 0),
-            // Result details describe the best score, but chart options are
-            // the player's latest selection and must survive every play.
-            ...(isNewBest ? detail : { options }),
+            // Result details describe the best score. Chart options describe
+            // the latest selection only when the cabinet asks us to save it.
+            ...(isNewBest ? detail : {}),
+            ...savedOptions,
         };
     }
 
@@ -472,16 +651,39 @@ const getProfile = async (refid: string, version: string, name?: string) => {
 
     let myBest = Array(10).fill(-1);
     const scores = await utils.readScores(refid, version, true);
-    const totalPlayCount = Object.values(scores.scores).reduce((total: number, score: any) => total + (Number(score.cnt) || 0), 0);
+    // BEST and MY BEST are cross-version views in High Cheers. VER BEST is
+    // supplied separately by player.read_score and remains v29-only.
+    const popularityScores = version == 'v29'
+        ? await utils.readScores(refid, version, false)
+        : scores;
+
+    // Revision 68 copied old menu cursor fields before we knew v29 changed the
+    // category tables. Repair converted profiles which have not yet produced a
+    // v29 chart result; once a real result exists, the player's current choices
+    // take precedence and are never reset here.
+    if (version == 'v29' &&
+        params.params.m39_converted_from == 'v28' &&
+        Number(params.params.m39_conversion_revision || 0) < 2) {
+        if (Object.keys(scores.scores).length == 0) {
+            const sourceParams = await utils.readParams(refid, 'v28');
+            normalizeConvertedV29Params(params.params, sourceParams.params);
+        } else {
+            params.params.m39_conversion_revision = 2;
+        }
+        await utils.writeParams(refid, version, params);
+    }
+
+    const totalPlayCount = Object.values(scores.scores).reduce((total: number, score: any) => total + (Number(score.cnt) || 0), 0)
+        + (version == 'v29' ? Number(params.params.m39_converted_play_cnt || 0) : 0);
     const todayPlayCount = version == 'v29' ? Number(params.params.m39_today_play_cnt || 0) : 0;
     const totalDays = version == 'v29' ? Number(params.params.m39_total_days || 0) : 0;
     const consecutiveDays = version == 'v29' ? Number(params.params.m39_consecutive_days || 0) : 0;
-    if (Object.entries(scores.scores).length > 0) {
+    if (Object.entries(popularityScores.scores).length > 0) {
         const playCount = new Map();
-        for (const key in scores.scores) {
+        for (const key in popularityScores.scores) {
             const keyData = key.split(':');
             const music = parseInt(keyData[0], 10);
-            playCount.set(music, (playCount.get(music) || 0) + scores.scores[key].cnt);
+            playCount.set(music, (playCount.get(music) || 0) + popularityScores.scores[key].cnt);
         }
 
         const sortedPlayCount = new Map([...playCount.entries()].sort((a, b) => b[1] - a[1]));
@@ -564,6 +766,10 @@ const getProfile = async (refid: string, version: string, name?: string) => {
 
     // Add version specific datas
     utils.addExtraData(player, params, getExtraData(version));
+
+    if (version == 'v28' && params.params.tutorial !== undefined) {
+        player.account.tutorial = K.ITEM('s16', normalizeV28Tutorial(Number(params.params.tutorial)));
+    }
 
     // High Cheers adds an empty event container even on a newly-created
     // profile. The settings themselves are scalar siblings in `config`.
@@ -769,6 +975,30 @@ const getProfile = async (refid: string, version: string, name?: string) => {
         const lamps = achievements.neon_lamp || [];
         const stamps = achievements.neko_stamp || [];
 
+        const gameDay = getGameDay();
+        let migratedDailyBonus = false;
+
+        // The wire booleans tell the game whether to award a daily bonus on
+        // this play; they are not durable "event enabled" settings. Older
+        // plugin revisions round-tripped `true`, granting both bonuses every
+        // session. Profiles with existing progress and no date marker have
+        // already received the legacy bonus, so migrate them as claimed today.
+        if (!params.params.burger_daily_bonus_date && orders.length > 0) {
+            params.params.burger_daily_bonus_date = gameDay;
+            migratedDailyBonus = true;
+        }
+        if (!params.params.neko_daily_bonus_date && (orders.length > 0 || stamps.length > 0)) {
+            params.params.neko_daily_bonus_date = gameDay;
+            migratedDailyBonus = true;
+        }
+
+        player.event_p28.burger_daily_bonus = K.ITEM(
+            'bool', String(params.params.burger_daily_bonus_date || '') !== gameDay
+        );
+        player.event_p28.neko_daily_bonus = K.ITEM(
+            'bool', String(params.params.neko_daily_bonus_date || '') !== gameDay
+        );
+
         player.event_p28.burger_first_play = K.ITEM('bool', orders.length == 0);
 
         player.event_p28.order = [];
@@ -798,6 +1028,10 @@ const getProfile = async (refid: string, version: string, name?: string) => {
                 is_cleared: K.ITEM('bool', stamp.is_cleared || false),
             });
         };
+
+        if (migratedDailyBonus) {
+            await utils.writeParams(refid, version, params);
+        }
     }
 
     // High Cheers: Pop'n Basket event.
@@ -830,6 +1064,10 @@ const write = async (req: EamuseInfo, data: any, send: EamuseSend): Promise<any>
     const achievements = <AchievementsUsaneko>await utils.readAchievements(refid, version, { ...defaultAchievements, version });
 
     utils.getExtraData(data, params, getExtraData(version, true));
+
+    if (version == 'v28' && params.params.tutorial !== undefined) {
+        params.params.tutorial = normalizeV28Tutorial(Number(params.params.tutorial));
+    }
 
     if (version == 'v29') {
         // player.write is emitted once when a session ends. Unlike the old
@@ -1072,6 +1310,17 @@ const write = async (req: EamuseInfo, data: any, send: EamuseSend): Promise<any>
     if (version == 'v28') {
         let eventData = _.get(data, 'event_p28', []);
 
+        // A true daily-bonus flag is echoed in the session-end write after
+        // the award is processed. Save the day separately so the next login
+        // on the same day receives false, while tomorrow becomes eligible.
+        const gameDay = getGameDay();
+        if ($(eventData).bool('burger_daily_bonus')) {
+            params.params.burger_daily_bonus_date = gameDay;
+        }
+        if ($(eventData).bool('neko_daily_bonus')) {
+            params.params.neko_daily_bonus_date = gameDay;
+        }
+
         if (_.isNil(achievements.order)) {
             achievements.order = [];
         }
@@ -1263,14 +1512,15 @@ const getVersion = (req: EamuseInfo): string => {
         isOmni = true;
     }
 
-    // M39 is pop'n music High Cheers. It uses the new `player.*` protocol and
-    // must not receive the Jam&Fiz event_p28 profile structure.
-    if (req.model.startsWith('M39:')) {
-        return 'v29';
-    }
-
     const date: number = parseInt(req.model.match(/:(\d*)$/)[1]);
-    if (date >= 2024092500) {
+    // Jam&Fizz and High Cheers both use the M39 model code. Distinguish them
+    // by the software date: High Cheers entered service on 2025-12-18.
+    // Treating every M39 build as v29 makes Jam&Fizz receive the v29 account
+    // layout (including a 30-entry latest_music array), which its player24
+    // profile reader rejects.
+    if (req.model.startsWith('M39:') && date >= 2025121800) {
+        return 'v29';
+    } else if (date >= 2024092500) {
         return 'v28';
     } else if (date >= 2022091300 && date < 2024092500) {
         return 'v27';
@@ -1387,7 +1637,7 @@ const PHASE = {
         { id: 14, p: 4 },  // Unknown event (0-4)
         { id: 15, p: 33 }, // Poppin' Burger (0: disabled, 1-33: steps)
         { id: 16, p: 2 },  // Unknown event (0-2)
-        { id: 17, p: 1 },  // Unknown event (0-1)
+        { id: 17, p: 0 },  // GW Fair limited boost topping (0: disabled, 1: enabled)
         { id: 18, p: 3 },  // Unknown event (0-3)
     ]
 }
@@ -1399,7 +1649,7 @@ const EXTRA_DATA_COMMON: ExtraData = {
     area_id: { type: 's16', path: 'account', default: 51 },
     read_news: { type: 's16', path: 'account', default: 0 },
     nice: { type: 's16', path: 'account', default: Array(100).fill(-1), isArray: true },
-    favorite_chara: { type: 's16', path: 'account', default: Array(100).fill(-1), isArray: true },
+    favorite_chara: { type: 's16', path: 'account', default: Array(20).fill(-1), isArray: true },
     special_area: { type: 's16', path: 'account', default: Array(8).fill(-1), isArray: true },
     chocolate_charalist: { type: 's16', path: 'account', default: Array(5).fill(-1), isArray: true },
     chocolate_sp_chara: { type: 's32', path: 'account', default: 0 },
@@ -1479,8 +1729,14 @@ const EXTRA_DATA_V27: ExtraData = {
 }
 
 const EXTRA_DATA_V28: ExtraData = {
-    sc_news_no: { type: 's32', path: 'account', default: 0 },
-    guide_se_vol: { type: 'u8', path: 'option', default: 0 },
+    // Fields still emitted by Jam&Fizz after being introduced in prior
+    // releases. Keep them in the v28 read response as well as accepting them
+    // in player24.write.
+    card_again_count: { type: 's16', path: 'account', default: 0 },
+    sp_riddles_id: { type: 's16', path: 'account', default: -1 },
+    power_point_list: { type: 's32', path: 'account', default: Array(20).fill(0), isArray: true },
+    sc_news_no: { type: 's32', path: 'account', default: -1 },
+    guide_se_vol: { type: 'u8', path: 'option', default: 3 },
     lift: { type: 'bool', path: 'option', default: 0 },
     lift_rate: { type: 's16', path: 'option', default: 0 },
     burger_daily_bonus: { type: 'bool', path: 'event_p28', default: true },
@@ -1494,6 +1750,8 @@ const EXTRA_DATA_V29: ExtraData = {
     // Jam&Fiz-only event_p28 data.
     sc_news_no: { type: 's32', path: 'account', default: 0 },
     latest_music: { type: 's16', path: 'account', default: Array(30).fill(-1), isArray: true },
+    // High Cheers expanded this from the 20-entry player24 layout.
+    favorite_chara: { type: 's16', path: 'account', default: Array(100).fill(-1), isArray: true },
     popn_class: { type: 's8', path: 'account', default: 1 },
     read_policy: { type: 's16', path: 'account', default: 0 },
     language: { type: 's8', path: 'account', default: -1 },

@@ -19,7 +19,7 @@ const getVersion = (req: any) => {
 }
 
 export function register() {
-  console.log('[popn] High Cheers compatibility revision 64 loaded');
+  console.log('[popn] High Cheers compatibility revision 69 loaded');
   R.GameCode('K39');
   R.GameCode('L39');
   R.GameCode('M39');

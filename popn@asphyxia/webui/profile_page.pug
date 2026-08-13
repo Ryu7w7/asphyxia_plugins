@@ -48,10 +48,10 @@ div
   - const typeImage = officialImageRoot + `lane${Number(playParams.lane_type || 0) === 0 ? 0 : 1}.png`
   - const lineImage = officialImageRoot + (Number(playParams.lane_line || 0) ? 'on.png' : 'off.png')
   - const superExtraGauge = Math.max(0, Math.min(6, Number(playParams.ep) || 0))
-  - const rankImageNames = ['rank_none', 'rank_e', 'rank_d', 'rank_c', 'rank_b', 'rank_a1', 'rank_a1_plus', 'rank_a2', 'rank_a2_plus', 'rank_a3', 'rank_s', 'rank_s_plus']
-  - const medalImageNames = ['meda_none', 'meda_e', 'meda_d', 'meda_c', 'meda_b', 'meda_a', 'meda_f', 'meda_g', 'meda_h', 'meda_i', 'meda_j', 'meda_k']
-  - const scoreRankIndex = (record) => { if (!record || Number(record.score) <= 0) return 0; const saved = Number(record.clear_rank); if (saved > 0 && saved < rankImageNames.length) return saved; const score = Number(record.score); return score < 50000 ? 1 : score < 62000 ? 2 : score < 72000 ? 3 : score < 82000 ? 4 : score < 87000 ? 5 : score < 90000 ? 6 : score < 92000 ? 7 : score < 95000 ? 8 : score < 98000 ? 9 : score < 99000 ? 10 : 11; }
-  - const scoreMedalIndex = (record) => Math.max(0, Math.min(medalImageNames.length - 1, Math.round(Number(record && record.clear_type) / 100) || 0))
+  - const rankImageNames = ['rank_none', 'rank_e', 'rank_d', 'rank_c', 'rank_b', 'rank_b_plus', 'rank_a1', 'rank_a1_plus', 'rank_a2', 'rank_a2_plus', 'rank_a3', 'rank_s', 'rank_s_plus']
+  - const medalImageNames = ['meda_k', 'meda_j', 'meda_i', 'meda_h', 'meda_g', 'meda_f', 'meda_e', 'meda_d', 'meda_c', 'meda_b', 'meda_a']
+  - const scoreRankIndex = (record) => { if (!record || Number(record.score) <= 0) return 0; const saved = Number(record.clear_rank); if (saved > 0 && saved < rankImageNames.length) return saved; const score = Number(record.score); return score < 50000 ? 1 : score < 62000 ? 2 : score < 72000 ? 3 : score < 77000 ? 4 : score < 82000 ? 5 : score < 86000 ? 6 : score < 90000 ? 7 : score < 93000 ? 8 : score < 95000 ? 9 : score < 98000 ? 10 : score < 99000 ? 11 : 12; }
+  - const scoreMedalIndex = (record) => { const saved = Math.round(Number(record && record.clear_type) / 100); return saved >= 2 ? Math.max(0, Math.min(medalImageNames.length - 1, saved - 2)) : -1; }
   style.
     .popn-playdata { max-width: 920px; margin: 1.25rem auto; font-family: Arial, sans-serif; color: #24324a; }
     .popn-playdata-section { overflow: hidden; margin-bottom: 1.4rem; border: 4px solid #5c61b8; border-radius: 18px; background: #fffef1; box-shadow: 0 2px 0 #f5a3af; }
@@ -144,7 +144,8 @@ div
                     td
                       if record
                         - const rankImage = rankImageNames[scoreRankIndex(record)]
-                        - const medalImage = medalImageNames[scoreMedalIndex(record)]
+                        - const medalIndex = scoreMedalIndex(record)
+                        - const medalImage = medalIndex >= 0 ? medalImageNames[medalIndex] : 'meda_none'
                         .popn-score-record
                           .popn-score-art
                             img(src=officialImageRoot + `medal/${medalImage}.png` alt='Clear medal')
@@ -174,7 +175,8 @@ div
                     td
                       if record
                         - const rankImage = rankImageNames[scoreRankIndex(record)]
-                        - const medalImage = medalImageNames[scoreMedalIndex(record)]
+                        - const medalIndex = scoreMedalIndex(record)
+                        - const medalImage = medalIndex >= 0 ? medalImageNames[medalIndex] : 'meda_none'
                         .popn-score-record
                           .popn-score-art
                             img(src=officialImageRoot + `medal/${medalImage}.png` alt='Clear medal')
