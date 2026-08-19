@@ -1711,6 +1711,24 @@ async function tachiAutoExport(refid: string, version: number, tracks: any[]) {
   });
 }
 
+async function lastfmSearch(title: string, apiKey: string): Promise<{ artist: string; track: string } | null> {
+  return new Promise((resolve) => {
+    const qs = new URLSearchParams({ method: 'track.search', track: title, api_key: apiKey, format: 'json', limit: '1' }).toString();
+    https.get(`https://ws.audioscrobbler.com/2.0/?${qs}`, (res: any) => {
+      let body = '';
+      res.on('data', (c: string) => (body += c));
+      res.on('end', () => {
+        try {
+          const result = JSON.parse(body);
+          const match = result?.results?.trackmatches?.track?.[0];
+          if (match) resolve({ artist: match.artist, track: match.name });
+          else resolve(null);
+        } catch { resolve(null); }
+      });
+    }).on('error', () => resolve(null));
+  });
+}
+
 async function lastfmScrobble(refid: string, tracks: any[]) {
   const doc = await DB.FindOne<{ sessionKey: string; apiKey: string; apiSecret: string }>({
     collection: 'lastfm_auto_scrobble',
@@ -1732,7 +1750,11 @@ async function lastfmScrobble(refid: string, tracks: any[]) {
       const song = musicDb.mdb.music.find((s: any) => String(s.id) === String(mid));
       if (song?.info?.title_name) title = song.info.title_name;
     }
-    entries.push({ artist: 'SOUND VOLTEX', track: title, timestamp: nowSec });
+
+    const searched = await lastfmSearch(title, doc.apiKey);
+    const artist = searched ? searched.artist : 'SOUND VOLTEX';
+    const trackName = searched ? searched.track : title;
+    entries.push({ artist, track: trackName, timestamp: nowSec });
   }
 
   if (entries.length === 0) return;
