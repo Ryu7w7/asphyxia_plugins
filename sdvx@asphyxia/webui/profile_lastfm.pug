@@ -1,0 +1,154 @@
+//DATA//
+-
+div
+  .card
+    .card-header
+      p.card-header-title
+        span.icon
+          i.mdi.mdi-music-note
+        | Last.fm Scrobbling
+    .card-content
+      .content
+        p Automatically scrobble the songs you play to #[a(href="https://www.last.fm" target="_blank") Last.fm].
+        p.has-text-grey(style="font-size:0.85em")
+          | Note: SDVX doesn't expose per-song artist data in this build, so scrobbles use "SOUND VOLTEX" as the artist and the song title as the track name.
+
+      #lastfm-status
+        .notification.is-info.is-light
+          span.icon
+            i.mdi.mdi-loading.mdi-spin
+          |  Checking Last.fm status...
+
+      #lastfm-not-authorized(style="display:none")
+        .notification(style="background-color:rgba(255,183,77,0.15);color:#ffb74d;")
+          p You are not yet connected to Last.fm. Click the button below to connect your account.
+        .field
+          button.button.is-danger#lastfm-authorize-btn
+            span.icon
+              i.mdi.mdi-link
+            span Connect Last.fm
+
+      #lastfm-authorized(style="display:none")
+        .level
+          .level-left
+            .level-item
+              span.tag.is-success.is-medium
+                span.icon
+                  i.mdi.mdi-check-circle
+                span#lastfm-connected-label Connected to Last.fm
+        .field.is-grouped
+          .control
+            button.button.is-danger.is-outlined#lastfm-disconnect-btn
+              span.icon
+                i.mdi.mdi-link-off
+              span Disconnect
+        .field.mt-4
+          label.checkbox
+            input(type="checkbox" id="lastfm-auto-scrobble-check")
+            |  Automatically scrobble songs to Last.fm after each play
+
+script.
+  (function() {
+    if (typeof isOwner !== 'undefined' && !isOwner) {
+      document.getElementById('lastfm-status').style.display = 'none';
+      document.getElementById('lastfm-not-authorized').style.display = 'none';
+      document.getElementById('lastfm-authorized').style.display = 'none';
+      var card = document.querySelector('.card-content .content');
+      card.innerHTML = '<div class="notification is-warning is-light"><span class="icon"><i class="mdi mdi-lock"></i></span> Last.fm Scrobbling is only available on your own profile.</div>';
+      return;
+    }
+
+    var LASTFM_API_KEY = '';
+    var LASTFM_AUTH_URL = '';
+
+    fetch('/lastfm/config')
+      .then(function(r) { return r.json(); })
+      .then(function(cfg) {
+        LASTFM_API_KEY = cfg.apiKey || '';
+        var cbUrl = window.location.origin + '/lastfm/callback';
+        LASTFM_AUTH_URL = 'https://www.last.fm/api/auth/?api_key=' + LASTFM_API_KEY + '&cb=' + encodeURIComponent(cbUrl);
+        if (!LASTFM_API_KEY) {
+          document.getElementById('lastfm-status').style.display = 'none';
+          document.getElementById('lastfm-not-authorized').style.display = '';
+          document.getElementById('lastfm-not-authorized').innerHTML =
+            '<div class="notification is-warning is-light">Last.fm API Key is not configured. Set <code>lastfm_api_key</code> in config.ini.</div>';
+        }
+      });
+
+    function checkStatus() {
+      fetch('/lastfm/status')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          document.getElementById('lastfm-status').style.display = 'none';
+          if (data.authorized) {
+            document.getElementById('lastfm-authorized').style.display = '';
+            document.getElementById('lastfm-not-authorized').style.display = 'none';
+            if (data.username) {
+              document.getElementById('lastfm-connected-label').textContent = 'Connected as ' + data.username;
+            }
+            loadAutoScrobbleState();
+          } else {
+            document.getElementById('lastfm-not-authorized').style.display = '';
+            document.getElementById('lastfm-authorized').style.display = 'none';
+          }
+        })
+        .catch(function() {
+          document.getElementById('lastfm-status').innerHTML =
+            '<div class="notification is-danger is-light">Failed to check Last.fm status.</div>';
+        });
+    }
+
+    function loadAutoScrobbleState() {
+      fetch('/lastfm/auto-scrobble?refid=' + encodeURIComponent(refid))
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (data.success) document.getElementById('lastfm-auto-scrobble-check').checked = data.enabled;
+        })
+        .catch(function() {});
+    }
+
+    document.getElementById('lastfm-auto-scrobble-check').addEventListener('change', function() {
+      var enabled = this.checked;
+      fetch('/lastfm/auto-scrobble', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refid: refid, enabled: enabled })
+      })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (!data.success) document.getElementById('lastfm-auto-scrobble-check').checked = !enabled;
+        })
+        .catch(function() { document.getElementById('lastfm-auto-scrobble-check').checked = !enabled; });
+    });
+
+    window.addEventListener('message', function(event) {
+      if (event.data && event.data.type === 'lastfm-auth' && event.data.token) {
+        fetch('/lastfm/exchange', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: event.data.token })
+        })
+          .then(function(r) { return r.json(); })
+          .then(function(data) {
+            if (data.success) {
+              checkStatus();
+            } else {
+              document.getElementById('lastfm-status').style.display = '';
+              document.getElementById('lastfm-status').innerHTML =
+                '<div class="notification is-danger is-light">Authorization failed: ' + (data.description || 'Unknown error') + '</div>';
+            }
+          });
+      }
+    });
+
+    document.getElementById('lastfm-authorize-btn').addEventListener('click', function() {
+      window.open(LASTFM_AUTH_URL, 'lastfm_auth', 'width=600,height=700');
+    });
+
+    document.getElementById('lastfm-disconnect-btn').addEventListener('click', function() {
+      if (!confirm('Disconnect from Last.fm?')) return;
+      fetch('/lastfm/disconnect', { method: 'POST' }).then(function() { checkStatus(); });
+    });
+
+    checkStatus();
+  })();

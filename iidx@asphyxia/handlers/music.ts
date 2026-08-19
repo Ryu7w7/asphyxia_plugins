@@ -10,6 +10,7 @@ import { rival } from "../models/rival";
 import * as https from "https";
 import * as fs from "fs";
 import * as path from "path";
+import * as crypto from "crypto";
 export const musicgetrank: EPR = async (info, data, send) => {
   const version = GetVersion(info);
   const refid = await IDtoRef(Number($(data).attr().iidxid));
@@ -811,6 +812,10 @@ export const musicreg: EPR = async (info, data, send) => {
     missCount: mnum
   });
 
+  lastfmScrobble(refid.toString(), { mid, clear: cflg }).catch(err => {
+    console.error('Last.fm scrobble failed: ' + err);
+  });
+
   if (!_.isNil($(data).element("badge"))) {
     if (!_.isNil($(data).attr("badge").djLevel_badge_flg_id)) {
       await DB.Upsert<badge>(
@@ -1145,6 +1150,10 @@ export const musicbreg: EPR = async (info, data, send) => {
     missCount: -1
   });
 
+  lastfmScrobble(refid.toString(), { mid, clear: cflg }).catch(err => {
+    console.error('Last.fm scrobble failed: ' + err);
+  });
+
   return send.success();
 };
 
@@ -1354,6 +1363,70 @@ async function tachiAutoExport(refid: string, scoreData: {
   } catch (err) {
     console.error('Tachi auto-export failed', err);
   }
+}
+
+async function lastfmScrobble(refid: string, scoreData: { mid: number; clear: number }) {
+  const doc = await DB.FindOne<{ sessionKey: string; apiKey: string; apiSecret: string }>({
+    collection: 'lastfm_auto_scrobble',
+    refid,
+  });
+  if (!doc || !doc.sessionKey || !doc.apiKey || !doc.apiSecret) return;
+  if (scoreData.clear <= 0) return; // NO PLAY
+
+  const info = getSongInfo(scoreData.mid);
+  const timestamp = String(Math.floor(Date.now() / 1000));
+  const params: Record<string, string> = {
+    method: 'track.scrobble',
+    artist: info.artist,
+    track: info.title,
+    timestamp,
+    api_key: doc.apiKey,
+    sk: doc.sessionKey,
+  };
+  params.api_sig = lastfmSign(params, doc.apiSecret);
+
+  const postData = new URLSearchParams({ ...params, format: 'json' }).toString();
+
+  return new Promise<void>((resolve) => {
+    try {
+      const req = https.request(
+        'https://ws.audioscrobbler.com/2.0/',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Content-Length': Buffer.byteLength(postData),
+          },
+        },
+        (res: any) => {
+          let body = '';
+          res.on('data', (c: string) => (body += c));
+          res.on('end', () => {
+            try {
+              const result = JSON.parse(body);
+              if (result.scrobbles) console.log('Last.fm: scrobbled ' + info.artist + ' - ' + info.title);
+              else console.error('Last.fm scrobble error: ' + (result.message || 'unknown'));
+            } catch { console.error('Last.fm: failed to parse scrobble response'); }
+            resolve();
+          });
+        }
+      );
+      req.on('error', (err: any) => { console.error('Last.fm request error', err); resolve(); });
+      req.write(postData);
+      req.end();
+    } catch (err) {
+      console.error('Last.fm scrobble failed', err);
+      resolve();
+    }
+  });
+}
+
+function lastfmSign(params: Record<string, string>, secret: string): string {
+  const keys = Object.keys(params).sort();
+  let sig = '';
+  for (const k of keys) sig += k + params[k];
+  sig += secret;
+  return crypto.createHash('md5').update(sig, 'utf8').digest('hex');
 }
 
 let musicDataCache: any = null;

@@ -17,6 +17,12 @@ Synchronize your scores seamlessly with **Tachi**.
 - Support for detailed play data.
 - Easy configuration via the WebUI.
 
+### Last.fm Scrobbling
+Scrobble songs you play directly to your **Last.fm** profile.
+- Automatic scrobbling on score save, per-profile toggle via the WebUI.
+- IIDX scrobbles with real artist/title data; SDVX uses song title with "SOUND VOLTEX" as artist.
+- Configure `lastfm_api_key` and `lastfm_api_secret` in `config.ini`.
+
 ### Score Migration
 Easily move your data between game versions.
 - **Eg to Nabla**: Specialized handlers to migrate your SDVX profiles
