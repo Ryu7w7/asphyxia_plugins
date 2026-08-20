@@ -211,7 +211,7 @@ export const saveScore: EPR = async (info, data, send) => {
 
       if (_.isNil(mid) || _.isNil(type)) return send.deny();
 
-      const record = (await DB.FindOne<MusicRecord>(refid, {
+      const record: MusicRecord = (await DB.FindOne<MusicRecord>(refid, {
         collection: 'music',
         version,
         mid,
@@ -228,7 +228,7 @@ export const saveScore: EPR = async (info, data, send) => {
         longRate: 0,
         volRate: 0,
         playCount: 0
-      };
+      } as MusicRecord;
 
       const score = $(data).attr().score ? parseInt($(data).attr().score) : 0;
       const clear = $(data).attr().clear_type ? parseInt($(data).attr().clear_type) : 0;
@@ -240,6 +240,7 @@ export const saveScore: EPR = async (info, data, send) => {
       record.clear = Math.max(clear, record.clear);
       record.grade = Math.max(grade, record.grade);
       record.playCount = record.playCount + 1
+      record.updatedAt = Date.now();
 
       await DB.Upsert<MusicRecord>(
         refid,
@@ -261,7 +262,7 @@ export const saveScore: EPR = async (info, data, send) => {
 
       if (_.isNil(mid) || _.isNil(type)) return send.deny();
 
-      const record = (await DB.FindOne<MusicRecord>(refid, {
+      const record: MusicRecord = (await DB.FindOne<MusicRecord>(refid, {
         collection: 'music',
         version,
         mid,
@@ -285,7 +286,7 @@ export const saveScore: EPR = async (info, data, send) => {
         mode: 0,
         gaugeType: 0,
         playCount: 0
-      };
+      } as MusicRecord;
 
       const score = $(data).number('score') ? $(data).number('score') : 0;
       const clear = $(data).number('clear_type') ? $(data).number('clear_type') : 0;
@@ -319,6 +320,7 @@ export const saveScore: EPR = async (info, data, send) => {
       record.gaugeType = Math.max(gaugeType, record.gaugeType);
 
       record.playCount = record.playCount + 1
+      record.updatedAt = Date.now();
 
       await DB.Upsert<MusicRecord>(
         refid,
@@ -341,7 +343,7 @@ export const saveScore: EPR = async (info, data, send) => {
         const type = i.number('music_type');
         if (_.isNil(mid) || _.isNil(type)) return send.deny();
 
-        const record = (await DB.FindOne<MusicRecord>(refid, {
+        const record: MusicRecord = (await DB.FindOne<MusicRecord>(refid, {
           collection: 'music',
           mid,
           type,
@@ -367,7 +369,7 @@ export const saveScore: EPR = async (info, data, send) => {
           error: 0,
           early: 0,
           late: 0,
-        };
+        } as MusicRecord;
 
         const score = i.number('score', 0);
         const exscore = i.number('exscore', 0);
@@ -412,6 +414,7 @@ export const saveScore: EPR = async (info, data, send) => {
         }
         record.grade = Math.max(i.number('score_grade', 0), record.grade);
         record.dbver = DB_VER
+        record.updatedAt = Date.now();
 
         await DB.Upsert<MusicRecord>(
           refid,
@@ -1635,6 +1638,11 @@ async function tachiAutoExport(refid: string, version: number, tracks: any[]) {
     const type = track.number('music_type');
     const score = track.number('score', 0);
     const clearType = track.number('clear_type', 0);
+    const exscore = track.number('exscore', 0);
+    const critical = track.number('critical', 0);
+    const sCritical = track.number('just', track.number('s_critical', track.number('v_crit', track.number('perf', 0))));
+    const near = track.number('near', 0);
+    const error = track.number('error', 0);
 
     if (!isValidMid(mid)) continue;
 
@@ -1650,6 +1658,12 @@ async function tachiAutoExport(refid: string, version: number, tracks: any[]) {
       identifier: String(mid),
       difficulty: diff,
       timeAchieved: Date.now(),
+      judgements: {
+        critical: critical + sCritical,
+        near,
+        miss: error,
+      },
+      optional: exscore > 0 ? { exScore: exscore } : undefined,
     });
   }
 

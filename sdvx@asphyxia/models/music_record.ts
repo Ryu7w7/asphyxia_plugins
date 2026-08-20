@@ -26,4 +26,6 @@ export interface MusicRecord {
   effectiveRate: number;
   mode: number;
   gaugeType: number;
+
+  updatedAt?: number;
 }

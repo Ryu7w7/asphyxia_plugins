@@ -262,6 +262,7 @@ $(document).ready(function() {
             temp_data.error = score_data[i].error || 0;
             temp_data.early = score_data[i].early || 0;
             temp_data.late = score_data[i].late || 0;
+            temp_data.updatedAt = score_data[i].updatedAt || 0;
 
             music_data.push(temp_data);
         }
@@ -275,7 +276,16 @@ $(document).ready(function() {
                 { data: 'score', },
                 { data: 'exscore' },
                 { data: 'grade', "type": "grade" },
-                { data: 'clear', "type": "clear-mark" }
+                { data: 'clear', "type": "clear-mark" },
+                {
+                    data: 'updatedAt',
+                    render: function(data, type) {
+                        if (type === 'sort' || type === 'type') return data;
+                        if (!data) return '';
+                        var d = new Date(data);
+                        return d.toLocaleDateString() + ' ' + d.toLocaleTimeString();
+                    }
+                }
             ],
             columnDefs: [
                 {
