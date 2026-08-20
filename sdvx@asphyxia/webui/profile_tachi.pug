@@ -454,6 +454,12 @@ script.
           identifier: String(s.mid),
           difficulty: diff,
           timeAchieved: timeAchieved,
+          judgements: {
+            critical: (s.critical || 0) + (s.s_critical || 0),
+            near: s.near || 0,
+            miss: s.error || 0,
+          },
+          optional: s.exscore ? { exScore: s.exscore } : undefined,
           _songName: getSongName(s.mid)
         });
       }
