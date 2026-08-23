@@ -23,14 +23,14 @@ export const shopgetname: EPR = async (info, data, send) => {
     await DB.Insert<shop_data>({
       collection: "shop_data",
 
-      opname: "ＣＯＲＥ",
+      opname: "RyuNET",
       pid: 53,
       cls_opt: 0,
     });
 
     return send.object(
       K.ATTR({
-        opname: "ＣＯＲＥ",
+        opname: "RyuNET",
         pid: "53",
         cls_opt: "0",
         hr: "0",
@@ -73,9 +73,9 @@ export const shopgetconvention: EPR = async (info, data, send) => {
       music_2: String(convention_data.music_2),
       music_3: String(convention_data.music_3),
     },
-    {
-      valid: K.ITEM("bool", convention_data.valid),
-    })
+      {
+        valid: K.ITEM("bool", convention_data.valid),
+      })
   );
 };
 
@@ -112,7 +112,7 @@ export const shopsentinfo: EPR = async (info, data, send) => {
     });
     sendOption = {
       rootName: GetModel(info),
-      status: version < 13 ? "SOK" : 0,
+      status: (version < 13 ? "SOK" : 0) as any,
     };
   } else {
     return send.success();

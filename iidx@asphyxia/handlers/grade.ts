@@ -1,4 +1,4 @@
-import { pcdata } from "../models/pcdata";
+﻿import { pcdata } from "../models/pcdata";
 import { grade } from "../models/grade";
 import { IDtoRef, GetVersion, GetModel, GetCommand } from "../util";
 import { eisei_grade } from "../models/lightning";
@@ -233,7 +233,7 @@ export const graderaised: EPR = async (info, data, send) => {
     result["@attr"]["method"] = "graderaised";
     sendOption = {
       rootName: GetModel(info),
-      status: version < 13 ? "SOK" : 0,
+      status: (version < 13 ? "SOK" : 0) as any,
     }
   }
 

@@ -1,4 +1,4 @@
-import { pcdata, KDZ_pcdata, IIDX27_pcdata, IIDX28_pcdata, IIDX29_pcdata, IIDX30_pcdata, JDZ_pcdata, LDJ_pcdata, IIDX21_pcdata, IIDX22_pcdata, IIDX23_pcdata, IIDX24_pcdata, IIDX25_pcdata, IIDX26_pcdata, JDJ_pcdata, HDD_pcdata, I00_pcdata, GLD_pcdata, IIDX31_pcdata, IIDX32_pcdata, IIDX33_pcdata, FDD_pcdata, ECO_pcdata, E11_pcdata, D01_pcdata } from "../models/pcdata";
+﻿import { pcdata, KDZ_pcdata, IIDX27_pcdata, IIDX28_pcdata, IIDX29_pcdata, IIDX30_pcdata, JDZ_pcdata, LDJ_pcdata, IIDX21_pcdata, IIDX22_pcdata, IIDX23_pcdata, IIDX24_pcdata, IIDX25_pcdata, IIDX26_pcdata, JDJ_pcdata, HDD_pcdata, I00_pcdata, GLD_pcdata, IIDX31_pcdata, IIDX32_pcdata, IIDX33_pcdata, FDD_pcdata, ECO_pcdata, E11_pcdata, D01_pcdata } from "../models/pcdata";
 import { grade } from "../models/grade";
 import { custom, default_custom } from "../models/custom";
 import { IDtoCode, IDtoRef, GetVersion, ReftoProfile, ReftoPcdata, ReftoQPRO, appendSettingConverter, NumArrayToString, GetModel, GetCommand, NumArrayToHex } from "../util";
@@ -437,7 +437,7 @@ export const pccommon: EPR = async (info, data, send) => {
     result["@attr"]["method"] = "pccommon";
     sendOption = {
       rootName: GetModel(info),
-      status: version < 13 ? "SOK" : 0,
+      status: (version < 13 ? "SOK" : 0) as any,
     };
   }
 
@@ -485,7 +485,7 @@ export const pcreg: EPR = async (info, data, send) => {
         },
       }, {
         rootName: GetModel(info),
-        status: version < 13 ? "SOK" : 0,
+        status: (version < 13 ? "SOK" : 0) as any,
       });
     }
   }
@@ -676,7 +676,7 @@ export const pcreg: EPR = async (info, data, send) => {
       },
     }, {
       rootName: GetModel(info),
-      status: version < 13 ? "SOK" : 0,
+      status: (version < 13 ? "SOK" : 0) as any,
     });
   }
 
@@ -726,7 +726,7 @@ export const pcget: EPR = async (info, data, send) => {
         }
       }, {
         rootName: GetModel(info),
-        status: version < 13 ? "ENOCARDID" : 1,
+        status: (version < 13 ? "ENOCARDID" : 1) as any,
       });
     }
 
@@ -5550,7 +5550,7 @@ export const pcsave: EPR = async (info, data, send) => {
       }
     }, {
       rootName: GetModel(info),
-      status: version < 13 ? "SOK" : 0,
+      status: (version < 13 ? "SOK" : 0) as any,
     })
   }
 

@@ -1,4 +1,4 @@
-import { IDtoRef, GetVersion, OldMidToNewMid, NewMidToOldMid, ReftoProfile, ReftoPcdata, ClidToPlaySide, ReftoQPRO, NumArrayToString, OldMidToVerMid, GetModel, GetCommand } from "../util";
+﻿import { IDtoRef, GetVersion, OldMidToNewMid, NewMidToOldMid, ReftoProfile, ReftoPcdata, ClidToPlaySide, ReftoQPRO, NumArrayToString, OldMidToVerMid, GetModel, GetCommand } from "../util";
 import { score, score_top } from "../models/score";
 import { profile } from "../models/profile";
 import { shop_data } from "../models/shop";
@@ -147,7 +147,7 @@ export const musicgetrank: EPR = async (info, data, send) => {
       })
       sendOption = {
         rootName: GetModel(info),
-        status: version < 13 ? "SOK" : 0,
+        status: (version < 13 ? "SOK" : 0) as any,
       }
     }
 
@@ -434,7 +434,7 @@ export const musicgetralive: EPR = async (info, data, send) => {
     })
     sendOption = {
       rootName: GetModel(info),
-      status: version < 13 ? "SOK" : 0,
+      status: (version < 13 ? "SOK" : 0) as any,
     }
   }
 
@@ -599,7 +599,7 @@ export const musicappoint: EPR = async (info, data, send) => {
         }
       }, {
         rootName: GetModel(info),
-        status: version < 13 ? "ENODATA" : 0,
+        status: (version < 13 ? "ENODATA" : 0) as any,
       });
     }
 
@@ -672,7 +672,7 @@ export const musicappoint: EPR = async (info, data, send) => {
           data: sdata,
         }, {
           rootName: GetModel(info),
-          status: version < 13 ? "SOK" : 0,
+          status: (version < 13 ? "SOK" : 0) as any,
         });
       }
     }
@@ -840,6 +840,7 @@ export const musicreg: EPR = async (info, data, send) => {
     let names = Array<string>(5).fill("");
     let scores = Array<number>(5).fill(-1);
     let clflgs = Array<number>(5).fill(-1);
+    let refids = Array<string>(5).fill("");
     let tmp_clid = clid;
     if (style == 1) tmp_clid -= 5;
 
@@ -854,7 +855,7 @@ export const musicreg: EPR = async (info, data, send) => {
         scores[tmp_clid] = exscore;
         clflgs[tmp_clid] = cflg;
         refids[tmp_clid] = String(refid);
-        // First ever score on this song/style � defer notification until real rank confirmed //
+        // First ever score on this song/style — defer notification until real rank confirmed //
         discordOldScore = -1;
         discordOldClear = -1;
         discordPreviousName = "";
@@ -869,7 +870,7 @@ export const musicreg: EPR = async (info, data, send) => {
       refids = score_top.refids ?? Array<string>(5).fill(""); // migration: existing docs may not have refids //
 
       if (exscore > scores[tmp_clid]) {
-        // Capture previous top data � defer notification until real rank confirmed //
+        // Capture previous top data — defer notification until real rank confirmed //
         discordPreviousName = names[tmp_clid];
         discordPreviousRefid = refids[tmp_clid] || "";
         discordOldScore = scores[tmp_clid];
@@ -900,7 +901,7 @@ export const musicreg: EPR = async (info, data, send) => {
   }
 
 
-    // Konami time format: Unix seconds � 1000 (appends '000' to Unix timestamp)
+    // Konami time format: Unix seconds × 1000 (appends '000' to Unix timestamp)
     const konamiTimestamp = Math.floor(Date.now() / 1000) * 1000;
 
     const oldScore = music_data ? music_data.esArray[clid] : 0;
@@ -1226,7 +1227,7 @@ export const musicreg: EPR = async (info, data, send) => {
     result["@attr"]["method"] = "musicreg";
     sendOption = {
       rootName: GetModel(info),
-      status: version < 13 ? "SOK" : 0,
+      status: (version < 13 ? "SOK" : 0) as any,
     };
   }
 
@@ -1238,6 +1239,7 @@ export const musicbreg: EPR = async (info, data, send) => {
 
   // mid pgnum gnum cflg //
   const refid = await IDtoRef(Number($(data).attr().iidxid));
+  const profile = await DB.FindOne<profile>(refid, { collection: "profile" });
   const pgnum = Number($(data).attr().pgnum);
   const gnum = Number($(data).attr().gnum);
   const cflg = Number($(data).attr().cflg);
@@ -1297,7 +1299,7 @@ export const musicbreg: EPR = async (info, data, send) => {
   }
 
 
-    // Konami time format: Unix seconds � 1000 (appends '000' to Unix timestamp)
+    // Konami time format: Unix seconds × 1000 (appends '000' to Unix timestamp)
     const konamiTimestamp = Math.floor(Date.now() / 1000) * 1000;
 
     const oldScore = music_data ? music_data.esArray[clid] : 0;
@@ -1307,7 +1309,7 @@ export const musicbreg: EPR = async (info, data, send) => {
 
       // top_type bitmask: 1=personal best, 2=same-grade top, 4=area top, 8=national top
       let top_type = 1; // always personal best
-      if (discordShouldNotify) top_type |= 8; // national top
+      if (false) top_type |= 8; // musicbreg has no national ranking // national top
 
       await DB.Insert<activity_news>({
         collection: "activity_news",
@@ -1329,11 +1331,11 @@ export const musicbreg: EPR = async (info, data, send) => {
       // Check if this is a national top clear for this song/diff
       const topScoreForClear = await DB.FindOne<score_top>(null, {
         collection: "score_top",
-        play_style: style,
+        play_style: 0,
         mid: mid,
       });
       let clearTopType = 0; // no ranking info by default
-      const tmp_clid = style == 1 ? clid - 5 : clid;
+      const tmp_clid = clid; // musicbreg is always SP
       if (topScoreForClear) {
         const topClear = topScoreForClear.clflgs[tmp_clid];
         if (cflg > topClear) clearTopType = 8; // national top clear
@@ -1482,7 +1484,7 @@ export const musiccrate: EPR = async (info, data, send) => {
     };
     sendOption = {
       rootName: GetModel(info),
-      status: version < 13 ? "SOK" : 0,
+      status: (version < 13 ? "SOK" : 0) as any,
     };
   }
 
@@ -1645,7 +1647,7 @@ function getCustomData() {
   return customDataCache;
 }
 
-// ── Flag helpers (same pattern as bot.js) ─────────────────────────────────────
+// â”€â”€ Flag helpers (same pattern as bot.js) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const FLAGS_FILE_IIDX = path.join(__dirname, '../data/player_flags.json');
 let customFlagsIidx: Record<string, string> = {};
 function reloadIidxFlags() {
@@ -1699,7 +1701,7 @@ function withFlagIidx(name: string, refid: string) {
   }
   return flag ? `${flag} ${name}` : name;
 }
-// ──────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 async function discordAutoExport(
   playerName: string,
@@ -1744,11 +1746,11 @@ async function discordAutoExport(
   const flaggedPlayer = withFlagIidx(playerName, refid);
 
   let description = `${songInfo.title} - ${songInfo.artist}\n\n`;
-  description += `👤 **Player:** ${flaggedPlayer}\n`;
+  description += `ðŸ‘¤ **Player:** ${flaggedPlayer}\n`;
   if (previousName && previousName !== playerName) {
-    description += `👑 **Took #1 from:** ${withFlagIidx(previousName, previousRefid)}\n`;
+    description += `ðŸ‘‘ **Took #1 from:** ${withFlagIidx(previousName, previousRefid)}\n`;
   } else if (previousName === playerName) {
-    description += `👑 **Retained #1!**\n`;
+    description += `ðŸ‘‘ **Retained #1!**\n`;
   }
   
   description += `\n**Chart** \u200B \u200B \u200B \u200B \u200B \u200B \u200B \u200B **EX Score** \u200B \u200B \u200B \u200B \u200B \u200B \u200B \u200B **Clear Lamp**\n`;
@@ -1756,7 +1758,7 @@ async function discordAutoExport(
 
   const payload: any = {
     embeds: [{
-      title: `🏆 ${flaggedPlayer} got #1! • ${newLamp}`,
+      title: `ðŸ† ${flaggedPlayer} got #1! â€¢ ${newLamp}`,
       color: 0xFFA500,
       description: description,
       footer: { text: "RyuNET IIDX" },
@@ -1896,7 +1898,7 @@ except Exception as e:
     payload.embeds[0].image = { url: "attachment://qpro.png" };
   }
 
-  // Load song jacket: movie_thumbnail → thumbnail → iidx.png fallback //
+  // Load song jacket: movie_thumbnail â†’ thumbnail â†’ iidx.png fallback //
   let jacketBuffer: Buffer | null = null;
   try {
     const assetBase = path.join(__dirname, "../webui/asset");

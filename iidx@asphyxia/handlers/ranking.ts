@@ -1,4 +1,4 @@
-import { expert, ranking } from "../models/ranking";
+﻿import { expert, ranking } from "../models/ranking";
 import { profile } from "../models/profile";
 import { GetCommand, GetModel, GetVersion, IDtoRef } from "../util";
 
@@ -161,7 +161,7 @@ export const rankingentry: EPR = async (info, data, send) => {
     result["@attr"]["method"] = "rankingentry"
     sendOption = {
       rootName: GetModel(info),
-      status: version < 13 ? "SOK" : 0,
+      status: (version < 13 ? "SOK" : 0) as any,
     };
   }
 
@@ -227,7 +227,7 @@ export const rankinggetranker: EPR = async (info, data, send) => {
     });
     sendOption = {
       rootName: GetModel(info),
-      status: version < 13 ? "SOK" : 0,
+      status: (version < 13 ? "SOK" : 0) as any,
     };
   }
 
