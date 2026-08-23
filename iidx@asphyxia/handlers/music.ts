@@ -1,4 +1,4 @@
-﻿import { IDtoRef, GetVersion, OldMidToNewMid, NewMidToOldMid, ReftoProfile, ReftoPcdata, ClidToPlaySide, ReftoQPRO, NumArrayToString, OldMidToVerMid, GetModel, GetCommand } from "../util";
+import { IDtoRef, GetVersion, OldMidToNewMid, NewMidToOldMid, ReftoProfile, ReftoPcdata, ClidToPlaySide, ReftoQPRO, NumArrayToString, OldMidToVerMid, GetModel, GetCommand } from "../util";
 import { score, score_top } from "../models/score";
 import { profile } from "../models/profile";
 import { shop_data } from "../models/shop";
@@ -1746,11 +1746,11 @@ async function discordAutoExport(
   const flaggedPlayer = withFlagIidx(playerName, refid);
 
   let description = `${songInfo.title} - ${songInfo.artist}\n\n`;
-  description += `ðŸ‘¤ **Player:** ${flaggedPlayer}\n`;
+  description += `👤 **Player:** ${flaggedPlayer}\n`;
   if (previousName && previousName !== playerName) {
-    description += `ðŸ‘‘ **Took #1 from:** ${withFlagIidx(previousName, previousRefid)}\n`;
+    description += `👑 **Took #1 from:** ${withFlagIidx(previousName, previousRefid)}\n`;
   } else if (previousName === playerName) {
-    description += `ðŸ‘‘ **Retained #1!**\n`;
+    description += `👑 **Retained #1!**\n`;
   }
   
   description += `\n**Chart** \u200B \u200B \u200B \u200B \u200B \u200B \u200B \u200B **EX Score** \u200B \u200B \u200B \u200B \u200B \u200B \u200B \u200B **Clear Lamp**\n`;
@@ -1758,7 +1758,7 @@ async function discordAutoExport(
 
   const payload: any = {
     embeds: [{
-      title: `ðŸ† ${flaggedPlayer} got #1! â€¢ ${newLamp}`,
+      title: `🏆 ${flaggedPlayer} got #1! • ${newLamp}`,
       color: 0xFFA500,
       description: description,
       footer: { text: "RyuNET IIDX" },
