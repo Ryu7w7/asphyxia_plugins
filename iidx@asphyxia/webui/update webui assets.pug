@@ -1,4 +1,4 @@
-div
+﻿div
   .card
     .card-header
       p.card-header-title
@@ -10,21 +10,34 @@ div
         p
           strong Before you start:
         ol(style="margin: 0.5rem 0 0 1.2rem;")
-          li Go to the plugin settings (⚙️ gear icon in Asphyxia) and set:
+          li
+            | Open the plugin settings (gear icon in Asphyxia) and fill in both fields:
           li
             code ifstools Path
-            |  — full path to 
+            |  - Full path to 
             code ifstools.exe
+            |  (e.g. 
+            code C:\tools\ifstools.exe
+            | )
           li
             code Q-Pro IFS Directory
-            |  — the folder containing the qpro 
+            |  - The folder that contains the qpro 
             code *.ifs
             |  files from your game data (e.g. 
-            code B:\ARCADE\IIDX33\data\tex\qpro
-            | )
-          li Then click 
+            code E:\ARCADE\IIDX33\data\graphic
+            | ). Files look like 
+            code qp_kaito_iincho_body.ifs
+            | , 
+            code qp_kihon_hair.ifs
+            | , etc.
+          li
+            | Click 
             strong Extract
-            | . Already-extracted pieces are skipped automatically on subsequent runs.
+            | . Files are copied to a temp folder first - 
+            strong your game directory will NOT be modified
+            | .
+          li
+            | Already-extracted pieces are skipped on subsequent runs, so it is safe to re-run after adding new game data.
       .field
         .is-flex.is-align-items-center(style="gap: 1rem;")
           button.button.is-primary#extractBtn(type="button")
@@ -110,3 +123,4 @@ script(type="text/javascript").
 
 style.
   #logArea { scrollbar-width: thin; scrollbar-color: #444 #111; }
+

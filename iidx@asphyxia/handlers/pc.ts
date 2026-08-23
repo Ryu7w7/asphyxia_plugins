@@ -1,7 +1,7 @@
-import { pcdata, KDZ_pcdata, IIDX27_pcdata, IIDX28_pcdata, IIDX29_pcdata, IIDX30_pcdata, JDZ_pcdata, LDJ_pcdata, IIDX21_pcdata, IIDX22_pcdata, IIDX23_pcdata, IIDX24_pcdata, IIDX25_pcdata, IIDX26_pcdata, JDJ_pcdata, HDD_pcdata, I00_pcdata, GLD_pcdata, IIDX31_pcdata, IIDX32_pcdata, IIDX33_pcdata } from "../models/pcdata";
+import { pcdata, KDZ_pcdata, IIDX27_pcdata, IIDX28_pcdata, IIDX29_pcdata, IIDX30_pcdata, JDZ_pcdata, LDJ_pcdata, IIDX21_pcdata, IIDX22_pcdata, IIDX23_pcdata, IIDX24_pcdata, IIDX25_pcdata, IIDX26_pcdata, JDJ_pcdata, HDD_pcdata, I00_pcdata, GLD_pcdata, IIDX31_pcdata, IIDX32_pcdata, IIDX33_pcdata, FDD_pcdata, ECO_pcdata, E11_pcdata, D01_pcdata } from "../models/pcdata";
 import { grade } from "../models/grade";
 import { custom, default_custom } from "../models/custom";
-import { IDtoCode, IDtoRef, GetVersion, ReftoProfile, ReftoPcdata, ReftoQPRO, appendSettingConverter, NumArrayToString, GetWeekId } from "../util";
+import { IDtoCode, IDtoRef, GetVersion, ReftoProfile, ReftoPcdata, ReftoQPRO, appendSettingConverter, NumArrayToString, GetModel, GetCommand, NumArrayToHex } from "../util";
 import { eisei_grade, eisei_grade_data, lightning_custom, lightning_musicfilter, lightning_musicfilter_sort, lightning_musicmemo, lightning_musicmemo_new, lightning_playdata, lightning_settings, lm_customdata, lm_playdata, lm_settings, lm_settings_new, musicfilter_data, musicfilter_sort_data, musicmemo_data, musicmemo_data_new } from "../models/lightning";
 import { profile, default_profile } from "../models/profile";
 import { rival, rival_data, rival_sub } from "../models/rival";
@@ -12,15 +12,37 @@ import { expert } from "../models/ranking";
 import { blueboss } from "../models/event";
 import { badge, badgeBaseMap, badgeVersionMap } from "../models/badge";
 import { extra_favorite } from "../models/favorite";
-import { activity, activity_mybest, activity_news } from "../models/activity";
+import { activity, activity_mybest } from "../models/activity";
 import { extra_boss } from "../models/extraboss";
 import { djtraining } from "../models/djtraining";
+
+export const pcmethod: EPR = async (info, data, send) => {
+  const command = GetCommand(data);
+  switch (command[0]) {
+    case "common":
+      return await pccommon(info, data, send);
+    case "reg":
+      return await pcreg(info, data, send);
+    case "get":
+      return await pcget(info, data, send);
+    case "save":
+      return await pcsave(info, data, send);
+
+    default:
+      break;
+  }
+
+  return send.deny();
+}
 
 export const pccommon: EPR = async (info, data, send) => {
   const version = GetVersion(info);
 
   let result: any = {
-    "@attr": { expire: 300 },
+    "@attr": {
+      expire: String(300),
+      ls: String(0), // have no idea what this value does //
+    },
     ir: K.ATTR({ beat: String(U.GetConfig("BeatPhase")) }),
     expert: K.ATTR({ phase: String(U.GetConfig("ExpertPhase")) }),
     expert_random_secret: K.ATTR({ phase: String(U.GetConfig("ExpertRandomPhase")) }),
@@ -30,6 +52,18 @@ export const pccommon: EPR = async (info, data, send) => {
   // have no idea what some of attribute or value does //
   // exposing these to plugin setting or use static value //
   switch (version) {
+    case 10:
+      break;
+    case 11:
+      result["@attr"].tf = 1;
+      result["@attr"].csok = 1;
+      break;
+    case 12:
+      result["@attr"].tf = 1;
+      result["@attr"].beok = 1;
+      break;
+    case 13:
+      break;
     case 14:
       result = Object.assign(result, {
         gshop: {
@@ -324,7 +358,6 @@ export const pccommon: EPR = async (info, data, send) => {
         tourism_booster: {},
         fix_framerate: {},
         fix_real: {},
-        disable_cardless: {},
       });
       break;
     case 32:
@@ -391,6 +424,7 @@ export const pccommon: EPR = async (info, data, send) => {
         tourism_booster: {},
         fix_framerate: {},
         fix_real: {},
+        disable_cardless: {},
       });
       break;
 
@@ -398,20 +432,81 @@ export const pccommon: EPR = async (info, data, send) => {
       return send.deny();
   }
 
-  return send.object(result);
+  let sendOption: EamuseSendOption = {};
+  if (version < 14) {
+    result["@attr"]["method"] = "pccommon";
+    sendOption = {
+      rootName: GetModel(info),
+      status: version < 13 ? "SOK" : 0,
+    };
+  }
+
+  return send.object(result, sendOption);
 };
 
 export const pcreg: EPR = async (info, data, send) => {
   const version = GetVersion(info);
-  const id = _.random(10000000, 99999999);
-  const idstr = IDtoCode(id);
-  const refid = $(data).attr().rid;
+  const command = GetCommand(data);
+  const refid = version < 13 ? command[1].split('|')[0] : $(data).attr().rid;
+  const profile = await DB.FindOne<profile>(refid, { collection: "profile" });
+  const myPcdata = await DB.FindOne<pcdata>(refid, { collection: "pcdata", version: version });
+
+  let name = version < 13 ? command[2] : $(data).attr().name;
+  let pid = Number($(data).attr().pid);
+  let id = _.random(10000000, 99999999);
+  let idstr = IDtoCode(id);
+  let updateProfile = true;
+  if (version < 14 && !_.isNil(profile)) {
+    updateProfile = false;
+  }
+
+  if (version < 11 && !_.isNil(myPcdata)) {
+    await DB.Upsert<pcdata>(
+      refid,
+      {
+        collection: "pcdata",
+        version: version,
+      },
+      {
+        $set: {
+          spnum: Number(command[4]),
+          sflg0: Number(command[5]),
+          ctype: Number(command[6]),
+          sach: Number(command[7]),
+          dach: Number(command[8]),
+        },
+      }
+    );
+
+    if (version < 14) {
+      return send.object({
+        "@attr": {
+          method: "pcreg",
+        },
+      }, {
+        rootName: GetModel(info),
+        status: version < 13 ? "SOK" : 0,
+      });
+    }
+  }
 
   let pcdata: object;
   let lightning_settings: object;
   let lightning_playdata: object;
   let lightning_custom: object;
   switch (version) {
+    case 10:
+      pcdata = D01_pcdata;
+      break;
+    case 11:
+      pcdata = E11_pcdata;
+      break;
+    case 12:
+      pcdata = ECO_pcdata;
+      break;
+    case 13:
+      pcdata = FDD_pcdata;
+      break;
     case 14:
       pcdata = GLD_pcdata;
       break;
@@ -497,21 +592,23 @@ export const pcreg: EPR = async (info, data, send) => {
       return send.deny();
   }
 
-  await DB.Upsert<profile>(
-    refid,
-    {
-      collection: "profile",
-    },
-    {
-      $set: {
-        name: $(data).attr().name,
-        pid: Number($(data).attr().pid),
-        id,
-        idstr,
-        ...default_profile,
+  if (updateProfile) {
+    await DB.Upsert<profile>(
+      refid,
+      {
+        collection: "profile",
+      },
+      {
+        $set: {
+          name,
+          pid,
+          id,
+          idstr,
+          ...default_profile,
+        }
       }
-    }
-  );
+    );
+  }
 
   await DB.Upsert<pcdata>(
     refid,
@@ -572,6 +669,17 @@ export const pcreg: EPR = async (info, data, send) => {
     }
   }
 
+  if (version < 14) {
+    return send.object({
+      "@attr": {
+        method: "pcreg",
+      },
+    }, {
+      rootName: GetModel(info),
+      status: version < 13 ? "SOK" : 0,
+    });
+  }
+
   return send.object(
     K.ATTR({
       id: String(id),
@@ -582,8 +690,10 @@ export const pcreg: EPR = async (info, data, send) => {
 
 export const pcget: EPR = async (info, data, send) => {
   const version = GetVersion(info);
-  const refid = $(data).attr().rid;
-
+  const command = GetCommand(data);
+  const refid = version < 13 ? command[1].split('|')[0] : $(data).attr().rid;
+  const play_style = version < 13 ? Number(GetCommand(data)[2]) : -1;
+  
   const profile = await DB.FindOne<profile>(refid, { collection: "profile" });
   const pcdata = await DB.FindOne<pcdata>(refid, { collection: "pcdata", version: version });
   const custom = await DB.FindOne<custom>(refid, { collection: "custom", version: version });
@@ -605,7 +715,23 @@ export const pcget: EPR = async (info, data, send) => {
   const lm_music_filter_sort = await DB.Find<lightning_musicfilter_sort>(refid, { collection: "lightning_musicfilter_sort", version: version });
   let lm_custom: any = await DB.FindOne<lightning_custom>(refid, { collection: "lightning_custom", version: version });
 
-  if (_.isNil(pcdata)) return send.deny();
+  // since happy sky and below does not use cardmng deny if theres no profile avaialble //
+  if (version < 13 && _.isNil(profile)) return send.deny();
+
+  if (_.isNil(pcdata)) {
+    if (version < 14) {
+      return send.object({
+        "@attr": {
+          method: "pcget"
+        }
+      }, {
+        rootName: GetModel(info),
+        status: version < 13 ? "ENOCARDID" : 1,
+      });
+    }
+
+    return send.deny();
+  }
 
   // migration //
   {
@@ -702,7 +828,8 @@ export const pcget: EPR = async (info, data, send) => {
   );
   let dArray = [], eArray = [], rArray = [],
     rsArray = [], mArray = [], bArray = [],
-    fArray = [], fsArray = [], efArray = [];
+    fArray = [], fsArray = [], efArray = [],
+    exArray = [];
 
   grade.forEach((res: grade) => {
     dArray.push([res.style, res.gradeId, res.maxStage, res.archive]);
@@ -781,7 +908,116 @@ export const pcget: EPR = async (info, data, send) => {
   }
 
   let event, party, gradeStr = "", exStr = "", skinStr = "";
-  if (version == 14) {
+  const style = version < 13 ? Number(command[2]) : -1;
+  const maxStage = version < 13 ? (style == 0 ? 4 : 3) : -1;
+  if (version == 10) {
+    dArray.forEach((res) => {
+      if (res[0] != style) return;
+      gradeStr += NumArrayToHex([8, 4, 8], [res[1], res[2], res[3]]);
+    });
+
+    expert.sort((a: expert, b: expert) => a.coid - b.coid);
+    expert.forEach((res) => {
+      for (let a = 0; a < 6; a++) {
+        exArray.push({
+          clid: a,
+          coid: res.coid,
+          cflg: res.cArray[a] == 1 ? 5 : 0, // cflg == cstage //
+          pgnum: res.pgArray[a],
+          gnum: res.gArray[a],
+        });
+      }
+    });
+
+    return send.pugFile("pug/D01/pcget.pug", {
+      profile,
+      pcdata,
+      gradeStr,
+      exArray,
+    });
+  }
+  else if (version == 11) {
+    dArray.forEach((res) => {
+      if (res[0] != style) return;
+      gradeStr += NumArrayToString([5, 7, 6], [res[1], res[3], maxStage == res[2] ? 1 : 0]);
+    });
+
+    expert.sort((a: expert, b: expert) => a.coid - b.coid);
+    expert.forEach((res) => {
+      for (let a = 0; a < 6; a++) {
+        exStr += NumArrayToString([6, 5, 1], [res.coid, a, res.cArray[a]]);
+        exStr += NumArrayToString([18], [res.pgArray[a]]);
+        exStr += NumArrayToString([18], [res.gArray[a]]);
+      }
+    });
+
+    skinStr += NumArrayToString([12], [custom.frame, custom.turntable, custom.note_burst, custom.menu_music, appendsettings, custom.lane_cover]);
+
+    rArray = rArray.filter((res: rival) => res.play_style == (play_style + 1));
+
+    return send.pugFile("pug/E11/pcget.pug", {
+      profile,
+      pcdata,
+      gradeStr,
+      exStr,
+      skinStr,
+      rArray,
+    });
+  }
+  else if (version == 12) {
+    dArray.forEach((res) => {
+      if (res[0] != style) return;
+      gradeStr += NumArrayToString([5, 7, 6], [res[1], res[3], maxStage == res[2] ? 1 : 0]);
+    });
+
+    expert.sort((a: expert, b: expert) => a.coid - b.coid);
+    expert.forEach((res) => {
+      for (let a = 0; a < 6; a++) {
+        exStr += NumArrayToString([6, 5, 1], [res.coid, a, res.cArray[a]]);
+        exStr += NumArrayToString([18], [res.pgArray[a]]);
+        exStr += NumArrayToString([18], [res.gArray[a]]);
+      }
+    });
+
+    skinStr += NumArrayToString([12], [custom.frame, custom.turntable, custom.note_burst, custom.menu_music, appendsettings, custom.lane_cover]);
+
+    rArray = rArray.filter((res: rival) => res.play_style == (play_style + 1));
+
+    return send.pugFile("pug/ECO/pcget.pug", {
+      profile,
+      pcdata,
+      gradeStr,
+      exStr,
+      skinStr,
+      rArray,
+    });
+  }
+  else if (version == 13) {
+    dArray.forEach((res) => {
+      gradeStr += NumArrayToString([6, 3, 2, 7], [res[1], res[2], res[0], res[3]]);
+    });
+
+    expert.sort((a: expert, b: expert) => a.coid - b.coid);
+    expert.forEach((res) => {
+      for (let a = 0; a < 6; a++) {
+        exStr += NumArrayToString([6, 5, 1], [res.coid, a, res.cArray[a]]);
+        exStr += NumArrayToString([18], [res.pgArray[a]]);
+        exStr += NumArrayToString([18], [res.gArray[a]]);
+      }
+    });
+
+    skinStr += NumArrayToString([12], [custom.frame, custom.turntable, custom.note_burst, custom.menu_music, appendsettings, custom.lane_cover, 0, custom.category_vox]);
+
+    return send.pugFile("pug/FDD/pcget.pug", {
+      profile,
+      pcdata,
+      gradeStr,
+      exStr,
+      skinStr,
+      rArray,
+    });
+  }
+  else if (version == 14) {
     dArray.forEach((res) => {
       gradeStr += NumArrayToString([6, 3, 2, 7], [res[1], res[2], res[0], res[3]]);
     });
@@ -1421,7 +1657,7 @@ export const pcget: EPR = async (info, data, send) => {
         update_date: activity_mybest_sp[0].update_date,
       });
 
-      activity_mybest_sp.sort((a, b) => b.now_score - a.now_score);
+      activity_mybest_sp.sort((a, b) =>b.now_score - a.now_score);
       activityMybest.push({
         play_style: activity_mybest_sp[0].play_style,
         play_side: activity_mybest_sp[0].play_side,
@@ -1608,43 +1844,8 @@ export const pcget: EPR = async (info, data, send) => {
       appendsettings,
       custom,
       rArray,
-      rsArray,
       shop_data,
     };
-
-    if (version >= 27) {
-      // Fetch all recent news (limit to last 500 entries to avoid performance issues)
-      const allNews = await DB.Find<activity_news>(null, { collection: "activity_news" });
-
-      // Only show news from same or older version (no v33 news to v31 player)
-      const versionFilteredNews = allNews.filter(n => !n.version || n.version <= version);
-
-      // National top: top_type bit 8 set
-      const newsDataAllTop = versionFilteredNews
-        .filter(n => (n.top_type & 8) !== 0)
-        .sort((a, b) => b.timestamp - a.timestamp)
-        .slice(0, 15);
-
-      // Area top: top_type bit 4 set, same pid (prefecture)
-      const playerPid = profile.pid || 0;
-      const newsDataAreaTop = versionFilteredNews
-        .filter(n => (n.top_type & 4) !== 0 && n.pid === playerPid)
-        .sort((a, b) => b.timestamp - a.timestamp)
-        .slice(0, 15);
-
-      // Rival news: use the raw rivals array (has rival_refid), exclude own news
-      const rivalRefids = rivals.map((r: any) => r.rival_refid);
-      const newsDataRival = versionFilteredNews
-        .filter(n => rivalRefids.includes(n.refid) && n.refid !== String(refid))
-        .sort((a, b) => b.timestamp - a.timestamp)
-        .slice(0, 15);
-
-      result = Object.assign(result, {
-        newsDataAllTop,
-        newsDataAreaTop,
-        newsDataRival,
-      });
-    }
 
     switch (version) {
       case 21:
@@ -1978,7 +2179,8 @@ export const pcvisit: EPR = async (info, data, send) => {
 
 export const pcsave: EPR = async (info, data, send) => {
   const version = GetVersion(info);
-  const refid = await IDtoRef(Number($(data).attr().iidxid));
+  const command = GetCommand(data);
+  const refid = version < 13 ? await IDtoRef(Number(command[1])) : await IDtoRef(Number($(data).attr().iidxid));
   const cltype = Number($(data).attr().cltype); // 0 -> SP, 1 -> DP //
 
   if (version == -1) return send.deny();
@@ -2007,8 +2209,14 @@ export const pcsave: EPR = async (info, data, send) => {
   const hasBadgeData = !(_.isNil($(data).element("badge")));
   const hasActivityData = !(_.isNil($(data).element("activity_data")));
 
-  if (cltype == 0) pcdata.spnum += 1;
-  else pcdata.dpnum += 1;
+  if (version < 13) {
+    // attr[2] is unknown //
+    pcdata.spnum = Number(command[5]);
+    pcdata.dpnum = Number(command[6]);
+  } else {
+    if (cltype == 0) pcdata.spnum += 1;
+    else pcdata.dpnum += 1;
+  }
 
   if (isTDJ) {
     if (cltype == 0) lm_playdata.sp_num += 1;
@@ -2035,7 +2243,7 @@ export const pcsave: EPR = async (info, data, send) => {
           lm_settings.assistant_chara = Number($(data).attr("lightning_setting").assistant_chara);
         }
       }
-
+      
       await DB.Upsert<lightning_settings>(
         refid,
         {
@@ -2054,7 +2262,39 @@ export const pcsave: EPR = async (info, data, send) => {
   pcdata.mode = Number($(data).attr().mode);
   pcdata.pmode = Number($(data).attr().pmode);
 
-  if (version == 14) {
+  if (version == 11) {
+    pcdata.sach = Number(command[3]);
+    pcdata.dach = Number(command[4]);
+    pcdata.gno = Number(command[7]);
+    pcdata.sflg0 = Number(command[8]);
+    pcdata.pflg = Number(command[9]);
+  }
+  else if (version == 12) {
+    pcdata.sach = Number(command[3]);
+    pcdata.dach = Number(command[4]);
+    pcdata.gno = Number(command[7]);
+    pcdata.sflg0 = Number(command[8]);
+  }
+  else if (version == 13) {
+    if (cltype == 0) {
+      pcdata.sach = Number($(data).attr().achi);
+      pcdata.sp_opt = Number($(data).attr().opt);
+    }
+    else {
+      pcdata.dach = Number($(data).attr().achi);
+      pcdata.dp_opt = Number($(data).attr().opt);
+      pcdata.dp_opt2 = Number($(data).attr().opt2);
+    }
+
+    pcdata.gno = Number($(data).attr().gno);
+    pcdata.sflg0 = Number($(data).attr().sflg0);
+    pcdata.sflg1 = Number($(data).attr().sflg1);
+    pcdata.sflg2 = Number($(data).attr().sflg2);
+    pcdata.sdhd = Number($(data).attr().sdhd);
+    pcdata.ncomb = Number($(data).attr().ncomb);
+    pcdata.mcomb = Number($(data).attr().mcomb);
+  }
+  else if (version == 14) {
     if (cltype == 0) {
       pcdata.sach = Number($(data).attr().achi);
       pcdata.sp_opt = Number($(data).attr().opt);
@@ -2075,8 +2315,8 @@ export const pcsave: EPR = async (info, data, send) => {
 
     if (!_.isNil($(data).attr().now_g)) {
       pcdata.gold_now = Number($(data).attr().now_g);
-      pcdata.gold_all = Number($(data).attr().all_g);
-      pcdata.gold_use = Number($(data).attr().use_g);
+      pcdata.gold_all = Number($(data).attr().all_g); 
+      pcdata.gold_use = Number($(data).attr().use_g); 
     }
   }
   else if (version == 15) {
@@ -2178,29 +2418,6 @@ export const pcsave: EPR = async (info, data, send) => {
     pcdata.liflen = Number($(data).attr().lift);
     pcdata.fcombo[cltype] = Number($(data).attr().fcombo);
 
-    // TODO:: LEAGUE //
-
-    // pc, pf seems to be not refered but save it for future purpose //
-    if (!_.isNil($(data).element("party"))) {
-      let party_data = {
-        ev: Number($(data).attr("party").ev),
-        dif: Number($(data).attr("party").dif),
-        pc: Number($(data).attr("party").pc),
-        pf: Number($(data).attr("party").pf),
-        cflg: $(data).buffer("party").toString("base64"),
-      }
-
-      await DB.Upsert(refid,
-        {
-          collection: "party",
-          version: version,
-        },
-        {
-          $set: party_data,
-        }
-      );
-    }
-
     if (!_.isNil($(data).element("tutorial"))) {
       let clr = Number($(data).attr("tutorial").clr);
       await DB.Upsert<tutorial>(refid,
@@ -2239,7 +2456,28 @@ export const pcsave: EPR = async (info, data, send) => {
     pcdata.liflen = Number($(data).attr().lift);
     pcdata.fcombo[cltype] = Number($(data).attr().fcombo);
 
-    // TODO:: STORY/LEAGUE //
+    // TODO:: LEAGUE //
+
+    // pc, pf seems to be not refered but save it for future purpose //
+    if (!_.isNil($(data).element("party"))) {
+      let party_data = {
+        ev: Number($(data).attr("party").ev),
+        dif: Number($(data).attr("party").dif),
+        pc: Number($(data).attr("party").pc),
+        pf: Number($(data).attr("party").pf),
+        cflg: $(data).buffer("party").toString("base64"),
+      }
+
+      await DB.Upsert(refid,
+        {
+          collection: "party",
+          version: version,
+        },
+        {
+          $set: party_data,
+        }
+      );
+    }
 
     if (!_.isNil($(data).element("tour"))) {
       let event_data = {
@@ -2393,7 +2631,7 @@ export const pcsave: EPR = async (info, data, send) => {
         pcdata.st_sp_level = Number($(data).attr("step").sp_level);
         pcdata.st_sp_round = Number($(data).attr("step").sp_round);
         pcdata.st_sp_mplay = Number($(data).attr("step").sp_mplay);
-
+        
       } else {
         pcdata.st_dp_ach = Number($(data).attr("step").dp_ach);
         pcdata.st_dp_hdpt = Number($(data).attr("step").dp_hdpt);
@@ -2405,7 +2643,7 @@ export const pcsave: EPR = async (info, data, send) => {
       pcdata.st_stamp = $(data).buffer("step").toString("base64"); // TODO:: verify //
       pcdata.st_help = $(data).element("step").buffer("help").toString("base64");
     }
-
+    
     if (!_.isNil($(data).element("achievements"))) {
       // TODO:: achi_packflg, achi_packid, achi_playpack //
       pcdata.achi_lastweekly = Number($(data).attr("achievements").last_weekly);
@@ -2515,7 +2753,7 @@ export const pcsave: EPR = async (info, data, send) => {
         event_data = tricolettepark;
 
         event_data.open_music = Number($(data).attr("tricolettepark").open_music),
-          event_data.boss0_damage += Number($(data).attr("tricolettepark").boss0_damage);
+        event_data.boss0_damage += Number($(data).attr("tricolettepark").boss0_damage);
         event_data.boss1_damage += Number($(data).attr("tricolettepark").boss1_damage);
         event_data.boss2_damage += Number($(data).attr("tricolettepark").boss2_damage);
         event_data.boss3_damage += Number($(data).attr("tricolettepark").boss3_damage);
@@ -2873,7 +3111,7 @@ export const pcsave: EPR = async (info, data, send) => {
         event_data = tricolettepark;
 
         event_data.open_music = Number($(data).attr("tricolettepark").open_music),
-          event_data.boss0_damage += Number($(data).attr("tricolettepark").boss0_damage);
+        event_data.boss0_damage += Number($(data).attr("tricolettepark").boss0_damage);
         event_data.boss1_damage += Number($(data).attr("tricolettepark").boss1_damage);
         event_data.boss2_damage += Number($(data).attr("tricolettepark").boss2_damage);
         event_data.boss3_damage += Number($(data).attr("tricolettepark").boss3_damage);
@@ -4488,9 +4726,9 @@ export const pcsave: EPR = async (info, data, send) => {
               event_data: "myepo_map",
               map_id: res[0].map_id,
             },
-              {
-                $set: res[0],
-              });
+            {
+              $set: res[0],
+            });
 
             // building_data //
             res[1].forEach((res) => {
@@ -4501,9 +4739,9 @@ export const pcsave: EPR = async (info, data, send) => {
                 map_id: res.map_id,
                 pos: res.pos,
               },
-                {
-                  $set: res,
-                });
+              {
+                $set: res,
+              });
             });
 
             // shop_data //
@@ -4515,9 +4753,9 @@ export const pcsave: EPR = async (info, data, send) => {
                 map_id: res.map_id,
                 reward_id: res.reward_id,
               },
-                {
-                  $set: res,
-                });
+              {
+                $set: res,
+              });
             });
 
             // music //
@@ -4527,9 +4765,9 @@ export const pcsave: EPR = async (info, data, send) => {
                 version: version,
                 event_data: "myepo_music",
               },
-                {
-                  $set: res,
-                });
+              {
+                $set: res,
+              });
             });
           });
           break;
@@ -4730,29 +4968,29 @@ export const pcsave: EPR = async (info, data, send) => {
               event_data: "pinkyunderground_hall",
               hall_id: res.attr().hall_id,
             },
-              {
-                $set: {
-                  play_num: res.attr().play_num,
-                  last_select_skill_index: res.attr().last_select_skill_index,
-                  hall_prog: res.attr().hall_prog,
-                  defeat_num: res.attr().defeat_num,
-                  pp_0: res.attr().pp_0,
-                  pp_1: res.attr().pp_1,
-                  pp_2: res.attr().pp_2,
-                  pp_3: res.attr().pp_3,
-                  pp_4: res.attr().pp_4,
-                  pp_5: res.attr().pp_5,
-                  skill_1: res.attr().skill_1,
-                  skill_2: res.attr().skill_2,
-                  skill_3: res.attr().skill_3,
-                  cool_1: res.attr().cool_1,
-                  cool_2: res.attr().cool_2,
-                  cool_3: res.attr().cool_3,
-                  param_1: res.attr().param_1,
-                  param_2: res.attr().param_2,
-                  param_3: res.attr().param_3,
-                },
-              });
+            {
+              $set: {
+                play_num: res.attr().play_num,
+                last_select_skill_index: res.attr().last_select_skill_index,
+                hall_prog: res.attr().hall_prog,
+                defeat_num: res.attr().defeat_num,
+                pp_0: res.attr().pp_0,
+                pp_1: res.attr().pp_1,
+                pp_2: res.attr().pp_2,
+                pp_3: res.attr().pp_3,
+                pp_4: res.attr().pp_4,
+                pp_5: res.attr().pp_5,
+                skill_1: res.attr().skill_1,
+                skill_2: res.attr().skill_2,
+                skill_3: res.attr().skill_3,
+                cool_1: res.attr().cool_1,
+                cool_2: res.attr().cool_2,
+                cool_3: res.attr().cool_3,
+                param_1: res.attr().param_1,
+                param_2: res.attr().param_2,
+                param_3: res.attr().param_3,
+              },
+            });
 
             res.elements("hall_qpro_data").forEach((res2) => {
               DB.Upsert(
@@ -5270,8 +5508,8 @@ export const pcsave: EPR = async (info, data, send) => {
             ...result
           }
         });
+      }
     }
-  }
 
   await DB.Upsert<profile>(
     refid,
@@ -5304,6 +5542,17 @@ export const pcsave: EPR = async (info, data, send) => {
       $set: custom
     }
   );
+
+  if (version < 14) {
+    return send.object({
+      "@attr": {
+        method: "pcsave",
+      }
+    }, {
+      rootName: GetModel(info),
+      status: version < 13 ? "SOK" : 0,
+    })
+  }
 
   return send.success();
 };

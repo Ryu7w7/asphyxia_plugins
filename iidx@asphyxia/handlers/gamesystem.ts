@@ -206,11 +206,7 @@ export const gssysteminfo: EPR = async (info, data, send) => {
       }
 
       result = Object.assign(result, {
-        CommonBossPhase: K.ATTR({ val: String(3) }),
-        Event1Value: K.ATTR({ val: String(0) }),
         Event1Phase: K.ATTR({ val: String(U.GetConfig("ss_event1")) }),
-        Event2Phase: K.ATTR({ val: String(0) }),
-        ExtraBossEventPhase: K.ATTR({ val: String(0) }),
         ExtraBossEvent: K.ATTR({ val: String(U.GetConfig("ss_extraboss")) }),
         isNewSongAnother12OpenFlg: K.ATTR({ val: String(Number(U.GetConfig("NewSongAnother12"))) }),
         isKiwamiOpenFlg: K.ATTR({ val: String(Number(U.GetConfig("Eisei"))) }),
@@ -219,7 +215,7 @@ export const gssysteminfo: EPR = async (info, data, send) => {
         VocaloidEvent: K.ATTR({ val: String(U.GetConfig("ss_cyber")) }),
         KrankAppendSeason: K.ATTR({ val: String(0) }),
         the4thEvent: K.ATTR({ val: String(1)} ),
-        beat: K.ATTR({ val: String(5293) }), // required value for 2026031000+ //
+        beat: K.ATTR({ val: String(5293) }), // It wasn't. TODO:: Figure out what this value does //
         extraevent_2: {
           "@attr": {
             all_point_score: String(totalScorePoint),

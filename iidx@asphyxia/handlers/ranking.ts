@@ -1,25 +1,59 @@
 import { expert, ranking } from "../models/ranking";
 import { profile } from "../models/profile";
-import { GetVersion, IDtoRef } from "../util";
+import { GetCommand, GetModel, GetVersion, IDtoRef } from "../util";
+
+export const rankingmethod: EPR = async (info, data, send) => {
+  const command = GetCommand(data);
+  switch (command[0]) {
+    case "entry":
+      return await rankingentry(info, data, send);
+    case "getranker":
+      return await rankinggetranker(info, data, send);
+
+    default:
+      break;
+  }
+
+  return send.deny();
+}
 
 export const rankingentry: EPR = async (info, data, send) => {
   // pside //
   const version = GetVersion(info);
-  const refid = await IDtoRef(Number($(data).attr().iidxid));
+  const command = GetCommand(data);
 
-  const coid = Number($(data).attr().coid);
-  const clid = Number($(data).attr().clid);
+  let refid = null;
+  if (version < 11) refid = command[1].split('|')[0];
+  else if (version < 13) refid = await IDtoRef(Number(command[1]));
+  else refid = await IDtoRef(Number($(data).attr().iidxid));
 
-  const opname = $(data).attr().opname;
-  const oppid = Number($(data).attr().oppid);
-  const pgnum = Number($(data).attr().pgnum);
-  const gnum = Number($(data).attr().gnum);
-  const opt = Number($(data).attr().opt);
-  const opt2 = Number($(data).attr().opt2);
-  const clr = Number($(data).attr().clr);
+  const coid = version < 13 ? Number(command[3]) : Number($(data).attr().coid);
+  const clid = version < 13 ? Number(command[2]) : Number($(data).attr().clid);
 
+  let opname = null;
+  if (version < 11) opname = command[10];
+  else if (version < 13) opname = command[9];
+  else opname = $(data).attr().opname;
+
+  let oppid = null;
+  if (version < 11) oppid = Number(command[11]);
+  else if (version < 13) oppid = Number(command[10]);
+  else oppid = Number($(data).attr().oppid);
+
+  const pgnum = version < 13 ? Number(command[4]) : Number($(data).attr().pgnum);
+  const gnum = version < 13 ? Number(command[5]) : Number($(data).attr().gnum);
+  const opt = version < 13 ? Number(command[6]) : Number($(data).attr().opt);
+  const opt2 = version < 13 ? Number(command[7]) : Number($(data).attr().opt2); // unk #2 //
+  
   const exscore = (pgnum * 2 + gnum);
-  const cstage = Number($(data).attr().cstage);
+
+  let cstage = null;
+  if (version < 11) cstage = Number(command[12]);
+  else if (version < 12) cstage = Number(command[10]);
+  else if (version < 13) cstage = Number(command[11]);
+  else cstage = Number($(data).attr().cstage);
+
+  const clr = version < 13 ? (cstage == 5 ? 1 : 0) : Number($(data).attr().clr);
 
   const expert_data = await DB.FindOne<expert>(refid, {
     collection: "expert",
@@ -115,10 +149,23 @@ export const rankingentry: EPR = async (info, data, send) => {
   expertUser.sort((a: ranking, b: ranking) => b.exscore - a.exscore);
   let rankPos = expertUser.findIndex((a: ranking) => a.name == name);
 
-  return send.object(K.ATTR({
-    anum: String(expertUser.length), 
-    jun: String(rankPos + 1),
-  }));
+  let result = {
+    "@attr": {
+      anum: String(expertUser.length),
+      jun: String(rankPos + 1),
+    }
+  }
+
+  let sendOption: EamuseSendOption = {};
+  if (version < 14) {
+    result["@attr"]["method"] = "rankingentry"
+    sendOption = {
+      rootName: GetModel(info),
+      status: version < 13 ? "SOK" : 0,
+    };
+  }
+
+  return send.object(result, sendOption);
 };
 
 export const rankingoentry: EPR = async (info, data, send) => {
@@ -143,11 +190,15 @@ export const rankingoentry: EPR = async (info, data, send) => {
 
 export const rankinggetranker: EPR = async (info, data, send) => {
   const version = GetVersion(info);
+  const command = GetCommand(data);
+
+  const coid = version < 13 ? Number(command[1]) : Number($(data).attr().coid);
+  const clid = version < 13 ? Number(command[2]) : Number($(data).attr().clid);
   const ranking = await DB.Find<ranking>({
     collection: "ranking",
     version: version,
-    coid: Number($(data).attr().coid),
-    clid: Number($(data).attr().clid),
+    coid,
+    clid,
   });
   let result = {
     ranker: [],
@@ -169,5 +220,16 @@ export const rankinggetranker: EPR = async (info, data, send) => {
     );
   });
 
-  return send.object(result);
+  let sendOption: EamuseSendOption = {};
+  if (version < 14) {
+    result = Object.assign(result, {
+      "@attr": { method: "rankinggetranker" },
+    });
+    sendOption = {
+      rootName: GetModel(info),
+      status: version < 13 ? "SOK" : 0,
+    };
+  }
+
+  return send.object(result, sendOption);
 };

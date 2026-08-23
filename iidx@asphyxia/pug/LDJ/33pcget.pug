@@ -49,23 +49,18 @@ IIDX33pc(status="0")
   vskin(__type="s32" __count="4") #{lm_custom.premium_skin} #{lm_custom.premium_bg} #{lm_custom.premium_bg_concent} #{lm_custom.entry_bg}
   vskin_customize_setting(entry_bg_brightness=lm_custom.entry_bg_brightness)
   qprodata(__type="u32" __count="6") #{custom.qpro_head} #{custom.qpro_hair} #{custom.qpro_face} #{custom.qpro_hand} #{custom.qpro_body} #{custom.qpro_back}
-  qproattendant0(__type="u32" __count="6") 0 0 0 0 0 0
-  qproattendant1(__type="u32" __count="6") 0 0 0 0 0 0
-  qproattendant2(__type="u32" __count="6") 0 0 0 0 0 0
   rlist
     - for (let rd of rArray)
       rival(spdp=rd.play_style id=rd.profile[2] id_str=rd.profile[3] djname=rd.profile[0] pid=rd.profile[1] sg=rd.pcdata[0] dg=rd.pcdata[1] sa=rd.pcdata[2] da=rd.pcdata[3])
         is_robo(__type="bool") 0
         qprodata(body=rd.qprodata[3] face=rd.qprodata[2] hair=rd.qprodata[0] hand=rd.qprodata[4] head=rd.qprodata[1] back=rd.qprodata[5])
-        if shop_data != null
-          shop(name=shop_data.opname)
+        shop(name=shop_data.opname)
   rlist_sub
     - for (let rsd of rsArray)
       rival(spdp=rsd.play_style id=rsd.profile[2] id_str=rsd.profile[3] djname=rsd.profile[0] pid=rsd.profile[1] sg=rsd.pcdata[0] dg=rsd.pcdata[1] sa=rsd.pcdata[2] da=rsd.pcdata[3])
         is_robo(__type="bool") 0
         qprodata(body=rsd.qprodata[3] face=rsd.qprodata[2] hair=rsd.qprodata[0] hand=rsd.qprodata[4] head=rsd.qprodata[1] back=rsd.qprodata[5])
-        if shop_data != null
-          shop(name=shop_data.opname)
+        shop(name=shop_data.opname)
   notes_radar(style="0")
     radar_score(__type="s32" __count="6") #{pcdata.nr_spradar[0]} #{pcdata.nr_spradar[1]} #{pcdata.nr_spradar[2]} #{pcdata.nr_spradar[3]} #{pcdata.nr_spradar[4]} #{pcdata.nr_spradar[5]}
   notes_radar(style="1")
@@ -173,14 +168,3 @@ IIDX33pc(status="0")
           is_special_result(__type="bool") #{a.is_special_result}
   if sparkle_vocalo != null
     event_v(event_play_num=sparkle_vocalo.play_num last_select_music=sparkle_vocalo.last_select_music point_get=sparkle_vocalo.point_get point_use_0=sparkle_vocalo.point_use_0 point_use_1=sparkle_vocalo.point_use_1 booster_get=sparkle_vocalo.booster_get booster_use_0=sparkle_vocalo.booster_use_0 booster_use_1=sparkle_vocalo.booster_use_1)
-  if newsDataAllTop != null
-    news_data(disp_score_type="0")
-      news_data_rival(last_read_time="0")
-        - for (let n of newsDataRival)
-          detail(music_id=n.music_id class_id=n.class_id news_type=n.news_type news_data=n.news_data news_time=n.timestamp dj_name=n.dj_name)
-      news_data_all_top(last_read_time="0")
-        - for (let n of newsDataAllTop)
-          detail(music_id=n.music_id class_id=n.class_id news_type=n.news_type news_data=n.news_data news_time=n.timestamp dj_name=n.dj_name)
-      news_data_area_top(last_read_time="0")
-        - for (let n of newsDataAreaTop)
-          detail(music_id=n.music_id class_id=n.class_id news_type=n.news_type news_data=n.news_data news_time=n.timestamp dj_name=n.dj_name)
