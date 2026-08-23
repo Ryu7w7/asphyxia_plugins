@@ -1,4 +1,4 @@
-﻿import { pcdata, KDZ_pcdata, IIDX27_pcdata, IIDX28_pcdata, IIDX29_pcdata, IIDX30_pcdata, JDZ_pcdata, LDJ_pcdata, IIDX21_pcdata, IIDX22_pcdata, IIDX23_pcdata, IIDX24_pcdata, IIDX25_pcdata, IIDX26_pcdata, JDJ_pcdata, HDD_pcdata, I00_pcdata, GLD_pcdata, IIDX31_pcdata, IIDX32_pcdata, IIDX33_pcdata, FDD_pcdata, ECO_pcdata, E11_pcdata, D01_pcdata } from "../models/pcdata";
+import { pcdata, KDZ_pcdata, IIDX27_pcdata, IIDX28_pcdata, IIDX29_pcdata, IIDX30_pcdata, JDZ_pcdata, LDJ_pcdata, IIDX21_pcdata, IIDX22_pcdata, IIDX23_pcdata, IIDX24_pcdata, IIDX25_pcdata, IIDX26_pcdata, JDJ_pcdata, HDD_pcdata, I00_pcdata, GLD_pcdata, IIDX31_pcdata, IIDX32_pcdata, IIDX33_pcdata, FDD_pcdata, ECO_pcdata, E11_pcdata, D01_pcdata } from "../models/pcdata";
 import { grade } from "../models/grade";
 import { custom, default_custom } from "../models/custom";
 import { IDtoCode, IDtoRef, GetVersion, ReftoProfile, ReftoPcdata, ReftoQPRO, appendSettingConverter, NumArrayToString, GetModel, GetCommand, NumArrayToHex } from "../util";
@@ -12,7 +12,7 @@ import { expert } from "../models/ranking";
 import { blueboss } from "../models/event";
 import { badge, badgeBaseMap, badgeVersionMap } from "../models/badge";
 import { extra_favorite } from "../models/favorite";
-import { activity, activity_mybest } from "../models/activity";
+import { activity, activity_mybest, activity_news } from "../models/activity";
 import { extra_boss } from "../models/extraboss";
 import { djtraining } from "../models/djtraining";
 
@@ -1620,6 +1620,7 @@ export const pcget: EPR = async (info, data, send) => {
 
     // TODO:: actually sort by today's gameplay //
     let activityMybest = [], activityMynews = [];
+    let newsDataAllTop = [], newsDataRival = [];
     if (activity_mybest_sp.length > 0) {
       activity_mybest_sp.sort((a, b) => b.now_clear - a.now_clear);
       activityMybest.push({
@@ -1923,6 +1924,17 @@ export const pcget: EPR = async (info, data, send) => {
         break;
     }
 
+    // Fetch Breaking News (all recent personal bests + national tops)
+    let allNews = await DB.Find<activity_news>(null, {
+      collection: "activity_news",
+    });
+    if (allNews && allNews.length > 0) {
+      allNews.sort((a, b) => b.timestamp - a.timestamp);
+      // Show national tops first, fallback to all recent personal bests
+      const nationalTops = allNews.filter(n => (n.top_type & 8) !== 0);
+      newsDataAllTop = (nationalTops.length > 0 ? nationalTops : allNews).slice(0, 30);
+    }
+
     switch (version) {
       case 33:
         result = Object.assign(result, {
@@ -1941,6 +1953,8 @@ export const pcget: EPR = async (info, data, send) => {
           activityWeekDP,
           activityMynews,
           activityMybest,
+          newsDataAllTop,
+          newsDataRival,
           ebeArray,
         });
       case 31:

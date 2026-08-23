@@ -7,6 +7,9 @@ import { updateRivalSettings, updateCustomSettings, importScoreData, exportScore
 import { GetVersion } from "./util";
 import { rankingentry, rankinggetranker, rankingmethod, rankingoentry } from "./handlers/ranking";
 
+import { streamingcommon, streaminggetcm } from "./handlers/streaming";
+import { lobbyentry, lobbyupdate, lobbydelete, bplbattle_entry, bplbattle_update, bplbattle_delete } from "./handlers/lobby";
+
 export function register() {
   if (CORE_VERSION_MAJOR <= 1 && CORE_VERSION_MINOR < 31) {
     console.error("The current version of Asphyxia Core is not supported. Requires version '1.31' or later.");
@@ -60,11 +63,19 @@ export function register() {
   MultiRoute("pc.getLaneGachaTicket", pcgetlanegacha);
   MultiRoute("pc.drawLaneGacha", pcdrawlanegacha);
   MultiRoute("pc.consumeLaneGachaTicket", true);
+  
+  // Dummy handlers for missing PC endpoints
+  const pcDummys = ["playstart", "playend", "locaend", "lcommon", "eaappliresult", "eaappliexpert", "ifinish", "logout", "qrreward", "qrcompe", "qrfollow", "getCompeInfo", "compeOrganize", "compeEntry", "compeSearch", "save2pp", "mygoalcancel", "mygoalclear", "mygoalset", "setBestresult"];
+  pcDummys.forEach(ep => MultiRoute(`pc.${ep}`, true));
 
   MultiRoute("shop.getname", shopgetname);
   MultiRoute("shop.savename", shopsavename);
   MultiRoute("shop.getconvention", shopgetconvention);
   MultiRoute("shop.setconvention", shopsetconvention);
+  
+  // Dummy handlers for missing SHOP endpoints
+  const shopDummys = ["sentinfo", "keepalive", "sendpcbdetail", "gettaxconfig", "getclosingtime", "saveclosingtime", "sendescapepackageinfo", "recoveryfilelog"];
+  shopDummys.forEach(ep => MultiRoute(`shop.${ep}`, true));
 
   MultiRoute("music.crate", musiccrate);
   MultiRoute("music.getrank", musicgetrank);
@@ -74,6 +85,10 @@ export function register() {
   MultiRoute("music.reg", musicreg);
   MultiRoute("music.breg", musicbreg);
   MultiRoute("music.arenaCPU", musicarenacpu);
+  
+  // Dummy handlers for missing MUSIC endpoints
+  const musicDummys = ["play", "lplay", "nosave", "beginnerplay", "movieinfo", "retry"];
+  musicDummys.forEach(ep => MultiRoute(`music.${ep}`, true));
 
   MultiRoute("grade.raised", graderaised);
 
@@ -82,6 +97,18 @@ export function register() {
   MultiRoute("ranking.getranker", rankinggetranker);
 
   MultiRoute("gameSystem.systemInfo", gssysteminfo);
+
+  // Streaming Handlers (TDJ Banners)
+  MultiRoute("streaming.common", streamingcommon);
+  MultiRoute("streaming.getcm", streaminggetcm);
+
+  // Lobby Handlers (ARENA & BPL Battle)
+  MultiRoute("lobby.entry", lobbyentry);
+  MultiRoute("lobby.update", lobbyupdate);
+  MultiRoute("lobby.delete", lobbydelete);
+  MultiRoute("lobby.bplbattle_entry", bplbattle_entry);
+  MultiRoute("lobby.bplbattle_update", bplbattle_update);
+  MultiRoute("lobby.bplbattle_delete", bplbattle_delete);
 
   R.Unhandled((req: EamuseInfo, data: any, send: EamuseSend) => {
     console.warn(`Unhandled Request : [${GetVersion(req)}], ${req.module}.${req.method}, ${JSON.stringify(data)}`);
