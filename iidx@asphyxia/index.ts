@@ -141,6 +141,12 @@ export function register() {
     type: "string",
     default: "",
   });
+  R.Config("iidx_jacket_dir", {
+    name: "Jacket Directory",
+    desc: "Path to the game's graphic folder containing jacket images (e.g. /mnt/extra/IIDX33/data/graphic). Used for Discord webhook thumbnails.",
+    type: "string",
+    default: "",
+  });
   R.Config("BeatPhase", {
     name: "Beat #",
     desc: "1 / 2 / 3 / FREE", // This can be event phase on old versions //

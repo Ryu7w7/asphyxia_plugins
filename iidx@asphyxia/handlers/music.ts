@@ -1131,10 +1131,6 @@ export const musicreg: EPR = async (info, data, send) => {
   if (discordShouldNotify && shop_rank === 0) {
     discordAutoExport(profile.name, mid, clid, discordOldScore, exscore, discordOldClear, cflg, discordPreviousName, discordPreviousRefid, String(refid), version);
   }
-  // Only notify Discord if the player is genuinely #1 in the real ranking //
-  if (discordShouldNotify && shop_rank === 0) {
-    discordAutoExport(profile.name, mid, clid, discordOldScore, exscore, discordOldClear, cflg, discordPreviousName, discordPreviousRefid, String(refid), version);
-  }
 
   scores = await Promise.all(
     scores.map(async (r) => [
@@ -1898,21 +1894,33 @@ except Exception as e:
     payload.embeds[0].image = { url: "attachment://qpro.png" };
   }
 
-  // Load song jacket: movie_thumbnail â†’ thumbnail â†’ iidx.png fallback //
+  // Load song jacket: configurable dir → movie_thumbnail → thumbnail → iidx.png fallback //
   let jacketBuffer: Buffer | null = null;
   try {
-    const assetBase = path.join(__dirname, "../webui/asset");
     const jacketName = `${mid}_thum.png`;
-    const moviePath = path.join(assetBase, "movie_thumbnail", jacketName);
-    const thumbPath = path.join(assetBase, "thumbnail", jacketName);
-    const fallbackPath = path.join(assetBase, "iidx.png");
+    const internalBase = path.join(__dirname, "../webui/asset");
+    const jacketDir = U.GetConfig("iidx_jacket_dir") as string;
 
-    if (fs.existsSync(moviePath)) {
-      jacketBuffer = fs.readFileSync(moviePath);
-    } else if (fs.existsSync(thumbPath)) {
-      jacketBuffer = fs.readFileSync(thumbPath);
-    } else if (fs.existsSync(fallbackPath)) {
-      jacketBuffer = fs.readFileSync(fallbackPath);
+    // Candidate paths in priority order:
+    // 1. Configurable dir → movie_thumbnail
+    // 2. Configurable dir → thumbnail
+    // 3. Internal webui/asset → movie_thumbnail
+    // 4. Internal webui/asset → thumbnail
+    // 5. Internal webui/asset → iidx.png (fallback logo)
+    const candidates: string[] = [];
+    if (jacketDir && jacketDir.trim() !== "") {
+      candidates.push(path.join(jacketDir, "movie_thumbnail", jacketName));
+      candidates.push(path.join(jacketDir, "thumbnail", jacketName));
+    }
+    candidates.push(path.join(internalBase, "movie_thumbnail", jacketName));
+    candidates.push(path.join(internalBase, "thumbnail", jacketName));
+    candidates.push(path.join(internalBase, "iidx.png"));
+
+    for (const candidate of candidates) {
+      if (fs.existsSync(candidate)) {
+        jacketBuffer = fs.readFileSync(candidate);
+        break;
+      }
     }
   } catch (err) {
     console.error("Failed to load jacket for Discord", err);
