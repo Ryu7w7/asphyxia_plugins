@@ -1,0 +1,410 @@
+//DATA//
+  scores: DB.Find(refid, { collection: 'score' })
+  scores3: DB.Find(refid, { collection: 'score3' })
+-
+div
+  .card
+    .card-header
+      p.card-header-title
+        span.icon
+          i.mdi.mdi-database-import
+        | Migrate DDR Scores from Another Server
+    .card-content
+      .content
+        p Import ONLY your DDR scores from another Asphyxia server's #[code savedata] folder.
+        p Select the folder that contains #[code core.db] and #[code ddr@asphyxia.db].
+
+      #ddr-migrate-step-1
+        .field
+          .file.has-name.is-fullwidth
+            label.file-label
+              input.file-input(type="file" id="ddr-migrate-folder-input" webkitdirectory directory multiple)
+              span.file-cta
+                span.file-icon
+                  i.mdi.mdi-folder-open
+                span.file-label Choose savedata folder...
+              span.file-name#ddr-migrate-folder-name No folder selected
+
+      #ddr-migrate-parse-error(style="display:none")
+      #ddr-migrate-step-2(style="display:none")
+        .notification.is-success.is-light#ddr-migrate-files-found
+
+        .field
+          label.label Source Profile
+          .control
+            .select.is-fullwidth
+              select#ddr-migrate-profile-select
+                option(value="" disabled selected) Select a profile...
+
+        #ddr-migrate-preview(style="display:none")
+          .box
+            h5.title.is-5 Import Preview
+            #ddr-migrate-preview-content
+
+          .field
+            button.button.is-link#ddr-migrate-import-btn
+              span.icon
+                i.mdi.mdi-database-import
+              span Import Scores
+
+      #ddr-migrate-result(style="display:none;margin-top:1.5rem;")
+
+  .card(style="margin-top: 1.5rem;")
+    .card-header
+      p.card-header-title
+        span.icon
+          i.mdi.mdi-database-export
+        | Migrate DDR Scores to Another Server
+    .card-content
+      .content
+        p Export ONLY your DDR scores as #[code savedata.zip] (contains #[code core.db] and #[code ddr@asphyxia.db]).
+        p The zip contains only your data.
+
+      .field
+        button.button.is-link#ddr-export-savedata-btn
+          span.icon
+            i.mdi.mdi-download
+          span Download savedata.zip
+
+script(src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js")
+script.
+  (function() {
+    if (typeof isOwner !== 'undefined' && !isOwner) {
+      document.querySelector('.card-content').innerHTML = '<div class="notification is-warning is-light"><span class="icon"><i class="mdi mdi-lock"></i></span> Migration features are only available on your own profile.</div>';
+      var s1 = document.getElementById('ddr-migrate-step-1');
+      if (s1) s1.style.display = 'none';
+      return;
+    }
+
+    var profileMap = {};
+    var scoresByRefid = {};
+
+    var SQL = null;
+
+    async function initSQL() {
+      if (SQL) return SQL;
+      SQL = await initSqlJs({
+        locateFile: function(file) {
+          return 'https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/' + file;
+        }
+      });
+      return SQL;
+    }
+
+    async function parseDatabase(file) {
+      var buffer = await file.arrayBuffer();
+      var arr = new Uint8Array(buffer);
+
+      // Check for SQLite magic header
+      var isSQLite = false;
+      var magic = "SQLite format 3\0";
+      if (arr.length > 16) {
+        isSQLite = true;
+        for (var i = 0; i < 16; i++) {
+          if (arr[i] !== magic.charCodeAt(i)) {
+            isSQLite = false;
+            break;
+          }
+        }
+      }
+
+      var docs = [];
+      if (isSQLite) {
+        try {
+          var sq = await initSQL();
+          var db = new sq.Database(arr);
+          var stmt = db.prepare("SELECT * FROM documents");
+          while (stmt.step()) {
+            var row = stmt.getAsObject();
+            var d = {};
+            if (row.data) {
+              try { d = JSON.parse(row.data); } catch(e) {}
+            }
+            if (row._id) d._id = row._id;
+            if (row.__s) d.__s = row.__s;
+            if (row.__refid) d.__refid = row.__refid;
+            if (row.createdAt) d.createdAt = row.createdAt;
+            if (row.updatedAt) d.updatedAt = row.updatedAt;
+            if (row._collection) d.collection = row._collection;
+            docs.push(d);
+          }
+          stmt.free();
+          db.close();
+        } catch (e) {
+          console.error("SQLite parse error:", e);
+        }
+      } else {
+        var text = new TextDecoder("utf-8").decode(arr);
+        var lines = text.split('\n');
+        for (var i = 0; i < lines.length; i++) {
+          var line = lines[i].trim();
+          if (!line) continue;
+          try { docs.push(JSON.parse(line)); } catch (e) {}
+        }
+      }
+      return docs;
+    }
+
+    function resolveLatest(docs) {
+      var latestById = {};
+      var noId = [];
+      for (var i = 0; i < docs.length; i++) {
+        var d = docs[i];
+        if (!d) continue;
+        if (d._id) latestById[d._id] = d;
+        else noId.push(d);
+      }
+      var out = [];
+      for (var id in latestById) out.push(latestById[id]);
+      return out.concat(noId);
+    }
+
+    function hide(elId) {
+      var el = document.getElementById(elId);
+      if (el) el.style.display = 'none';
+    }
+    function show(elId) {
+      var el = document.getElementById(elId);
+      if (el) el.style.display = '';
+    }
+
+    function showError(msgHtml) {
+      var el = document.getElementById('ddr-migrate-parse-error');
+      if (!el) return;
+      el.style.display = '';
+      el.innerHTML = '<div class="notification is-danger is-light">' + msgHtml + '</div>';
+      hide('ddr-migrate-step-2');
+    }
+
+    function showResult(type, html) {
+      var el = document.getElementById('ddr-migrate-result');
+      if (!el) return;
+      el.style.display = '';
+      el.innerHTML = '<div class="notification is-' + type + ' is-light">' + html + '</div>';
+    }
+
+    function getRefid(d) {
+      if (!d) return null;
+      return (
+        d.__refid ||
+        d.__refId ||
+        d.__refID ||
+        d.refid ||
+        d.refId ||
+        d.refID ||
+        null
+      );
+    }
+
+    function looksLikeProfile(d) {
+      if (!d) return false;
+      if (d.__s === 'profile' || d.__s === 'profiles') return true;
+      if (typeof d.name === 'string' && d.name.trim().length > 0) {
+        if (
+          typeof d.pin !== 'undefined' ||
+          typeof d.cards !== 'undefined' ||
+          typeof d.createdAt !== 'undefined' ||
+          typeof d.updatedAt !== 'undefined'
+        ) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    var input = document.getElementById('ddr-migrate-folder-input');
+    if (!input) return;
+
+    input.addEventListener('change', function(e) {
+      var files = e.target.files;
+      if (!files || files.length === 0) return;
+
+      hide('ddr-migrate-parse-error');
+      hide('ddr-migrate-step-2');
+      hide('ddr-migrate-result');
+      hide('ddr-migrate-preview');
+
+      var coreFile = null;
+      var ddrFile = null;
+
+      for (var i = 0; i < files.length; i++) {
+        var name = files[i].name;
+        if (name === 'core.db') coreFile = files[i];
+        else if (name === 'ddr@asphyxia.db') ddrFile = files[i];
+      }
+
+      var folderName = (files[0].webkitRelativePath || '').split('/')[0] || 'selected folder';
+      var folderLabel = document.getElementById('ddr-migrate-folder-name');
+      if (folderLabel) folderLabel.textContent = folderName;
+
+      if (!coreFile || !ddrFile) {
+        var missing = [];
+        if (!coreFile) missing.push('core.db');
+        if (!ddrFile) missing.push('ddr@asphyxia.db');
+        showError('<strong>Missing files:</strong> ' + missing.join(', ') + '. Make sure you selected the correct savedata folder.');
+        return;
+      }
+
+      Promise.all([parseDatabase(coreFile), parseDatabase(ddrFile)])
+        .then(function(results) {
+          var coreDocsRaw = results[0];
+
+          var latestProfileByRefid = {};
+          for (var i = 0; i < coreDocsRaw.length; i++) {
+            var d = coreDocsRaw[i];
+            if (!d) continue;
+
+            var rid = getRefid(d);
+            if (!rid) continue;
+
+            if (looksLikeProfile(d)) {
+              latestProfileByRefid[rid] = d;
+            }
+          }
+
+          profileMap = {};
+          for (var rid in latestProfileByRefid) {
+            var p = latestProfileByRefid[rid];
+            var nm = (p && typeof p.name === 'string' && p.name.trim().length > 0) ? p.name.trim() : '(no name)';
+            profileMap[rid] = nm;
+          }
+
+          var ddrDocs = resolveLatest(results[1]);
+
+          scoresByRefid = {};
+          for (var i = 0; i < ddrDocs.length; i++) {
+            var d = ddrDocs[i];
+            if (!d) continue;
+
+            if (d.collection === 'score' || d.collection === 'score3') {
+              var rid = getRefid(d);
+              if (!rid) continue;
+              if (!scoresByRefid[rid]) scoresByRefid[rid] = [];
+              scoresByRefid[rid].push(d);
+            }
+          }
+
+          var profileCount = Object.keys(profileMap).length;
+          if (profileCount === 0) {
+            showError('<strong>No profiles found</strong> in core.db.');
+            return;
+          }
+
+          var totalScoreDocs = 0;
+          for (var rid in scoresByRefid) {
+            totalScoreDocs += scoresByRefid[rid].length;
+          }
+
+          var found = document.getElementById('ddr-migrate-files-found');
+          if (found) {
+            found.innerHTML =
+              '<strong>Found ' + profileCount + ' profile(s)</strong> and <strong>' +
+              totalScoreDocs + ' score(s)</strong>.';
+          }
+
+          var select = document.getElementById('ddr-migrate-profile-select');
+          if (!select) return;
+
+          select.innerHTML = '<option value="" disabled selected>Select a profile...</option>';
+
+          var refids = Object.keys(profileMap).sort(function(a, b) {
+            return String(profileMap[a]).localeCompare(String(profileMap[b]));
+          });
+
+          for (var x = 0; x < refids.length; x++) {
+            var rid = refids[x];
+            var scores = scoresByRefid[rid] ? scoresByRefid[rid].length : 0;
+
+            var opt = document.createElement('option');
+            opt.value = rid;
+            opt.textContent = profileMap[rid] + ' (' + scores + ' scores)';
+            select.appendChild(opt);
+          }
+
+          show('ddr-migrate-step-2');
+          hide('ddr-migrate-preview');
+        })
+        .catch(function(err) {
+          showError('<strong>Failed to read files:</strong> ' + err.message);
+        });
+    });
+
+    var sel = document.getElementById('ddr-migrate-profile-select');
+    if (sel) {
+      sel.addEventListener('change', function() {
+        var rid = this.value;
+        var docs = scoresByRefid[rid] || [];
+
+        var preview = document.getElementById('ddr-migrate-preview');
+        var content = document.getElementById('ddr-migrate-preview-content');
+        if (!preview || !content) return;
+
+        var html = '<table class="table is-narrow"><tbody>';
+        html += '<tr><td><strong>Scores</strong></td><td>' + docs.length + '</td></tr>';
+        html += '</tbody></table>';
+        html += '<p class="is-size-7 has-text-grey">Only better EXSCORE and LAMP per chart will overwrite existing data.</p>';
+
+        content.innerHTML = html;
+        preview.style.display = '';
+        hide('ddr-migrate-result');
+      });
+    }
+
+    var importBtn = document.getElementById('ddr-migrate-import-btn');
+    if (importBtn) {
+      importBtn.addEventListener('click', function() {
+        var selectedRefid = document.getElementById('ddr-migrate-profile-select').value;
+        if (!selectedRefid) return;
+
+        var docs = scoresByRefid[selectedRefid] || [];
+        if (docs.length === 0) return;
+
+        var btn = this;
+        btn.classList.add('is-loading');
+        btn.disabled = true;
+
+        fetch('/migrate/ddr/import-scores', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refid: refid, scores: docs })
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          btn.classList.remove('is-loading');
+          btn.disabled = false;
+
+          if (data && data.success) {
+            var html = '<strong>Import complete!</strong>';
+            html += '<br>Inserted scores: ' + (data.inserted || 0);
+            html += '<br>Updated scores: ' + (data.updated || 0);
+            html += '<br>Skipped (no improvement): ' + (data.skipped || 0);
+            html += '<br><br><em>Reload the page to see updated scores.</em>';
+            showResult('success', html);
+          } else {
+            showResult('danger', '<strong>Import failed:</strong> ' + ((data && data.description) || 'Unknown error'));
+          }
+        })
+        .catch(function(err) {
+          btn.classList.remove('is-loading');
+          btn.disabled = false;
+          showResult('danger', '<strong>Error:</strong> ' + err.message);
+        });
+      });
+    }
+
+    var exportBtn = document.getElementById('ddr-export-savedata-btn');
+    if (exportBtn) {
+      exportBtn.addEventListener('click', function() {
+        var btn = this;
+        btn.classList.add('is-loading');
+        btn.disabled = true;
+
+        window.location.href = '/migrate/ddr/export-savedata?refid=' + encodeURIComponent(refid);
+
+        setTimeout(function() {
+          btn.classList.remove('is-loading');
+          btn.disabled = false;
+        }, 3000);
+      });
+    }
+  })();
