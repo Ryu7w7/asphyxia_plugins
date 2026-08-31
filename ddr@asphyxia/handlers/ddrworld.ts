@@ -50,9 +50,21 @@ function loadSongCache(): Map<number, SongInfo> {
   if (_songCache) return _songCache;
   _songCache = new Map();
 
+  // Step 1: Seed from SONGS_WORLD / SONGS_OVERRIDE_WORLD — these have correct diffLv for all World songs
+  for (const sw of [...SONGS_WORLD, ...SONGS_OVERRIDE_WORLD]) {
+    const existing = _songCache.get(sw.mcode);
+    if (!existing) {
+      _songCache.set(sw.mcode, { title: `ID ${sw.mcode}`, artist: '', diffLv: sw.diffLv, basename: '' });
+    } else if (!existing.diffLv || existing.diffLv.every(v => v === 0)) {
+      // overwrite only if existing diffLv is blank/all-zero
+      _songCache.set(sw.mcode, { ...existing, diffLv: sw.diffLv });
+    }
+  }
+
+  // Step 2: Overlay titles, artists and basenames from XML files
   const candidates = [
+    path.join(__dirname, '../webui/uploads/mdb_limited.xml'),
     path.join(__dirname, '../webui/uploads/mdb_title.xml'),
-    path.join(__dirname, '../webui/uploads/mdb_limited.xml')
   ];
 
   for (const cand of candidates) {
@@ -64,19 +76,28 @@ function loadSongCache(): Map<number, SongInfo> {
         while ((m = musicRegex.exec(xml)) !== null) {
           const block = m[0];
           const mcodeM = /<mcode[^>]*>(\d+)<\/mcode>/.exec(block);
+          if (!mcodeM) continue;
+          const mcode = parseInt(mcodeM[1], 10);
           const titleM = /<title[^>]*>([\s\S]*?)<\/title>/.exec(block);
           const artistM = /<artist[^>]*>([\s\S]*?)<\/artist>/.exec(block);
           const diffLvM = /<diffLv[^>]*>([^<]*)<\/diffLv>/.exec(block);
           const basenameM = /<basename[^>]*>([\s\S]*?)<\/basename>/.exec(block);
-          if (!mcodeM) continue;
-          const mcode = parseInt(mcodeM[1], 10);
-          const title = titleM ? titleM[1].trim() : `ID ${mcode}`;
+          const title = titleM ? titleM[1].trim() : '';
           const artist = artistM ? artistM[1].trim() : '';
           const basename = basenameM ? basenameM[1].trim() : '';
-          const diffLv = diffLvM
-            ? diffLvM[1].split(/[,\s]+/).map(v => parseInt(v, 10)).map(v => v === 255 ? 0 : v)
+          const xmlDiffLv = diffLvM
+            ? diffLvM[1].trim().split(/[,\s]+/).map(v => parseInt(v, 10)).map(v => v === 255 ? 0 : v)
             : [];
-          _songCache.set(mcode, { title, artist, diffLv, basename });
+
+          const existing = _songCache.get(mcode);
+          // Use xmlDiffLv only if it has real non-zero values and we don't already have better data
+          const useXmlDiffLv = xmlDiffLv.some(v => v > 0) && (!existing || existing.diffLv.every(v => v === 0));
+          _songCache.set(mcode, {
+            title: title || existing?.title || `ID ${mcode}`,
+            artist: artist || existing?.artist || '',
+            basename: basename || existing?.basename || '',
+            diffLv: useXmlDiffLv ? xmlDiffLv : (existing?.diffLv || []),
+          });
         }
       } catch (e) {
         console.error('[DDR Discord] Failed to load musicdb:', e);
@@ -210,13 +231,11 @@ async function discordAutoExport(
   }
 
   // Title context
-  let titleLine: string;
+  let titleLine = `🏆 ${flaggedPlayer} got #1! • ${clearLabel}`;
   if (previousDancerName && previousDancerName !== playerName) {
-    titleLine = `🏆 New Server #1!`;
+    titleLine = `🏆 ${flaggedPlayer} dethroned ${withFlag(previousDancerName, previousRefid)}! • ${clearLabel}`;
   } else if (previousDancerName === playerName) {
-    titleLine = `🏆 #1 Improved!`;
-  } else {
-    titleLine = `🏆 New Server #1!`;
+    titleLine = `🏆 ${flaggedPlayer} improved #1! • ${clearLabel}`;
   }
 
   // Description: song + player context
@@ -240,7 +259,7 @@ async function discordAutoExport(
   };
   const lampDisplay = lampEmojis[clearKind] || `✅ ${clearLabel}`;
 
-  const chartDisplay = `${styleLabel} ${diffLabel}${lvText ? ` ● Lv.${lvText.trim()}` : ''}`;
+  const chartDisplay = `${styleLabel} ${diffLabel}${lvText}`;
 
   const fields = [
     { name: '🎯 Chart', value: `\`${chartDisplay}\``, inline: true },
