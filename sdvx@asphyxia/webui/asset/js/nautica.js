@@ -37,14 +37,14 @@ var BG_GROUPS = [
   { group: 'V VIVID WAVE', entries: [
     [75,'Vivid Pink Club & Dancefloor'],[76,'AUTOMATION PARADISE DJ Booth'],[79,'Golden Cross Flare'],
     [80,'Golden Genesis Void'],[81,'Spatiotemporal Shockwave'],[82,'Monochrome Metropolis (Gray City)'],
-    [84,'Carnival & Festival Lights'],[86,'Ethereal Lotus Garden']
+    [84,'HEXA DIVER: Rishna (Cyber Void)'],[86,'Ethereal Lotus Garden']
   ]},
   { group: 'VI EXCEED GEAR', entries: [
     [88,'Valkyrie Flight Arena'],[90,'Crystal Memory Void'],[91,'Exceed Gear Blue Cyber Grid'],
     [94,'Exceed Gear Red Cyber Grid'],[95,'Blooming Floral Garden'],[96,'UNDERTALE (Pixel Castle & Battle Grid)'],
-    [97,'Starlit Night Horizon'],[98,'Rival Dual Combat Arena'],[100,'Sacred Holy Light & Columns'],
-    [101,'Megamix Festival & Torii Gate'],[102,'Apocalypse Crimson Void'],[103,'Sacred Celestial Rain'],
-    [104,'Rainbow Crystal Prism'],[105,'Akasha Cosmic Vortex'],[106,'NEMSYS Hexathlon Stadium'],
+    [97,'HEXA DIVER: Pilica (Cyber Void)'],[98,'HEXA DIVER: Haruka (Cyber Void)'],[100,'Sacred Holy Light & Columns'],
+    [101,'Megamix Festival & Torii Gate'],[102,'HEXA DIVER: Shion (Cyber Void)'],[103,'HEXA DIVER: Nana (Cyber Void)'],
+    [104,'Rainbow Crystal Prism'],[105,'HEXA DIVER: Akasha (Cosmic Void)'],[106,'NEMSYS Hexathlon Stadium'],
     [107,'Neo Tokyo Night City'],[109,'Cyber Gothic Cathedral'],[110,'Golden Titan Colosseum'],
     [111,'Botanical Blue Sanctuary'],[113,'Shinto Shrine & Sacred Torii'],[114,'Summer Sunset Mirage']
   ]},
