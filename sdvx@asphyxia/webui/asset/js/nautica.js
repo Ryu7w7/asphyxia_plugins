@@ -21,7 +21,7 @@ var BG_GROUPS = [
     [29,'Kokonatsu Vocal'],[30,'Gravity Wars Standard (Seraphim)'],[31,'Cyber City (イグジスタンス)'],
     [36,'Everlasting Message (KAC 2015)'],[38,'Summer 2015 (In The Breeze)'],[39,'veRtrageS / Regalia'],
     [40,'Firestorm / Vermilia'],[41,'Tsumabuki / Eastern (紅の剣舞)'],[42,'Masakari Blade'],
-    [43,'Lachryma《Re:Queen''M》'],[44,'Gekkou Ranbu (月光乱舞)'],[45,'REVOLVER'],
+    [43,"Lachryma《Re:Queen'M》"],[44,'Gekkou Ranbu (月光乱舞)'],[45,'REVOLVER'],
     [46,'Superstar Mitsuru (She is my wife)'],[48,'FLügeL《Λrp:ΣggyR》'],[49,'Prayer'],
     [50,'JOMANDA']
   ]},
@@ -40,11 +40,11 @@ var BG_GROUPS = [
   ]},
   { group: 'VI EXCEED GEAR', entries: [
     [88,'Valkyrie Assault / Air (POSSESSION)'],[90,'《Re:miniscence》'],[91,'Exceed Gear Standard 1 (Xb10r)'],
-    [94,'Exceed Gear Standard 2 (VOLAQUAS)'],[95,'Bl∞min'''],[96,'UNDERTALE (Heartache, Bonetrousle)'],
+    [94,'Exceed Gear Standard 2 (VOLAQUAS)'],[95,"Bl∞min'"],[96,'UNDERTALE (Heartache, Bonetrousle)'],
     [97,'いまきみに (Silentroom)'],[98,'You Are My Best RivaL!!'],[100,'HALO / Ragnarøk'],
-    [101,'Megamix Festival (うぇるかむ)'],[102,'APOCALYPSE RAY'],[103,'Heaven''s Rain'],
+    [101,'Megamix Festival (うぇるかむ)'],[102,'APOCALYPSE RAY'],[103,"Heaven's Rain"],
     [104,'Rainbow / ALMiRAJ'],[105,'Akasha (Λkasha)'],[106,'NEMSYS ARENA World Hexathlon'],
-    [107,'Knew Order / Allegro Saetta'],[109,'Don''t you dare play GOD'],[110,'Golden Rotation / Titanomachia'],
+    [107,'Knew Order / Allegro Saetta'],[109,"Don't you dare play GOD"],[110,'Golden Rotation / Titanomachia'],
     [111,'Our garden is blue.'],[113,'Kannagi (神凪)'],[114,'If Summer Ever Comes / Overdelta']
   ]},
   { group: 'VII NABLA', entries: [
