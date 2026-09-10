@@ -3,6 +3,63 @@ var existingNauticaIds = new Set();
 var diffNames = ['', 'NOV', 'ADV', 'EXH', 'MXM'];
 var diffClasses = ['', 'chip-nov', 'chip-adv', 'chip-exh', 'chip-mxm'];
 
+// ─── Background (bg_no) selector ────────────────────────────────────────────
+// Values sourced from the official ∇ music_db.xml. Grouped by game version.
+var BG_GROUPS = [
+  { group: 'I BOOTH',          entries: [
+    [0,'Bridge'],[1,'Dome'],[2,'Space'],[3,'Pop'],[4,'Moon'],
+    [5,'Dome Red'],[6,'Moon 2'],[7,'Moon 3'],[8,'KAC 2012'],
+    [9,'Blaster'],[10,'MAXIMA'],[11,'Ruins']
+  ]},
+  { group: 'II',               entries: [[12,'Star'],[13,'KAC 2013']]},
+  { group: 'III GRAVITY WARS', entries: [[14,'Default']]},
+  { group: 'IV HEAVENLY HAVEN',entries: [
+    [15,'Sea'],[16,'Sky'],[18,'City'],[19,'Tunnel'],
+    [27,'Beam'],[29,'Sakura'],[30,'Twilight'],[31,'Pop 2']
+  ]},
+  { group: 'V VIVID WAVE',     entries: [[34,'Stage'],[36,'Ver5 Test'],[38,'Japan']]},
+  { group: 'VI EXCEED GEAR',   entries: [
+    [39,'EXG 1'],[40,'EXG 2'],[41,'ExGate'],[42,'ExGate Alive'],
+    [43,'ExGate Everlast'],[44,'ExGate Kannagi'],[45,'ExGate Vallisneria'],
+    [46,'Diver Basic 1'],[47,'Diver Basic 2'],[48,'Diver Basic 3'],[49,'Diver Basic 4'],
+    [50,'Diver Soul'],[51,'Diver Mixx'],[53,'Diver Rishna'],[54,'Diver Noisya'],
+    [57,'Diver Pilica'],[58,'Diver Haruka'],[59,'Diver Shion'],[60,'Diver Nana'],
+    [61,'Diver Rasisdeth'],[63,'Diver Xhrono'],[65,'Diver Tex'],[66,'Diver Tex Blue'],
+    [67,'Diver Tex Purple'],[68,'Diver Tex White'],[69,'Diver Akasha'],
+    [70,'Diver Akasha KAC'],[71,'Grace vs Rasis'],[72,'Grace Challenge']
+  ]},
+  { group: 'VII NABLA',        entries: [
+    [73,'Default 1'],[74,'Default 2'],[75,'Omega Shinwa'],[76,'Omega MAXIMA'],
+    [77,'Omega Nianoa'],[78,'Omega Inoten'],[79,'Omega Arashi'],[80,'Omega Hiyuki'],
+    [81,'Omega Cyberspace'],[82,'Omega Capsaicin'],[83,'Omega18 MAXMA'],[84,'Omega18 Tama'],
+    [86,'Planet'],[87,'Planet Yusha'],[88,'BPL Normal'],[89,'BPL Grace'],
+    [90,'BPL S3 Normal'],[91,'BPL S3 Dream'],[92,'BPL S3 Final'],
+    [93,'BPL S5 Normal'],[94,'BPL S5 Final'],[95,'Tenkaichi'],[96,'Tenkaichi 02'],
+    [97,'Tenkaichi 03'],[98,'Pop Tama'],[99,'Superstar Mitsuru'],[100,'Nishinippori'],
+    [101,'Megamix'],[102,'Jomanda'],[103,'Undertale'],[104,'Automation Paradise'],
+    [105,'Beach Day'],[106,'Beach Night'],[107,'KAC 5th Rasis'],[108,'KAC 5th Small'],
+    [109,'KAC 6th Nianoa'],[110,'KAC 6th Reigure'],[111,'KAC 7th Rasis'],
+    [112,'KAC 8th Kanade'],[113,'KAC 8th Lefrigh'],[114,'KAC 9th Kureha'],
+    [115,'EDP 2016'],[116,'YAMBR RedBull'],[117,'2015 KAC'],[118,'2015 Summer']
+  ]}
+];
+
+function buildBgSelectHtml(currentBgNo, nauticaId) {
+  var sel = '<select class="select is-small nautica-bg-select" data-id="' + nauticaId + '" style="max-width:170px">';
+  for (var g = 0; g < BG_GROUPS.length; g++) {
+    var grp = BG_GROUPS[g];
+    sel += '<optgroup label="' + grp.group + '">';
+    for (var e = 0; e < grp.entries.length; e++) {
+      var val = grp.entries[e][0];
+      var lbl = grp.entries[e][1];
+      sel += '<option value="' + val + '"' + (val === currentBgNo ? ' selected' : '') + '>' + lbl + '</option>';
+    }
+    sel += '</optgroup>';
+  }
+  sel += '</select>';
+  return sel;
+}
+
 // v7 (Valkyrie/∇) chart levels: integer 1–17, plus 17.5, plus any 0.1 step
 // between 18.0 and 20.0 inclusive. The game's music_db stores `difnum` as
 // level*10 (u8), so we work in tenths to avoid float compare pitfalls.
@@ -437,7 +494,7 @@ function renderCuratedList() {
   }
 
   var html = '<table class="table is-fullwidth is-striped"><thead><tr>' +
-    '<th>ID</th><th>Title</th><th>Artist</th><th>Charts</th><th>Status</th><th>Actions</th>' +
+    '<th>ID</th><th>Title</th><th>Artist</th><th>Charts</th><th>Background</th><th>Status</th><th>Actions</th>' +
     '</tr></thead><tbody>';
 
   for (var i = 0; i < songs.length; i++) {
@@ -455,11 +512,13 @@ function renderCuratedList() {
     }
 
     var statusClass = 'status-' + (s.status || 'pending');
+    var currentBgNo = (typeof s.bgNo === 'number') ? s.bgNo : 6;
     html += '<tr>' +
       '<td>' + (s.mid || '-') + '</td>' +
       '<td>' + escapeHtml(s.title) + '</td>' +
       '<td>' + escapeHtml(s.artist) + '</td>' +
       '<td>' + chipHtml + '</td>' +
+      '<td>' + buildBgSelectHtml(currentBgNo, s.nauticaId) + '</td>' +
       '<td><span class="curated-status ' + statusClass + '">' + (s.status || 'pending') +
         (s.errorMessage ? ' — ' + escapeHtml(s.errorMessage) : '') + '</span></td>' +
       '<td><div class="buttons are-small" style="flex-wrap:nowrap">' +
@@ -528,6 +587,28 @@ function renderCuratedList() {
         btn.classList.remove('is-loading');
         btn.disabled = false;
         alert('Failed to queue reconversion: ' + (err && err.message ? err.message : err));
+      });
+    });
+  }
+
+  // ── Background selector ──
+  var bgSelects = container.querySelectorAll('.nautica-bg-select');
+  for (var bg = 0; bg < bgSelects.length; bg++) {
+    bgSelects[bg].addEventListener('change', function () {
+      var sel = this;
+      var id = sel.getAttribute('data-id');
+      var bgNo = parseInt(sel.value, 10);
+      sel.disabled = true;
+      emit('nauticaSetBg', { nauticaId: id, bgNo: bgNo }).then(function (response) {
+        sel.disabled = false;
+        var result = response && response.data;
+        if (!result || result.error) {
+          alert('Failed to set background: ' + (result ? result.error : 'no response'));
+          return;
+        }
+      }).catch(function (err) {
+        sel.disabled = false;
+        alert('Error setting background: ' + (err && err.message ? err.message : err));
       });
     });
   }

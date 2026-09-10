@@ -1,5 +1,6 @@
 import { HAVE_NOTE } from "../data/ii"
 import { COURSES6, MEGAMIX_SONGS, MEGAMIX_SONGS_2, MEGAMIX_SONGS_3, MEGAMIX_SONGS_4 } from "../data/exg"
+import { MEGAMIX_SONGS_5 } from "../data/nbl"
 import { VariantPower } from "../models/variant"
 import { Profile } from "../models/profile"
 import { Arena } from "../models/arena"
@@ -18,8 +19,8 @@ const dev = false
 
 export async function dataUpdate() {
 	if(dev) {
-		console.log(MEGAMIX_SONGS.join(',').length + " " + MEGAMIX_SONGS_2.join(',').length + " " + MEGAMIX_SONGS_3.join(',').length + " " + MEGAMIX_SONGS_4.join(',').length)
-		let mergeMega = MEGAMIX_SONGS.concat(MEGAMIX_SONGS_2, MEGAMIX_SONGS_3, MEGAMIX_SONGS_4)
+		console.log(MEGAMIX_SONGS.join(',').length + " " + MEGAMIX_SONGS_2.join(',').length + " " + MEGAMIX_SONGS_3.join(',').length + " " + MEGAMIX_SONGS_4.join(',').length + " " + MEGAMIX_SONGS_5.join(',').length)
+		let mergeMega = MEGAMIX_SONGS.concat(MEGAMIX_SONGS_2, MEGAMIX_SONGS_3, MEGAMIX_SONGS_4, MEGAMIX_SONGS_5)
 		let newSongs = []
 		let megamixFiles = (await IO.ReadDir(U.GetConfig('sdvx_eg_root_dir') + "/data/sound/automa/waves/")).filter(file => file.name.includes("wave_info_megamix")).filter(file => file.name.includes('.xml'))
 		for (const file of megamixFiles) {
@@ -47,11 +48,11 @@ async function updateSkillCourseIds() {
 		let skillData
 		for (const course of (courseData || [])) {
 			skillData = COURSES6.find(sd => sd.id === course['sid'])
-			if (skillData && 'courses' in skillData) {
-				const courseIndex = skillData['courses'].findIndex(cd => parseInt('' + skillData.id + cd.id) === course['cid'])
-				if (courseIndex === -1) {
+			if(skillData && 'courses' in skillData) {
+				let courseIndex = skillData['courses'].findIndex(cd => parseInt('' + skillData.id + cd.id) === course['cid'])
+				if(courseIndex === -1) {
 					console.log("old: (" + profile['__refid'] + ") updating cid " + course['cid'] + " -> " + parseInt('' + skillData.id + course['cid']))
-					await DB.Upsert(profile['__refid'], { collection: 'course', sid: course['sid'], cid: course['cid'] }, {
+					await DB.Upsert(profile['__refid'], {collection: 'course', sid: course['sid'], cid: course['cid']}, {
 						$set: {
 							cid: parseInt('' + skillData.id + course['cid'])
 						}
@@ -65,7 +66,7 @@ async function updateSkillCourseIds() {
 async function updateDB() {
 	// update collections — all iterations are per-profile to avoid NeDB stack overflow
 
-	// dbver 1: fix variantpower (need global find but this collection is small per profile)
+	// dbver 1: fix variantpower
 	const allProfiles = await DB.Find<Profile>(null, { collection: 'profile' })
 	for (const profile of (allProfiles || [])) {
 		if (!profile['__refid']) continue
@@ -135,10 +136,9 @@ export async function iiMigrate(refid, newName) {
 	let profileData = await DB.FindOne<Profile>(refid, {collection: 'profile', version: 1})
 	await DB.Upsert<Profile>(refid, {collection: 'profile', version: 2}, {
 		$set: {
-			pluginVer: 1,
+			collection: 'profile',
 			dbver: DB_VER,
 
-			collection: 'profile',
 			id: profileData.id,
 			name: newName,
 			appeal: 0,
@@ -205,10 +205,9 @@ export async function iiiMigrate(refid, newName) {
 	let profileData = await DB.FindOne<Profile>(refid, {collection: 'profile', version: 2})
 	await DB.Upsert<Profile>(refid, {collection: 'profile', version: 3}, {
 		$set: {
-			pluginVer: 1,
+			collection: 'profile',
 			dbver: DB_VER,
 
-			collection: 'profile',
 			id: profileData.id,
 			name: newName,
 			appeal: 0,
@@ -252,34 +251,260 @@ export async function iiiMigrate(refid, newName) {
 
 	let itemData = await DB.Find<Item>(refid, {collection: 'item', version: 2})
 	console.log("Migrating item data")
-	for (const item of itemData) {
+	itemData.forEach(async item => {
 		await DB.Upsert<Item>(refid, {collection: 'item', version: 3, type: item.type, id: item.id}, {
 			$set: {
 				param: item.param,
 				dbver: DB_VER
 			}
 		})
-	}
+	})
 
 	let paramData = await DB.Find<Param>(refid, {collection: 'param', version: 2})
 	console.log("Migrating param data")
-	for (const param of paramData) {
+	paramData.forEach(async param => {
 		await DB.Upsert<Param>(refid, {collection: 'param', version: 3, type: param.type, id: param.id}, {
 			$set: {
 				param: param.param,
 				dbver: DB_VER
 			}
 		})
-	}
+	})
 
+	console.log("Migrating POLICY BREAK progress")
 	let policyBreak = await DB.Find<PolicyBreak>(refid, {collection: 'pb', version: 2})
-	for (const pb of policyBreak) {
+	policyBreak.forEach(async pb => {
 		await DB.Upsert<PolicyBreak>(refid, {collection: 'pb', version: 3, id: pb.id}, {
 			$set: {
 				exp: pb.exp
 			}
 		})
-	}
+	})
+}
+
+export async function ivMigrate(refid, newName) {
+	console.log("Migrating profile from GW to HH")
+	let profileData = await DB.FindOne<Profile>(refid, {collection: 'profile', version: 3})
+	await DB.Upsert<Profile>(refid, {collection: 'profile', version: 4}, {
+		$set: {
+			collection: 'profile',
+			dbver: DB_VER,
+
+			id: profileData.id,
+			name: newName,
+			appeal: 0,
+			akaname: 0,
+			blocks: 0,
+			packets: 0,
+			arsOption: 0,
+			drawAdjust: 0,
+			earlyLateDisp: 0,
+			effCLeft: 0,
+			effCRight: 1,
+			gaugeOption: 0,
+			hiSpeed: profileData.hiSpeed,
+			laneSpeed: profileData.laneSpeed,
+			narrowDown: 0,
+			notesOption: 0,
+			blasterEnergy: 0,
+
+			headphone: 0,
+			musicID: 0,
+			musicType: 0,
+			sortType: 0,
+			expPoint: 0,
+			mUserCnt: 0,
+			boothFrame: [0, 0, 0, 0, 0],
+
+			playCount: 0,
+			dayCount: 0,
+			todayCount: 0,
+			playchain: 0,
+			maxPlayChain: 0,
+			weekCount: 0,
+			weekPlayCount: 0,
+			weekChain: 0,
+			maxWeekChain: 0,
+
+			bplSupport: 0,
+			creatorItem: 0
+		}
+	})
+
+	let itemData = await DB.Find<Item>(refid, {collection: 'item', version: 3, type: {$nin: [7]}})
+	console.log("Migrating item data")
+	itemData.forEach(async item => {
+		await DB.Upsert<Item>(refid, {collection: 'item', version: 4, type: item.type, id: item.id}, {
+			$set: {
+				param: item.param,
+				dbver: DB_VER
+			}
+		})
+	})
+
+	console.log("Migrating POLICY BREAK progress")
+	let policyBreak = await DB.Find<PolicyBreak>(refid, {collection: 'pb', version: 3})
+	policyBreak.forEach(async pb => {
+		await DB.Upsert<PolicyBreak>(refid, {collection: 'pb', version: 4, id: pb.id}, {
+			$set: {
+				exp: pb.exp
+			}
+		})
+	})
+}
+
+export async function vMigrate(refid, newName) {
+	console.log("Migrating profile from HH to VW")
+	let profileData = await DB.FindOne<Profile>(refid, {collection: 'profile', version: 4})
+	await DB.Upsert<Profile>(refid, {collection: 'profile', version: 5}, {
+		$set: {
+			collection: 'profile',
+			dbver: DB_VER,
+
+			id: profileData.id,
+			name: newName,
+			appeal: 0,
+			akaname: 0,
+			blocks: 0,
+			packets: 0,
+			arsOption: 0,
+			drawAdjust: 0,
+			earlyLateDisp: 0,
+			effCLeft: profileData.effCLeft,
+			effCRight: profileData.effCRight,
+			gaugeOption: 0,
+			hiSpeed: profileData.hiSpeed,
+			laneSpeed: profileData.laneSpeed,
+			narrowDown: 0,
+			notesOption: 0,
+			blasterEnergy: 0,
+
+			headphone: 0,
+			musicID: 0,
+			musicType: 0,
+			sortType: 0,
+			expPoint: 0,
+			mUserCnt: 0,
+			boothFrame: [0, 0, 0, 0, 0],
+
+			playCount: 0,
+			dayCount: 0,
+			todayCount: 0,
+			playchain: 0,
+			maxPlayChain: 0,
+			weekCount: 0,
+			weekPlayCount: 0,
+			weekChain: 0,
+			maxWeekChain: 0,
+
+			bplSupport: 0,
+			creatorItem: 0
+		}
+	})
+
+	let itemData = await DB.Find<Item>(refid, {collection: 'item', version: 4})
+	console.log("Migrating item data")
+	itemData.forEach(async item => {
+		await DB.Upsert<Item>(refid, {collection: 'item', version: 5, type: item.type, id: item.id}, {
+			$set: {
+				param: item.param,
+				dbver: DB_VER
+			}
+		})
+	})
+
+	let paramData = await DB.Find<Param>(refid, {collection: 'param', version: 4})
+	console.log("Migrating param data")
+	paramData.forEach(async param => {
+		await DB.Upsert<Param>(refid, {collection: 'param', version: 5, type: param.type, id: param.id}, {
+			$set: {
+				param: param.param,
+				dbver: DB_VER
+			}
+		})
+	})
+
+	console.log("Migrating POLICY BREAK progress")
+	let policyBreak = await DB.Find<PolicyBreak>(refid, {collection: 'pb', version: 4})
+	policyBreak.forEach(async pb => {
+		await DB.Upsert<PolicyBreak>(refid, {collection: 'pb', version: 5, id: pb.id}, {
+			$set: {
+				exp: pb.exp
+			}
+		})
+	})
+}
+
+export async function viMigrate(refid, newName) {
+	console.log("Migrating profile from VW to EG")
+	let profileData = await DB.FindOne<Profile>(refid, {collection: 'profile', version: 5})
+	await DB.Upsert<Profile>(refid, {collection: 'profile', version: 6}, {
+		$set: {
+			dbver: DB_VER,
+
+			collection: 'profile',
+			id: profileData.id,
+			name: newName,
+			appeal: 0,
+			akaname: 0,
+			blocks: 0,
+			packets: 0,
+			arsOption: 0,
+			drawAdjust: 0,
+			earlyLateDisp: 0,
+			effCLeft: profileData.effCLeft,
+			effCRight: profileData.effCRight,
+			gaugeOption: 0,
+			hiSpeed: profileData.hiSpeed,
+			laneSpeed: profileData.laneSpeed,
+			narrowDown: 0,
+			notesOption: 0,
+			blasterEnergy: 0,
+
+			headphone: 0,
+			musicID: 0,
+			musicType: 0,
+			sortType: 0,
+			expPoint: 0,
+			mUserCnt: 0,
+			boothFrame: [0, 0, 0, 0, 0],
+
+			playCount: 0,
+			dayCount: 0,
+			todayCount: 0,
+			playchain: 0,
+			maxPlayChain: 0,
+			weekCount: 0,
+			weekPlayCount: 0,
+			weekChain: 0,
+			maxWeekChain: 0,
+
+			bplSupport: 0,
+			creatorItem: 0
+		}
+	})
+
+	let itemData = await DB.Find<Item>(refid, {collection: 'item', version: 5})
+	console.log("Migrating item data")
+	itemData.forEach(async item => {
+		await DB.Upsert<Item>(refid, {collection: 'item', version: 6, type: item.type, id: item.id}, {
+			$set: {
+				param: item.param,
+				dbver: DB_VER
+			}
+		})
+	})
+
+	let paramData = await DB.Find<Param>(refid, {collection: 'param', version: 5})
+	console.log("Migrating param data")
+	paramData.forEach(async param => {
+		await DB.Upsert<Param>(refid, {collection: 'param', version: 6, type: param.type, id: param.id}, {
+			$set: {
+				param: param.param,
+				dbver: DB_VER
+			}
+		})
+	})
 }
 
 export async function viiMigrate(refid, newName) {
@@ -287,10 +512,9 @@ export async function viiMigrate(refid, newName) {
 	let profileData = await DB.FindOne<Profile>(refid, {collection: 'profile', version: 6})
 	await DB.Upsert<Profile>(refid, {collection: 'profile', version: 7}, {
 		$set: {
-			pluginVer: 1,
+			collection: 'profile',
 			dbver: DB_VER,
 
-			collection: 'profile',
 			id: profileData.id,
 			name: newName,
 			appeal: 0,
@@ -335,18 +559,18 @@ export async function viiMigrate(refid, newName) {
 
 	let itemData = await DB.Find<Item>(refid, {collection: 'item', version: 6})
 	console.log("Migrating item data")
-	for (const item of itemData) {
+	itemData.forEach(async item => {
 		await DB.Upsert<Item>(refid, {collection: 'item', version: 7, type: item.type, id: item.id}, {
 			$set: {
 				param: item.param,
 				dbver: DB_VER
 			}
 		})
-	}
+	})
 
 	let paramData = await DB.Find<Param>(refid, {collection: 'param', version: 6})
 	console.log("Migrating param data")
-	for (const param of paramData) {
+	paramData.forEach(async param => {
 		if(param.type === 2 && param.id === 1) param.param[24] = 0
 		await DB.Upsert<Param>(refid, {collection: 'param', version: 7, type: param.type, id: param.id}, {
 			$set: {
@@ -354,58 +578,5 @@ export async function viiMigrate(refid, newName) {
 				dbver: DB_VER
 			}
 		})
-	}
-
-	let exScoreResetList = [
-		{ id: 360, type: 3 }, { id: 580, type: 2 }, { id: 1121, type: 4 }, { id: 1185, type: 2 },
-		{ id: 1199, type: 4 }, { id: 1738, type: 4 }, { id: 2242, type: 0 }
-	]
-	// add EG force value
-	let levelDifOverride = [
-		{ mid: 1, type: 1, lvl: 10 }, { mid: 18, type: 1, lvl: 8 }, { mid: 18, type: 2, lvl: 10 },
-		{ mid: 73, type: 2, lvl: 17 }, { mid: 48, type: 1, lvl: 8 }, { mid: 75, type: 2, lvl: 12 },
-		{ mid: 124, type: 2, lvl: 16 }, { mid: 65, type: 1, lvl: 7 }, { mid: 66, type: 1, lvl: 8 },
-		{ mid: 27, type: 1, lvl: 7 }, { mid: 27, type: 2, lvl: 12 }, { mid: 68, type: 1, lvl: 9 },
-		{ mid: 6, type: 1, lvl: 7 }, { mid: 6, type: 2, lvl: 12 }, { mid: 16, type: 1, lvl: 7 },
-		{ mid: 2, type: 1, lvl: 10 }, { mid: 60, type: 3, lvl: 17 }, { mid: 5, type: 2, lvl: 13 },
-		{ mid: 128, type: 2, lvl: 13 }, { mid: 9, type: 2, lvl: 1 }, { mid: 340, type: 2, lvl: 13 },
-		{ mid: 247, type: 3, lvl: 18 }, { mid: 282, type: 2, lvl: 17 }, { mid: 288, type: 2, lvl: 13 },
-		{ mid: 699, type: 3, lvl: 18 }, { mid: 595, type: 2, lvl: 17 }, { mid: 507, type: 2, lvl: 17 }, 
-		{ mid: 1044, type: 2, lvl: 16 }, { mid: 948, type: 4, lvl: 16 }, { mid: 1115, type: 4, lvl: 16 },
-		{ mid: 1215, type: 2, lvl: 15 }, { mid: 1152, type: 2, lvl: 15 }, { mid: 1282, type: 3, lvl: 17.5 },
-		{ mid: 1343, type: 2, lvl: 16 }, { mid: 1300, type: 3, lvl: 17.5 }, { mid: 1938, type: 2, lvl: 18 }
-	]
-
-	let music_db = await IO.ReadFile('webui/asset/json/music_db.json')
-	let mdb = JSON.parse(music_db.toString());
-	let diffName = ['novice', 'advanced', 'exhaust', 'infinite', 'maximum', 'ultimate']
-	let migRecs = await DB.Find<MusicRecord>(refid, {collection: 'music', version: 6})
-	for (const rec of migRecs) {
-		let nblClearLamp = [0, 1, 2, 3, 5, 6, 4]
-		var foundSongIndex = mdb.mdb.music.map(function(x) {return x['id']; }).indexOf(rec.mid.toString());
-		let diffLevel = 0
-		let lvOverride = 0
-		let exscoreOverride = 0
-		if(foundSongIndex !== -1) {
-			var songData = mdb.mdb.music[foundSongIndex];
-			diffLevel = parseInt(songData['difficulty'][6][diffName[rec.type]])
-			lvOverride = levelDifOverride.findIndex(d => d.mid === rec.mid && d.type === rec.type)
-			if(lvOverride >= 0) diffLevel = levelDifOverride[lvOverride].lvl
-			exscoreOverride = exScoreResetList.findIndex(d => d.id === rec.mid && d.type === rec.type)
-			if(exscoreOverride >= 0) rec.exscore = 0
-			await DB.Upsert(refid, {collection: 'music', mid: rec.mid, type: rec.type, version: 7}, {
-				$set: {
-					score: rec.score,
-					exscore: rec.exscore,
-					volforce: computeForce(6, diffLevel, rec.score, nblClearLamp[rec.clear], rec.grade),
-					clear: nblClearLamp[rec.clear],
-					grade: rec.grade,
-					buttonRate: rec.buttonRate,
-					longRate: rec.longRate,
-					volRate: rec.volRate,
-					dbver: DB_VER
-				}
-			})
-		}
-	}
+	})
 }

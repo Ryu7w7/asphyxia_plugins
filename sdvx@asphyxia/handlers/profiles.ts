@@ -2,24 +2,27 @@ import * as https from 'https';
 import { Skill } from '../models/skill'
 import { Item } from '../models/item'
 import { Param } from '../models/param'
-import { Arena } from '../models/arena'
+import { Arena, Volfes } from '../models/arena'
 import { PolicyBreak } from '../models/policy_break'
-import { MusicRecord } from '../models/music_record'
+import { MusicRecord, AutomaRecord } from '../models/music_record'
 import { CourseRecord } from '../models/course_record'
 import { Profile } from '../models/profile'
 import { ValgeneTicket } from '../models/valgene_ticket'
 import { WeeklyMusicScore } from '../models/weeklymusic'
 import { VariantPower } from '../models/variant'
 import { GWStory } from '../models/gw_story'
-import { getVersion, IDToCode, checkVerStart, loadMusicDb, isValidMid } from '../utils'
+import { PluginSettings } from '../models/settings'
+import { getVersion, IDToCode, checkVerStart, convertGWHHGrade, getYMDDate, computeForce, loadMusicDb, isValidMid } from '../utils'
 import { Mix } from '../models/mix'
 import { POLICY_BREAK2 } from '../data/ii'
 import { POLICY_BREAK3, COURSES3 } from '../data/gw'
+import { POLICY_BREAK4, EVENT_ITEMS4, COURSES4 } from '../data/hh'
+import { POLICY_BREAK5, EVENT_ITEMS5, COURSES5, VOLFES } from '../data/vw'
 import { CURRENT_ARENA, EVENT_ITEMS6, UNLOCK_EVENTS6 } from '../data/exg'
 import { CURRENT_ARENA7, EVENT_ITEMS7, UNLOCK_EVENTS7 } from '../data/nbl'
 import { getRankListDB } from './webui'
 import { invalidateHiscoreIfNew } from './features'
-import { DB_VER, iiMigrate, iiiMigrate, viiMigrate } from './migrate'
+import { DB_VER, iiMigrate, iiiMigrate, ivMigrate, vMigrate, viMigrate, viiMigrate } from './migrate'
 const logging = false
 
 function unlockNavigators(items: Partial<Item>[], version: number) {
@@ -46,7 +49,7 @@ function unlockAppealCards(items: Partial<Item>[], version: number) {
 function unlockAppealParts(items: Partial<Item>[]) {
   console.log("Unlocking Appeal Parts");
   for (let i = 0; i <= 50; ++i) items.push({ type: 23, id: i, param: 99 })
-  for (let i = 0; i <= 200; ++i) items.push({ type: 24, id: i, param: 99 })
+  for (let i = 0; i <= 250; ++i) items.push({ type: 24, id: i, param: 99 })
 
   return items;
 }
@@ -126,71 +129,210 @@ export const loadScore: EPR = async (info, data, send) => {
     })
   }
 
+  if (version === 4 || version === 5) {
+    const recordsMerged = records.concat(await DB.Find<MusicRecord>(refid, { collection: 'music', version: version - 1 }))
+    const automaRecord = await DB.Find<AutomaRecord>(refid, {collection:'automa', version})
+    let scores = {
+      music: {
+        info: _.map(
+          _.groupBy(recordsMerged, r => `${r.mid}:${r.type}`),
+          group => {
+            const newScore = group.find(s => s.version === version)
+            const oldScore = group.find(s => s.version === version - 1)
+            let scoreData = []
+
+            // populate current version scores
+            if(!newScore) scoreData = scoreData.concat([0,0,0,0,0,0,0,0,0,0])
+            else scoreData = scoreData.concat([
+              newScore.mid,
+              newScore.type,
+              newScore.score,
+              newScore.clear,
+              newScore.grade,
+              0,
+              0,
+              newScore.buttonRate,
+              newScore.longRate,
+              newScore.volRate
+            ])
+
+            // populate previous version scores
+            if(!oldScore) scoreData = scoreData.concat([0,0,0,0,0,0,0,0,0])
+            else {
+              const grade = (version === 4) ? convertGWHHGrade(oldScore.score) : oldScore.grade
+              
+              if(!newScore) {
+                scoreData[0] = oldScore.mid
+                scoreData[1] = oldScore.type
+              }
+              scoreData = scoreData.concat([
+                oldScore.score,
+                oldScore.clear,
+                grade,
+                0,
+                0,
+                0,
+                // konaste score (score/clear/grade)
+                0,
+                0,
+                0,
+                0
+              ])
+            }
+
+            return {
+              param: K.ARRAY('u32', scoreData),
+            }
+          }
+        )
+      },
+      ...(version === 5 && {
+        automation: {
+          record: automaRecord.map(rec => ({
+            param: K.ARRAY('u32', [
+              rec.id,
+              0,
+              rec.score,
+              rec.clear,
+              rec.grade,
+              0
+            ])
+          }))
+        }
+      })
+    }
+
+    return send.object(scores);
+  }
+
   if (version === 6) {
+    const recordsMerged = records.concat(await DB.Find<MusicRecord>(refid, { collection: 'music', version: version - 1 }))
     return send.object({
       music: {
-        info: records.map(r => ({
-          param: K.ARRAY('u32', [
-            r.mid,
-            r.type,
-            r.score,
-            r.exscore,
-            r.clear,
-            r.grade,
-            0,
-            0,
-            r.buttonRate,
-            r.longRate,
-            r.volRate,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-          ]),
-        })),
+        info: _.map(
+          _.groupBy(recordsMerged, r => `${r.mid}:${r.type}`),
+          group => {
+            const newScore = group.find(s => s.version === version)
+            const oldScore = group.find(s => s.version === version - 1)
+            let scoreData = []
+
+            // populate current version scores
+            if(!newScore) scoreData = scoreData.concat([0,0,0,0,0,0,0,0,0,0,0])
+            else scoreData = scoreData.concat([
+              newScore.mid,
+              newScore.type,
+              newScore.score,
+              newScore.exscore,
+              newScore.clear,
+              newScore.grade,
+              0,
+              0,
+              newScore.buttonRate,
+              newScore.longRate,
+              newScore.volRate
+            ])
+
+            // populate previous version scores
+            if(!oldScore) scoreData = scoreData.concat([0,0,0,0,0,0,0,0,0,0])
+            else {              
+              if(!newScore) {
+                scoreData[0] = oldScore.mid
+                scoreData[1] = oldScore.type
+              }
+              scoreData = scoreData.concat([
+                oldScore.score,
+                oldScore.clear,
+                oldScore.grade,
+                0,
+                0,
+                0,
+                // konaste score (score/clear/grade)
+                0,
+                0,
+                0,
+                0,
+              ])
+            }
+
+            return {
+              param: K.ARRAY('u32', scoreData),
+            }
+          }
+        )
       },
     });
   }
 
   if (version === 7) {
+    let exScoreResetList = [
+      { id: 360, type: 3 }, { id: 580, type: 2 }, { id: 1121, type: 4 }, { id: 1185, type: 2 },
+      { id: 1199, type: 4 }, { id: 1738, type: 4 }, { id: 2242, type: 0 }
+    ]
+    const egClear = [0, 1, 2, 3, 6, 4, 5]
+    const music_db = await IO.ReadFile('webui/asset/json/music_db.json')
+    const mdb = JSON.parse(music_db.toString()).mdb.music;
+
+    const recordsMerged = records.concat(await DB.Find<MusicRecord>(refid, { collection: 'music', version: version - 1 }))
     return send.object({
       music: {
-        info: records.map(r => ({
-          param: K.ARRAY('u32', [
-            r.mid,
-            r.type,
-            r.score,
-            r.exscore,
-            r.clear,
-            r.grade,
-            0,
-            0,
-            r.buttonRate,
-            r.longRate,
-            r.volRate,
-            r.volforce,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0
-          ]),
-        })),
+        info: _.map(
+          _.groupBy(recordsMerged, r => `${r.mid}:${r.type}`),
+          group => {
+            const newScore = group.find(s => s.version === version)
+            const oldScore = group.find(s => s.version === version - 1)
+            let scoreData = []
+
+            // populate current version scores
+            if(!newScore) scoreData = scoreData.concat([0,0,0,0,0,0,0,0,0,0,0,0])
+            else scoreData = scoreData.concat([
+              newScore.mid,
+              newScore.type,
+              newScore.score,
+              newScore.exscore,
+              newScore.clear,
+              newScore.grade,
+              0,
+              0,
+              newScore.buttonRate,
+              newScore.longRate,
+              newScore.volRate,
+              newScore.volforce
+            ])
+
+            // populate previous version scores
+            if(!oldScore) scoreData = scoreData.concat([0,0,0,0,0,0,0,0,0,0,0,0,0,0])
+            else {              
+              if(!newScore) {
+                let mdbInd = mdb.map(function(x) {return x['id']; }).indexOf(oldScore.mid.toString())
+                scoreData[0] = oldScore.mid
+                scoreData[1] = oldScore.type
+                scoreData[11] = (mdbInd >= 0) ? computeForce(6, oldScore, mdb[mdbInd]) : 0
+              }
+
+              scoreData = scoreData.concat([
+                oldScore.score,
+                (exScoreResetList.findIndex(r => r.id === oldScore.mid && r.type === oldScore.type) >= 0) ? 0 : oldScore.exscore,
+                egClear.indexOf(oldScore.clear),
+                oldScore.grade,
+                0,
+                0,
+                // konaste score (score/clear/grade)
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0
+              ])
+            }
+
+            return {
+              param: K.ARRAY('u32', scoreData),
+            }
+          }
+        )
       },
     });
   }
@@ -253,12 +395,53 @@ export const saveScore: EPR = async (info, data, send) => {
     }
   }
 
-  if (version === 2 || version === 3) {
+  if ([2,3,4,5].includes(version)) {
     try {
       const mid = $(data).number('music_id');
       const type = $(data).number('music_type');
 
       if (_.isNil(mid) || _.isNil(type)) return send.deny();
+
+      // Save AUTOMATION PARADISE record instead
+      if(mid === 1259) {
+        const mixid = $(data).number('mix_id')
+        const like = $(data).bool('mix_like')
+        const score = $(data).number('score') ? $(data).number('score') : 0;
+        const clear = $(data).number('clear_type') ? $(data).number('clear_type') : 0;
+        const grade = $(data).number('score_grade') ? $(data).number('score_grade') : 0;
+      
+        const record = (await DB.FindOne<AutomaRecord>(refid, {
+          collection: 'automa',
+          version,
+          id: mixid,
+        })) || {
+          collection: 'automa',
+          version,
+          id: mixid,
+          score: 0,
+          clear: 0,
+          grade: 0,
+          like: like
+        }
+
+        record.clear = Math.max(clear, record.clear);
+        record.grade = Math.max(grade, record.grade);
+        record.score = Math.max(score, record.score);
+
+        if(like) {
+          record.like = true
+          const mix = await DB.FindOne(null, {collection: 'mix', version, id: mixid})
+          await DB.Upsert<Mix>(mix['__refid'], {collection: 'mix', version, id: mixid}, {$inc: {likes: 1}})
+        }
+
+        await DB.Upsert<AutomaRecord>(
+          refid,
+          { collection: 'automa', version, id: mixid },
+          record,
+        );
+
+        return send.success();
+      }
 
       const record = (await DB.FindOne<MusicRecord>(refid, {
         collection: 'music',
@@ -332,7 +515,7 @@ export const saveScore: EPR = async (info, data, send) => {
     }
   }
 
-  if (version === -6 || version === 7) { // Using alternate scoring system after 20210831
+  if (Math.abs(version) === 6 || version === 7) { // Using alternate scoring system after 20210831
     const tracks = $(data).elements('track');
     try {
       for (const i of tracks) {
@@ -359,38 +542,17 @@ export const saveScore: EPR = async (info, data, send) => {
           buttonRate: 0,
           longRate: 0,
           volRate: 0,
-          maxChain: 0,
-          critical: 0,
-          s_critical: 0,
-          near: 0,
-          error: 0,
-          early: 0,
-          late: 0,
         };
 
         const score = i.number('score', 0);
         const exscore = i.number('exscore', 0);
         const volforce = i.number('volforce', 0);
-        const maxChain = i.number('max_chain', 0);
-
         if (score > record.score) {
           record.score = score;
           record.buttonRate = i.number('btn_rate', 0);
           record.longRate = i.number('long_rate', 0);
           record.volRate = i.number('vol_rate', 0);
-          
-          record.critical = i.number('critical', 0);
-          record.s_critical = i.number('just', i.number('s_critical', i.number('v_crit', i.number('perf', 0))));
-          record.near = i.number('near', 0);
-          record.error = i.number('error', 0);
-          record.early = i.number('early', 0);
-          record.late = i.number('late', 0);
         }
-        
-        if (maxChain > (record.maxChain || 0)) {
-          record.maxChain = maxChain;
-        }
-
         if (exscore > record.exscore) {
           record.exscore = exscore;
         }
@@ -451,9 +613,22 @@ export const saveCourse: EPR = async (info, data, send) => {
 
   if (_.isNil(sid) || _.isNil(cid)) return send.deny();
 
-  if(version === 3) {
+  if([3,4].includes(version)) {
+    let courses
+    switch(version){
+      case 3:
+        courses = COURSES3
+        break
+      case 4:
+        courses = COURSES4
+        break
+      case 5:
+        courses = COURSES5
+        break
+    }
+
     const skill = await DB.FindOne<Skill>(refid, {collection: 'skill', version}) || { base: 0, name: -1, level: -1 }
-    const courseData = COURSES3.find(c => c.id === sid).courses.find(c => c.id === cid)
+    const courseData = courses.find(c => c.id === sid).courses.find(c => c.id === cid)
     await DB.Upsert<Skill>(refid, {collection: 'skill', version}, {
       $set: {
         level: Math.max(courseData.level, skill.level)
@@ -517,7 +692,7 @@ export const save: EPR = async (info, data, send) => {
     return send.success();
   }
 
-  if (version === 2 || version === 3) {
+  if ([2,3].includes(version)) {
     await DB.Update<Profile>(
       refid,
       { collection: 'profile', version },
@@ -542,28 +717,60 @@ export const save: EPR = async (info, data, send) => {
       }
     );
 
-    await DB.Upsert<Param>(
-      refid, 
-      {collection: 'param', version, type: 1, id: 1},
-      {
-        $set: {
-          param: $(data).numbers('hidden_param')
+    if(version === 3) {
+      await DB.Upsert<Param>(
+        refid, 
+        {collection: 'param', version, type: 1, id: 1},
+        {
+          $set: {
+            param: $(data).numbers('hidden_param')
+          }
         }
+      )
+      
+      const apcard = $(data).elements('appealcard.info');
+      for (const c of apcard) {
+        const id = c.number('id');
+        const count = c.number('count');
+
+        if (_.isNil(id) || _.isNil(count)) continue;
+
+        await DB.Upsert<Item>(
+          refid,
+          { collection: 'item', type: 1, id, version },
+          { $set: { param: count, dbver: DB_VER } }
+        );
       }
-    )
 
-    const apcard = $(data).elements('appealcard.info');
-    for (const c of apcard) {
-      const id = c.number('id');
-      const count = c.number('count');
+      const storyProgress = $(data).elements('story.info');
+      for (const story of storyProgress) {
+        const storyId = story.number('story_id');
+        const progressId = story.number('progress_id');
+        const progressParam = story.number('progress_param');
+        const clearCnt = story.number('clear_cnt');
+        const routeFlg = story.number('route_flg');
 
-      if (_.isNil(id) || _.isNil(count)) continue;
-
-      await DB.Upsert<Item>(
-        refid,
-        { collection: 'item', type: 1, id, version },
-        { $set: { param: count, dbver: DB_VER } }
-      );
+        if(logging) console.log(`Saving story: ${storyId} | ${progressId} | ${progressParam} | ${clearCnt} | ${routeFlg}`)
+        await DB.Upsert<GWStory>(
+          refid,
+          { collection: 'story', storyId, version },
+          { 
+            $set: { 
+              progressId,
+              progressParam,
+              clearCnt,
+              routeFlg
+            } 
+          }
+        );
+      }
+      
+      await DB.Upsert<Skill>(refid, {collection: 'skill', version}, {
+        $set: {
+          base: $(data).number('skill_base_id', 0),
+          name: $(data).number('skill_name_id', 0)
+        }
+      })
     }
 
     const items = $(data).elements('item.info');
@@ -582,40 +789,27 @@ export const save: EPR = async (info, data, send) => {
       );
     }
 
-    const storyProgress = $(data).elements('story.info');
-    for (const story of storyProgress) {
-      const storyId = story.number('story_id');
-      const progressId = story.number('progress_id');
-      const progressParam = story.number('progress_param');
-      const clearCnt = story.number('clear_cnt');
-      const routeFlg = story.number('route_flg');
+    const params = $(data).elements('param.info');
+    for (const p of params) {
+      const type = p.number('type');
+      const id = p.number('id');
+      const param = p.numbers('param');
 
-      if(logging) console.log(`Saving story: ${storyId} | ${progressId} | ${progressParam} | ${clearCnt} | ${routeFlg}`)
-      await DB.Upsert<GWStory>(
+      if (_.isNil(type) || _.isNil(id) || _.isNil(param)) continue;
+
+      if (logging) console.log(`Saving param: ${type} | ${id} | [${param}]`)
+      await DB.Upsert<Param>(
         refid,
-        { collection: 'story', storyId, version },
-        { 
-          $set: { 
-            progressId,
-            progressParam,
-            clearCnt,
-            routeFlg
-          } 
-        }
+        { collection: 'param', type, id, version },
+        { $set: { param, dbver: DB_VER } }
       );
     }
-
-    await DB.Upsert<Skill>(refid, {collection: 'skill', version}, {
-      $set: {
-        name: $(data).number('skill_name_id')
-      }
-    })
 
     return send.success()
   }
 
   // Save Profile
-  if (version === 6 || version === 7) {
+  if ([4,5,6,7].includes(version)) {
     await DB.Update<Profile>(
       refid,
       { collection: 'profile', version: version },
@@ -744,6 +938,27 @@ export const save: EPR = async (info, data, send) => {
     }
   );
 
+  const volfes = $(data).element('festival')
+  if(volfes) {
+    const earnedLE = volfes.number('earned_live_energy');
+    let history = []
+    for(const hist of $(data).elements('history')) {
+      history.push({
+        energyType: hist.number('energy_type'),
+        liveEnergy: hist.number('live_energy')
+      })
+    }
+
+    await DB.Upsert<Volfes>(refid, {collection: 'volfes', version, id: VOLFES.id}, {
+      $inc: {
+        liveEnergy: earnedLE
+      },
+      $set: {
+        bonus: history
+      }
+    })
+  }
+
   // Save Arena Data
   const arena_data = $(data).elements('arena');
   for (const are of arena_data) {
@@ -752,7 +967,6 @@ export const save: EPR = async (info, data, send) => {
     const earnedSP = are.number('earned_shop_point');
     const earnedUR = are.number('earned_ultimate_rate');
     const earnedMR = are.number('earned_megamix_rate');
-    const earnedLE = are.number('earned_live_energy');
     const rankPlay = are.str('rank_play') == 'true' ? 1 : 0;
     const ultimatePlay = are.str('ultimate_play') == 'true' ? 1 : 0;
     await DB.Upsert<Arena>(
@@ -768,7 +982,6 @@ export const save: EPR = async (info, data, send) => {
           megamixRate: _.isNil(earnedMR) ? 0 : earnedMR,
           shopPoint: _.isNil(earnedSP) ? 0 : earnedSP,
           rankPoint: _.isNil(earnedRP) ? 0 : earnedRP,
-          liveEnergy: _.isNil(earnedLE) ? 0 : earnedLE,
           rankCount: rankPlay,
           ultimateCount: ultimatePlay
         },
@@ -815,8 +1028,10 @@ export const save: EPR = async (info, data, send) => {
 
 export const load: EPR = async (info, data, send) => {
   console.log("Loading savedata");
+  let date = new Date()
   const refid = $(data).str('refid', $(data).attr().dataid);
   if (!refid) return send.deny();
+  const pluginSettings = await DB.FindOne<PluginSettings>({collection: 'settings'})
 
   const version = Math.abs(getVersion(info));
   const dVersion = parseInt(info.model.split(":")[4].slice(0, -2));
@@ -827,6 +1042,78 @@ export const load: EPR = async (info, data, send) => {
   let profile = await DB.FindOne<Profile>(refid, {
     collection: 'profile', version
   });
+
+  let presents = []
+  const populatePresents = async (version, refid, date) => {
+    if(IO.Exists('webui/asset/config/events.json')) {
+      let bufEventData = await IO.ReadFile('webui/asset/json/events.json')
+      let bufEventConfig = await IO.ReadFile('webui/asset/config/events.json')
+      let eventData = JSON.parse(bufEventData.toString())
+      let eventConfig = JSON.parse(bufEventConfig.toString())
+      let eventItems
+      switch (version) {
+        case 4:
+          eventItems = EVENT_ITEMS4
+          break;
+        case 5:
+          eventItems = EVENT_ITEMS5
+          break;
+        case 6:
+          eventItems = EVENT_ITEMS6
+          break;
+        case 7:
+          eventItems = EVENT_ITEMS7
+          break;
+      }
+      for(const eData of eventData['events' + version]) {
+        let typeIds = {'gift_crew': [11, 1], 'gift_ap': [1, 1], 'gift': [0, 23], 'cross_online': [0, 23], 'gift_subbg': [18, 1]}
+        if(['gift_crew', 'gift_ap', 'gift_subbg', 'gift', 'cross_online'].includes(eData.type) && eventConfig[eData.id] !== undefined) {
+          if(typeof eventConfig[eData.id].toggle === "boolean") {
+            if(eventConfig[eData.id].toggle && checkVerStart(dVersion, eData.version, eData.start, date)) {
+              for(const itemIter in eventItems[eData.id]) {
+                let itemId = parseInt(eventItems[eData.id][itemIter])
+                if(await DB.Count(refid, {collection:'item', type: typeIds[eData.type][0], id: itemId, version: version}) === 0) {
+                  await DB.Upsert(
+                    refid, 
+                    {collection: 'item', type: typeIds[eData.type][0], id: itemId, version: version}, 
+                    {$set: { param: typeIds[eData.type][1] }}
+                  )
+
+                  presents.push({
+                    id: itemId,
+                    type: typeIds[eData.type][0],
+                    param: typeIds[eData.type][1]
+                  })
+                }
+              }
+            }
+          } else{
+            for(const toggleKeys in Object.keys(eventConfig[eData.id].toggle)) {
+              if(parseInt(toggleKeys) >= eData.start.length) continue;
+              if(eventConfig[eData['id']]['toggle'][Object.keys(eventConfig[eData.id].toggle)[toggleKeys]] && checkVerStart(dVersion, eData.version[toggleKeys], eData.start[toggleKeys], date)) {
+                for(const itemIter in eventItems[Object.keys(eventConfig[eData.id].toggle)[toggleKeys]]) {
+                  let itemId = parseInt(eventItems[Object.keys(eventConfig[eData.id].toggle)[toggleKeys]][itemIter])
+                  if(await DB.Count(refid, {collection:'item', type: typeIds[eData.type][0], id: itemId, version: version}) === 0) {
+                    await DB.Upsert(
+                      refid, 
+                      {collection: 'item', type: typeIds[eData.type][0], id: itemId, version: version}, 
+                      {$set: { param: typeIds[eData.type][1] }}
+                    )
+
+                    presents.push({
+                      id: itemId,
+                      type: typeIds[eData.type][0],
+                      param: typeIds[eData.type][1]
+                    })
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
 
   if (!profile) {
     if(version > 1 && await DB.Count<Profile>(refid, {collection: 'profile', version: version - 1}) === 1) {
@@ -872,49 +1159,84 @@ export const load: EPR = async (info, data, send) => {
     version,
   })) || { base: 0, name: 0, level: 0 };
 
-  if (version === 2 || version === 3) {
-    let policyBreak = (version === 2) ? POLICY_BREAK2 : POLICY_BREAK3
-    policyBreak = (dVersion === 20151116) ? policyBreak.slice(0, 17) : policyBreak
-    let pb = await DB.Find<PolicyBreak>(refid, {collection: 'pb', version, ...(dVersion === 20151116 && {id: {$lte: 17}})})
-    pb = (version === 2) ? pb.filter(p => p.exp < 24000).sort((a, b) => a.id - b.id).slice(0,2) : pb
-    let pbFin = pb.map(p => ({
-      id: p.id,
-      title: policyBreak[p.id - 1].titleJ,
-      title_eng: policyBreak[p.id - 1].titleE,
-      start: policyBreak[p.id - 1]['start'],
-      end: policyBreak[p.id - 1]['end'],
-      ...(version === 2 && {
-        before: p.exp,
-        after: p.exp + 3000
-      }),
-      ...(version === 3 && {
-        target_id: policyBreak[p.id - 1].tgt,
-        exp: p.exp,
-        music: [
-          {
-            no: 0,
-            point: policyBreak[p.id - 1].rwrd.point,
-            music_id: policyBreak[p.id - 1].rwrd.id
-          }
-        ]
-      })
-    }))
+  if ([2, 3, 4, 5].includes(version)) {
+    let policyBreak
+    switch(version) {
+      case 2:
+        policyBreak = POLICY_BREAK2
+        break
+      case 3:
+        policyBreak = POLICY_BREAK3
+        break
+      case 4:
+        policyBreak = POLICY_BREAK4
+        break
+      case 5:
+        policyBreak = POLICY_BREAK5
+        break
+    }
 
-    let pbEnergy = (version === 3) ? pbFin.map(energy => ({
-      target_id: energy.target_id,
-      energy: 3000
-    })) : []
+    let pbFin, pbEnergy
+    if(policyBreak) {
+      // let policyBreak = (version === 2) ? POLICY_BREAK2 : POLICY_BREAK3
+      policyBreak = (dVersion === 20151116) ? policyBreak.slice(0, 17) : policyBreak
+      let pb = await DB.Find<PolicyBreak>(refid, {collection: 'pb', version, ...(dVersion === 20151116 && {id: {$lte: 17}})})
+      pb = (version === 2) ? pb.filter(p => p.exp < 24000).sort((a, b) => a.id - b.id).slice(0,2) : pb
+      pbFin = pb.map(p => ({
+        id: p.id,
+        title: policyBreak[p.id - 1].titleJ,
+        title_eng: policyBreak[p.id - 1].titleE,
+        start: policyBreak[p.id - 1]['start'],
+        end: policyBreak[p.id - 1]['end'],
+        ...(version === 2 && {
+          before: p.exp,
+          after: p.exp + 3000
+        }),
+        ...(version >= 3 && {
+          target_id: policyBreak[p.id - 1].tgt,
+          exp: p.exp,
+          music: [
+            {
+              no: 0,
+              point: policyBreak[p.id - 1].rwrd.point,
+              music_id: policyBreak[p.id - 1].rwrd.id
+            }
+          ]
+        })
+      }))
+      pbEnergy = (version >= 3) ? pbFin.map(energy => ({
+        target_id: energy.target_id,
+        energy: 3000
+      })) : []
+    }
+
 
     let items = await DB.Find<Item>(refid, {collection: 'item', version})
-    let param = (await DB.FindOne<Param>(refid, {collection: 'param', version, id: 1})) || {type: 1, id: 1, param: new Array(20).fill(0)}
+    let params
+    // ii/gw
+    if(version === 2 || version === 3) params = (await DB.FindOne<Param>(refid, {collection: 'param', version, id: 1})) || {type: 1, id: 1, param: new Array(20).fill(0)}
+    // hh/vw param data
+    else params = await DB.Find<Param>(refid, {collection: 'param', version})
     let courses = await DB.Find<CourseRecord>(refid, {collection: 'course', version})
     let story = await DB.Find<GWStory>(refid, {collection: 'story', version})
-    let result = 0
 
     var tempItem = U.GetConfig('unlock_all_navigators') && version >= 3 ? unlockNavigators(items, version) : items;
     tempItem = U.GetConfig('unlock_all_appeal_cards') ? unlockAppealCards(tempItem, version) : tempItem;
+    
+    // Unlock AUTOMATION PARADISE songs. 
+    // Might switch to song item auto-unlock for songs in the future.
+    if(U.GetConfig('unlock_all_songs')) {
+      tempItem = tempItem.concat([94,97,98,109,115,253,255,257,313,369,499,500,517,518,597,708,717,823,842,907,6,39,44,75,245,290,307,437,581,607].map(id => ({
+        type: 15, id, param: 1
+      })))
 
-    if(U.GetConfig('gw_mission_skipmatch')) {
+      tempItem = tempItem.concat([1490, 1491].map(id => ({
+        type: 15, id, param: 2
+      })))
+    }
+
+    const gwMissionSkipMatch = (pluginSettings?.gwMissionSkipMatch !== undefined) ? pluginSettings.gwMissionSkipMatch : false
+    if(version === 3 && gwMissionSkipMatch) {
       const skipIds = [9, 10, 173, 174]
       let storyProgress = items.findIndex(str => str.type === 5 && str.id === 6)
       if(storyProgress >= 0 && skipIds.includes(items[storyProgress].param)) {
@@ -926,6 +1248,27 @@ export const load: EPR = async (info, data, send) => {
       }
     }
 
+    let mixes = []
+    let volfes
+    if(version >= 4) {
+      await populatePresents(version, refid, date)
+
+      let mixHist = params.find(p => p.type === 8 && p.id === 3)?.param ?? []
+      let mixSlot = params.find(p => p.type === 0 && p.id === 3)?.param ?? []
+      let mixRes = await DB.Find<Mix>(refid, {collection: 'mix', version, id: {$in: [...new Set([...mixHist, ...mixSlot])]}})
+      let automaRecord = await DB.Find<AutomaRecord>(refid, {collection: 'automa', version})
+      for(const m of mixRes) {
+        let mixDate = getYMDDate(new Date(m['createdAt']))
+        mixes.push({...m, ...{createDate: mixDate, like: automaRecord.find(r => r.id === m.id)?.like ?? 0}})
+      }
+    }
+
+    if(version === 5) {
+      volfes = await DB.FindOne<Volfes>(refid, {collection: 'volfes', id: VOLFES.id})
+    }
+
+    let result = 0
+
     return send.pugFile('templates/load.pug', {
       version,
       result,
@@ -933,102 +1276,21 @@ export const load: EPR = async (info, data, send) => {
       skill,
       items: tempItem,
       courses,
-      param,
+      params,
+      present: presents,
       pbFin,
       pbEnergy,
       story,
+      mixes,
+      volfes,
       ...profile,
     });
   }
 
   if (version >= 6) {
-    let presents = []
-    let date = new Date()
     let currentDate = date.toLocaleDateString()
     let currentYMDDate = parseInt([date.getFullYear(), ((date.getMonth() + 1) > 9 ? '' : '0') + (date.getMonth() + 1), (date.getDate() > 9 ? '' : '0') + date.getDate()].join(''));
-
-    // Gift grants ask for every item one Count each on every login (v6:
-    // ~45× per player). Load the player's owned items once into a Set and
-    // check/grant in memory — one narrow DB query instead of dozens of sync
-    // Count scans over the event loop.
-    const ownedItems = new Set<string>();
-    let ownedItemsLoaded = false;
-    const loadOwnedItems = async () => {
-      if (!ownedItemsLoaded) {
-        for (const it of await DB.Find<Item>(refid, { collection: 'item', version })) {
-          ownedItems.add(`${it.type}:${it.id}`);
-        }
-        ownedItemsLoaded = true;
-      }
-    };
-
-    await loadOwnedItems();
-    let dbOperations = [];
-
-    if(IO.Exists('webui/asset/config/events.json')) {
-      let bufEventData = await IO.ReadFile('webui/asset/json/events.json')
-      let bufEventConfig = await IO.ReadFile('webui/asset/config/events.json')
-      let eventData = JSON.parse(bufEventData.toString())
-      let eventConfig = JSON.parse(bufEventConfig.toString())
-      let eventItems
-      switch (version) {
-        case 6:
-          eventItems = EVENT_ITEMS6
-          break;
-        case 7:
-          eventItems = EVENT_ITEMS7 
-          break;
-      }
-      for(const eData of eventData['events' + version]) {
-        let typeIds = {'gift_crew': [11, 1], 'gift_ap': [1, 1], 'gift': [0, 23], 'cross_online': [0, 23]}
-        if(['gift_crew', 'gift_ap', 'gift', 'cross_online'].includes(eData.type) && eventConfig[eData.id] !== undefined) {
-          if(typeof eventConfig[eData.id].toggle === "boolean") {
-            if(eventConfig[eData.id].toggle && checkVerStart(dVersion, eData.version, eData.start, date)) {
-              for(const itemIter in eventItems[eData.id]) {
-                let itemId = parseInt(eventItems[eData.id][itemIter]);
-                if(!ownedItems.has(`${typeIds[eData.type][0]}:${itemId}`)) {
-                  dbOperations.push(DB.Upsert(
-                    refid, 
-                    {collection: 'item', type: typeIds[eData.type][0], id: itemId, version: version}, 
-                    {$set: { param: typeIds[eData.type][1] }}
-                  ));
-                  ownedItems.add(`${typeIds[eData.type][0]}:${itemId}`);
-
-                  presents.push({
-                    id: itemId,
-                    type: typeIds[eData.type][0],
-                    param: typeIds[eData.type][1]
-                  });
-                }
-              }
-            }
-          } else{
-            for(const toggleKeys in Object.keys(eventConfig[eData.id].toggle)) {
-              if(parseInt(toggleKeys) >= eData.start.length) continue;
-              if(eventConfig[eData['id']]['toggle'][Object.keys(eventConfig[eData.id].toggle)[toggleKeys]] && checkVerStart(dVersion, eData.version[toggleKeys], eData.start[toggleKeys], date)) {
-                for(const itemIter in eventItems[Object.keys(eventConfig[eData.id].toggle)[toggleKeys]]) {
-                  let itemId = parseInt(eventItems[Object.keys(eventConfig[eData.id].toggle)[toggleKeys]][itemIter]);
-                  if(!ownedItems.has(`${typeIds[eData.type][0]}:${itemId}`)) {
-                    dbOperations.push(DB.Upsert(
-                      refid, 
-                      {collection: 'item', type: typeIds[eData.type][0], id: itemId, version: version}, 
-                      {$set: { param: typeIds[eData.type][1] }}
-                    ));
-                    ownedItems.add(`${typeIds[eData.type][0]}:${itemId}`);
-
-                    presents.push({
-                      id: itemId,
-                      type: typeIds[eData.type][0],
-                      param: typeIds[eData.type][1]
-                    });
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
+    await populatePresents(version, refid, date)
 
     let flagConfig = {}
     if(IO.Exists('webui/asset/config/flags.json')) {
@@ -1042,27 +1304,22 @@ export const load: EPR = async (info, data, send) => {
         addlPresents.push([5546, 1, 1])
         addlPresents.push([10244, 14, 1])
       }
-
+      
       for(const giftIter in addlPresents) {
-        if(!ownedItems.has(`${addlPresents[giftIter][1]}:${addlPresents[giftIter][0]}`)) {
-          dbOperations.push(DB.Upsert(
+        if(await DB.Count(refid, {collection:'item', type: addlPresents[giftIter][1], id: addlPresents[giftIter][0], version: version}) === 0) {
+          await DB.Upsert(
             refid, 
             {collection: 'item', type: addlPresents[giftIter][1], id: addlPresents[giftIter][0], version: version}, 
             {$set: { param: addlPresents[giftIter][2] }}
-          ));
-          ownedItems.add(`${addlPresents[giftIter][1]}:${addlPresents[giftIter][0]}`);
+          )
 
           presents.push({
             id: addlPresents[giftIter][0],
             type: addlPresents[giftIter][1],
             param: addlPresents[giftIter][2]
-          });
+          })
         }
       }
-    }
-
-    if (dbOperations.length > 0) {
-      await Promise.all(dbOperations);
     }
 
     let curWeekly = []
@@ -1073,6 +1330,7 @@ export const load: EPR = async (info, data, send) => {
         let weekData
         for(let weekIter in weeklyMusic) {
           if(Number(date) > weeklyMusic[weekIter].start && Number(date) <= weeklyMusic[weekIter].end) weekData = weeklyMusic[weekIter]
+        }
         if(weekData != undefined) {
           curWeekly.push({
             weekId: weekData.weekId,
@@ -1086,8 +1344,8 @@ export const load: EPR = async (info, data, send) => {
 
     let currentArena
     if(version === 6) currentArena = CURRENT_ARENA
-    else if(version === 7) currentArena = CURRENT_ARENA7 
-    let arenaOpen = U.GetConfig('arena_no_endtime') || BigInt(date.getTime()) < currentArena.time_end
+    else if(version === 7) currentArena = CURRENT_ARENA7
+    let arenaOpen = ((pluginSettings?.nblArenaNoEnd !== undefined) ? pluginSettings.nblArenaNoEnd : false) || BigInt(date) < currentArena.time_end
 
     const items = await DB.Find<Item>(refid, { collection: 'item', version: version });
     const courses = await DB.Find<CourseRecord>(refid, { collection: 'course', version: version });
@@ -1117,7 +1375,6 @@ export const load: EPR = async (info, data, send) => {
       }
     }
 
-
     let time = new Date();
     let tempHour = time.getHours();
     let tempDate = time.getDate();
@@ -1141,7 +1398,7 @@ export const load: EPR = async (info, data, send) => {
     let result = 0
     if (version > profile.version) result = 2
 
-    const ret = await send.pugFile('templates/load.pug', {
+    return send.pugFile('templates/load.pug', {
       version,
       result,
       courses,
@@ -1160,9 +1417,6 @@ export const load: EPR = async (info, data, send) => {
       variant,
       ...profile,
     });
-    return ret;
-  }
-
   }
 };
 
@@ -1188,10 +1442,10 @@ export const create: EPR = async (info, data, send) => {
   }
   else if(version === 3) {
     for(let i = 1; i <= POLICY_BREAK3.length; i++) {
-      if(await DB.Count(refid, {collection: 'pb', version, id: i}) === 0)
-        await DB.Upsert(refid, {collection: 'pb', version, id: i}, {$set: {exp: 0}})
+      if(await DB.Count<PolicyBreak>(refid, {collection: 'pb', version, id: i}) === 0)
+        await DB.Upsert<PolicyBreak>(refid, {collection: 'pb', version, id: i}, {$set: {exp: 0}})
     }
-    await DB.Upsert(refid, {collection: 'skill', version}, {$set: {base: 0, name: -1, level: -1}})
+    await DB.Upsert<Skill>(refid, {collection: 'skill', version}, {$set: {base: 0, name: -1, level: -1}})
     if(await DB.Count<Profile>(refid, {collection: 'profile', version: 2}) > 0) {
       await iiiMigrate(refid, name)
       return send.object({
@@ -1199,7 +1453,43 @@ export const create: EPR = async (info, data, send) => {
       })
     }
   }
+  else if(version === 4) {
+    for(let i = 1; i <= POLICY_BREAK4.length; i++) {
+      if(await DB.Count<PolicyBreak>(refid, {collection: 'pb', version, id: i}) === 0)
+        await DB.Upsert<PolicyBreak>(refid, {collection: 'pb', version, id: i}, {$set: {exp: 0}})
+    }
+    await DB.Upsert<Skill>(refid, {collection: 'skill', version}, {$set: {base: 0, name: 0, level: 0}})
+    if(await DB.Count<Profile>(refid, {collection: 'profile', version: 3}) > 0) {
+      await ivMigrate(refid, name)
+      return send.object({
+        result: K.ITEM('u8', 0)
+      })
+    }
+  }
+  else if(version === 5) {
+    for(let i = 1; i <= POLICY_BREAK5.length; i++) {
+      if(await DB.Count<PolicyBreak>(refid, {collection: 'pb', version, id: i}) === 0)
+        await DB.Upsert<PolicyBreak>(refid, {collection: 'pb', version, id: i}, {$set: {exp: 0}})
+    }
+    await DB.Upsert<Skill>(refid, {collection: 'skill', version}, {$set: {base: 0, name: 0, level: 0}})
+    if(await DB.Count<Profile>(refid, {collection: 'profile', version: 4}) > 0) {
+      await vMigrate(refid, name)
+      return send.object({
+        result: K.ITEM('u8', 0)
+      })
+    }
+  }
+  else if(version === 6) {
+    await DB.Upsert<Skill>(refid, {collection: 'skill', version}, {$set: {base: 0, name: 0, level: 0}})
+    if(await DB.Count<Profile>(refid, {collection: 'profile', version: 5}) > 0) {
+      await viMigrate(refid, name)
+      return send.object({
+        result: K.ITEM('u8', 0)
+      })
+    }
+  }
   else if(version === 7) {
+    await DB.Upsert<Skill>(refid, {collection: 'skill', version}, {$set: {base: 0, name: 0, level: 0}})
     if(await DB.Count<Profile>(refid, {collection: 'profile', version: 6}) > 0) {
       await viiMigrate(refid, name)
       return send.object({
@@ -1214,12 +1504,11 @@ export const create: EPR = async (info, data, send) => {
   }
 
   const profile: Profile = {
-    pluginVer: 1,
+    collection: 'profile',
     version: version,
     dbver: DB_VER,
     datecode: dVersion,
 
-    collection: 'profile',
     id,
     name,
     appeal: 0,
@@ -1519,8 +1808,21 @@ export const savePb: EPR = async (info, data, send) => {
   const refid = $(data).str('refid');
   const version = Math.abs(getVersion(info));
   let policyBreak
+  switch(version) {
+    case 2:
+      policyBreak = POLICY_BREAK2
+      break
+    case 3:
+      policyBreak = POLICY_BREAK3
+      break
+    case 4:
+      policyBreak = POLICY_BREAK4
+      break
+    case 5:
+      policyBreak = POLICY_BREAK5
+      break
+  }
   if(version === 2) {
-    policyBreak = POLICY_BREAK2
     await DB.Upsert<PolicyBreak>(refid, {collection: 'pb', version, id: $(data).number('id')}, {
       $set: {
         exp: $(data).number('exp')
@@ -1543,7 +1845,6 @@ export const savePb: EPR = async (info, data, send) => {
     })
   }
 
-  policyBreak = POLICY_BREAK3
   let pb = await DB.FindOne<PolicyBreak>(refid, {collection: 'pb', version, id: $(data).number('id')})
   let energy = pb.exp + $(data).number('energy')
   let rwrd = policyBreak.find(p => p.id === $(data).number('id')).rwrd
@@ -1568,7 +1869,9 @@ export const savePb: EPR = async (info, data, send) => {
   })
 }
 
-// Tachi clear type → lamp mappings (server-side mirrors of frontend constants)
+// ─── Tachi auto-export ──────────────────────────────────────────────────────
+
+// Clear type → lamp mappings (mirrors of frontend Tachi constants)
 const CLEAR_TO_LAMP_EG: Record<number, string> = {
   1: 'FAILED',
   2: 'CLEAR',
@@ -1598,25 +1901,19 @@ function getTachiDifficulty(mid: number, type: number, musicDb: any): string | n
     if (result.length === 0) return 'MXM';
     const infVer = String(result[0].info.inf_ver || '0');
     switch (infVer) {
-      case '2':
-        return 'INF';
-      case '3':
-        return 'GRV';
-      case '4':
-        return 'HVN';
-      case '5':
-        return 'VVD';
-      case '6':
-        return 'XCD';
-      default:
-        return 'MXM';
+      case '2': return 'INF';
+      case '3': return 'GRV';
+      case '4': return 'HVN';
+      case '5': return 'VVD';
+      case '6': return 'XCD';
+      default:  return 'MXM';
     }
   }
   return null;
 }
 
 async function tachiAutoExport(refid: string, version: number, tracks: any[]) {
-  const autoExportDoc = await DB.FindOne<{ token: string }>({ collection: 'tachi_auto_export', refid });
+  const autoExportDoc = await DB.FindOne<any>({ collection: 'tachi_auto_export', refid });
   if (!autoExportDoc || !autoExportDoc.token) return;
 
   const token = autoExportDoc.token;
@@ -1697,9 +1994,7 @@ async function tachiAutoExport(refid: string, version: number, tracks: any[]) {
         });
       }
     );
-    req.on('error', (err: any) => {
-      reject(err);
-    });
+    req.on('error', (err: any) => { reject(err); });
     req.write(postData);
     req.end();
   });

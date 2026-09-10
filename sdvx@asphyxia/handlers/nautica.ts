@@ -805,3 +805,41 @@ export async function resumePendingConversions(): Promise<void> {
   }
 }
 
+// All bg_no values that appear in the official music_db.xml (∇ version)
+const VALID_BG_NOS = new Set([
+  0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,18,19,27,29,30,31,34,36,38,
+  39,40,41,42,43,44,45,46,47,48,49,50,51,53,54,57,58,59,60,61,63,65,66,
+  67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,86,87,88,89,90,
+  91,92,93,94,95,96,97,98,99,100,101,102,103,104,105,106,107,108,109,110,
+  111,112,113,114,115,116,117,118,
+]);
+
+export const nauticaSetBg = async (
+  data: { nauticaId: string; bgNo: number },
+  send: WebUISend,
+) => {
+  try {
+    const { nauticaId, bgNo } = data;
+    const parsed = Number(bgNo);
+    if (!Number.isInteger(parsed) || !VALID_BG_NOS.has(parsed)) {
+      send.json({ error: `Invalid bg_no: ${bgNo}` });
+      return;
+    }
+    const song = await DB.FindOne<NauticaSong>({ collection: 'nautica_song', nauticaId });
+    if (!song) { send.json({ error: 'Song not found' }); return; }
+
+    await DB.Update<NauticaSong>(
+      { collection: 'nautica_song', nauticaId },
+      { ...song, bgNo: parsed },
+    );
+
+    // Rebuild the merged music_db XML so the game picks up the new bg_no
+    await rebuildMergedXml();
+    invalidateMusicDbCache();
+    invalidateCommonCache();
+
+    send.json({ success: true, bgNo: parsed });
+  } catch (err: any) {
+    send.json({ error: err.message || 'Failed to set background' });
+  }
+};

@@ -18,12 +18,20 @@ export interface MusicRecord {
 
   maxChain: number;
   critical: number;
-  s_critical?: number;
   near: number;
   error: number;
-  early?: number;
-  late?: number;
   effectiveRate: number;
   mode: number;
   gaugeType: number;
+}
+
+export interface AutomaRecord {
+  collection: 'automa';
+  version: number;
+
+  id: number;
+  score: number;
+  clear: number;
+  grade: number;
+  like: boolean;
 }

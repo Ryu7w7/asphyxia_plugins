@@ -1,5 +1,5 @@
 import {common, log} from './handlers/common';
-import {hiscore, rival, globalMatch, lounge, entryE, serial} from './handlers/features';
+import {hiscore, rival, globalMatch, lounge, entryE, serial, saveAp, loadAp} from './handlers/features';
 import {
   updateProfile,
   copyResourcesFromGame,
@@ -13,6 +13,12 @@ import {
   addWeekly,
   getWeekRankList,
   getDateCode,
+  getMorePluginSettings,
+  saveMorePluginSettings,
+  saveCustomAkanames,
+  importMix,
+  updateMix,
+  deleteMix,
   clearCustomChartScores
 } from './handlers/webui';
 import {
@@ -36,6 +42,7 @@ import {
   nauticaSetTesting,
   nauticaReject,
   nauticaSlotsStatus,
+  nauticaSetBg,
 } from './handlers/nautica';
 import {
   load,
@@ -53,7 +60,6 @@ import {
 import { ARENA_STATION_ITEMS } from './data/exg';
 import { ARENA_STATION_ITEMS7 } from './data/nbl';
 import { dataUpdate } from './handlers/migrate';
-import { SdvxRelayManager } from './handlers/relay';
 
 export function register() {
 
@@ -63,57 +69,16 @@ export function register() {
 
   R.Config('sdvx_eg_root_dir', { type: 'string', needRestart: true, default: '', name: 'Game Data Directory', desc: 'The root directory of your Exceed Gear/∇ game files (for asset copying)'});
   R.Config('use_blasterpass',{ type: 'boolean', default: true, name:'Use BLASTER PASS', desc:''});
-  R.Config('arena_no_endtime',{ type: 'boolean', default: true, name: 'Keep ARENA running', desc: 'Choose whether to keep the latest ARENA season running past the end date.'});
-  R.Config('arena_station7',{ type: 'string', options: Object.keys(ARENA_STATION_ITEMS7), default: 'None', name: 'ARENA STATION set', desc: 'Choose which set of ARENA STATION items are available for purchase during ARENA (∇ only)'});
   R.Config('unlock_all_songs', { type: 'boolean', default: false, name:'Unlock All Songs'});
   R.Config('unlock_all_navigators', { type: 'boolean', default: false, name:'Unlock All Navigators'} );
   R.Config('unlock_all_appeal_cards', { type: 'boolean', default: false, name:'Unlock All Appeal Cards'});
   R.Config('unlock_all_valk_items', { type: 'boolean', default: false, name:'Unlock Customization Items', desc: 'Unlock most customization items (Navigators not included; check \'unlock all navigators\' option)'});
-  R.Config('gw_mission', { type: 'boolean', default: false, name: 'Enable MISSION mode', desc: 'For GRAVITY WARS' })
-  R.Config('gw_mission_skipmatch', { type: 'boolean', default: false, name: 'Skip matchmaking MISSION objectives', desc: 'In case you\'re unable to do matchmaking. Prologue and episode 10 only. Dialogue will be skipped.' })
-  R.Config('gw_gene', { type: 'boolean', default: true, name: 'GENERATOR START', desc: 'For GRAVITY WARS: disable to hide in mode select in case of print problem loop (due to missing chara_card files)' })
-
-  R.Config('sdvx_voxcharger_path', { type: 'string', needRestart: false, default: '', name: 'VoxCharger Path', desc: 'Path to VoxCharger.exe for converting custom charts'});
-  R.Config('sdvx_custom_mix_name', { type: 'string', needRestart: false, default: 'asphyxia_custom', name: 'Custom Mix Name', desc: 'Folder name under data_mods/ for curated custom charts'});
-  R.Config('sdvx_nomination_mode', { type: 'string', options: ['production', 'staging'], default: 'production', name: 'Nomination Mode', desc: 'On staging servers, charts moved to testing are auto-converted for playtesting'});
-  R.Config('sdvx_nautica_id_start', { type: 'string', needRestart: false, default: '2800', name: 'Custom Chart Starting ID', desc: 'First music ID allocated to custom (Nautica) charts. The game crashes at IDs >= 3072, so this is capped at 3070. Lowering it gives more custom-chart slots, but values too low will collide with official song IDs (typically up to ~1900). Change this BEFORE adding custom charts — songs already assigned below the new start remain in the DB but will be invisible to slot tracking.'});
-  R.Config('sdvx_drive_enabled', { type: 'boolean', needRestart: false, default: false, name: 'Google Drive Uploads', desc: 'When enabled, converted charts are uploaded to Google Drive and clients download from there instead of this server.'});
-  R.Config('sdvx_drive_oauth_client_id', { type: 'string', needRestart: false, default: '', name: 'Drive OAuth Client ID', desc: 'OAuth 2.0 Client ID from GCP Console > APIs & Services > Credentials. Create a Web application client and add http://localhost:8083/api/drive-oauth-callback (matching your server URL) as an Authorized redirect URI.'});
-  R.Config('sdvx_drive_oauth_client_secret', { type: 'string', needRestart: false, default: '', name: 'Drive OAuth Client Secret', desc: 'OAuth 2.0 Client Secret that pairs with the Client ID above.'});
-  R.Config('sdvx_drive_oauth_refresh_token', { type: 'string', needRestart: false, default: '', name: 'Drive OAuth Refresh Token', desc: 'Populated automatically after you click "Authorize with Google Drive" on the Custom Charts Admin page. Leave empty.'});
-  R.Config('sdvx_drive_folder_id', { type: 'string', needRestart: false, default: '', name: 'Drive Folder ID', desc: 'The target Google Drive folder ID (the last segment of the folder URL). Uploads go into this folder under your own Google account, counting against your personal Drive quota.'});
-  R.Config('sdvx_chrome_path', { type: 'string', needRestart: false, default: '', name: 'Chrome / Chromium / Edge executable', desc: 'Absolute path to a Chromium-based browser used to render the VF Top 50 PNG endpoint (/api/sdvx/vf-top-50/<refid>.png). Leave empty to auto-detect Chrome and Edge on Windows / macOS / Linux. Only needed if auto-detect fails or you want a specific install.'});
-
-  R.Config('sdvx_relay_enabled', {
-    name: 'Enable Online Relay',
-    desc: 'Routes all online matching traffic through this server (TCP+UDP bridge). Lets players behind CGNAT play online without port forwarding. Set the Relay Public IP below.',
-    type: 'boolean',
-    default: false
-  });
-  R.Config('sdvx_relay_public_ip', {
-    name: 'Relay Public IP',
-    desc: 'The public IP of this server that players will connect to for relayed matches. Use a separate VPS for testing without affecting the main server.',
-    type: 'string',
-    default: '127.0.0.1'
-  });
-  R.Config('sdvx_relay_port_range', {
-    name: 'Relay Port Range',
-    desc: 'TCP+UDP ports used for relay sessions (e.g., 50000-50100). Open these in the server firewall.',
-    type: 'string',
-    default: '50000-50100'
-  });
-  R.Config('sdvx_relay_verbose', {
-    name: 'Relay Verbose Logging',
-    desc: 'Logs every connection/registration on the relay. Use only for debugging.',
-    type: 'boolean',
-    default: false
-  });
   
   R.DataFile('./webui/asset/uploads/1_mdb.xml', {name: 'music_db.xml (BOOTH)', accept: 'text/xml, .xml'});
   R.DataFile('./webui/asset/uploads/2_mdb.xml', {name: 'music_db.xml (infinite infection)', accept: 'text/xml, .xml'});
   R.DataFile('./webui/asset/uploads/3_mdb.xml', {name: 'music_db.xml (GRAVITY WARS)', accept: 'text/xml, .xml'});
-  // R.DataFile('./webui/asset/uploads/4_mdb.xml', {name: 'music_db.xml (HEAVENLY HAVEN)', accept: 'text/xml, .xml'});
-  // R.DataFile('./webui/asset/uploads/5_mdb.xml', {name: 'music_db.xml (VIVID WAVE)', accept: 'text/xml, .xml'});
+  R.DataFile('./webui/asset/uploads/4_mdb.xml', {name: 'music_db.xml (HEAVENLY HAVEN)', accept: 'text/xml, .xml'});
+  R.DataFile('./webui/asset/uploads/5_mdb.xml', {name: 'music_db.xml (VIVID WAVE)', accept: 'text/xml, .xml'});
   R.DataFile('./webui/asset/uploads/6_mdb.xml', {name: 'music_db.xml (EXCEED GEAR)', accept: 'text/xml, .xml'});
   R.DataFile('./webui/asset/uploads/7_mdb.xml', {name: 'music_db.xml (∇)', accept: 'text/xml, .xml'});
   R.DataFile('./webui/asset/uploads/0_mdb.xml', {name: 'music_db.xml (Omnimix)', desc: 'SDVX7 compatible mdb', accept: 'text/xml, .xml'});
@@ -130,6 +95,12 @@ export function register() {
   R.WebUIEvent('addWeekly', addWeekly);
   R.WebUIEvent('getWeekRankList', getWeekRankList);
   R.WebUIEvent('getDateCode', getDateCode);
+  R.WebUIEvent('getMorePluginSettings', getMorePluginSettings);
+  R.WebUIEvent('saveMorePluginSettings', saveMorePluginSettings);
+  R.WebUIEvent('saveCustomAkanames', saveCustomAkanames);
+  R.WebUIEvent('importMix', importMix);
+  R.WebUIEvent('updateMix', updateMix);
+  R.WebUIEvent('deleteMix', deleteMix);
   R.WebUIEvent('clearCustomChartScores', clearCustomChartScores);
   R.WebUIEvent('nauticaBrowse', nauticaBrowse);
   R.WebUIEvent('nauticaApprove', nauticaApprove);
@@ -151,13 +122,16 @@ export function register() {
   R.WebUIEvent('nauticaSetTesting', nauticaSetTesting);
   R.WebUIEvent('nauticaReject', nauticaReject);
   R.WebUIEvent('nauticaSlotsStatus', nauticaSlotsStatus);
+  R.WebUIEvent('nauticaSetBg', nauticaSetBg);
 
   const MultiRoute = (method: string, handler: EPR | boolean) => {
     // Helper for register multiple versions.
     R.Route(`game.${method}`, handler);
     R.Route(`game_2.${method}`, handler);
     R.Route(`game_3.${method}`, handler);
+    R.Route(`game.sv4_${method}`, handler);
     R.Route(`game.sv6_${method}`, handler);
+    R.Route(`game.sv5_${method}`, handler);
     R.Route(`game.sv7_${method}`, handler);
   };
 
@@ -172,6 +146,8 @@ export function register() {
   MultiRoute('save_m', saveScore);
   MultiRoute('save_c', saveCourse);
   MultiRoute('save_pb', savePb);
+  MultiRoute('save_ap', saveAp);
+  MultiRoute('load_ap', loadAp);
   MultiRoute('save_valgene', saveValgene);
   MultiRoute('frozen', true);
   MultiRoute('buy', buy);
@@ -219,34 +195,35 @@ export function register() {
   // Hiscore options (apply to sv4+/sv5+/sv6/sv7 cabinets)
   R.Config('sdvx_hiscore_serve_limit', {
     name: 'Hiscore Serve Limit',
-    desc: 'Max hiscore entries served per page when the cabinet omits offset/limit (default 1000). Raise it to cover more songs of the catalog; too high can overflow the cabinet buffer.',
+    desc: 'Max hiscore entries served per page when the cabinet omits offset/limit (default 1000).',
     type: 'integer',
     default: 1000,
     needRestart: true
   });
   R.Config('sdvx_hiscore_lfields', {
     name: 'Hiscore Include L-Fields',
-    desc: 'Include the l_*/lx_* fields that duplicate a_*/ax_* in every hiscore entry. Set to false to halve the response size (lets the cabinet hold more entries).',
+    desc: 'Include the l_*/lx_* fields that duplicate a_*/ax_* in every hiscore entry. Set to false to halve the response size.',
     type: 'boolean',
     default: true,
     needRestart: true
   });
   R.Config('sdvx_hiscore_full_catalog', {
     name: 'Hiscore Full Catalog',
-    desc: 'Fill hiscore entries for every song in the music DB, even songs nobody has played yet (they get empty score slots).',
+    desc: 'Fill hiscore entries for every song in the music DB, even songs nobody has played yet.',
     type: 'boolean',
     default: false,
     needRestart: true
   });
 
-  SdvxRelayManager.getInstance().setConfig(
-    U.GetConfig('sdvx_relay_public_ip') || '127.0.0.1',
-    U.GetConfig('sdvx_relay_port_range') || '50000-50100',
-    U.GetConfig('sdvx_relay_verbose') === true
-  );
-  if (U.GetConfig('sdvx_relay_enabled') === true) {
-    console.log(`SDVX Online Relay: enabled (${U.GetConfig('sdvx_relay_public_ip') || '127.0.0.1'})`);
-  }
+  // Custom Charts (Nautica) options
+  R.Config('sdvx_voxcharger_path', { type: 'string', needRestart: false, default: '', name: 'VoxCharger Path', desc: 'Path to VoxCharger.exe for converting custom charts'});
+  R.Config('sdvx_custom_mix_name', { type: 'string', needRestart: false, default: 'asphyxia_custom', name: 'Custom Mix Name', desc: 'Folder name under data_mods/ for curated custom charts'});
+  R.Config('sdvx_nautica_id_start', { type: 'string', needRestart: false, default: '2800', name: 'Custom Chart Starting ID', desc: 'First music ID allocated to custom (Nautica) charts. The game crashes at IDs >= 3072, so this is capped at 3070.'});
+  R.Config('sdvx_drive_enabled', { type: 'boolean', needRestart: false, default: false, name: 'Google Drive Uploads', desc: 'When enabled, converted charts are uploaded to Google Drive.'});
+  R.Config('sdvx_drive_oauth_client_id', { type: 'string', needRestart: false, default: '', name: 'Drive OAuth Client ID', desc: 'OAuth 2.0 Client ID from GCP Console.'});
+  R.Config('sdvx_drive_oauth_client_secret', { type: 'string', needRestart: false, default: '', name: 'Drive OAuth Client Secret', desc: 'OAuth 2.0 Client Secret.'});
+  R.Config('sdvx_drive_oauth_refresh_token', { type: 'string', needRestart: false, default: '', name: 'Drive OAuth Refresh Token', desc: 'Populated automatically after authorization.'});
+  R.Config('sdvx_drive_folder_id', { type: 'string', needRestart: false, default: '', name: 'Drive Folder ID', desc: 'Target Google Drive folder ID.'});
 
   dataUpdate()
 }

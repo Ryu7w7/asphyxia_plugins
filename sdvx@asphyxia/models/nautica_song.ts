@@ -40,4 +40,7 @@ export interface NauticaSong {
   driveFileId?: string;
   driveFileSize?: number;
   driveUploadedAt?: number;
+
+  // Gameplay background (bg_no in music_db.xml). Defaults to 6 (∇ Nabla) if not set.
+  bgNo?: number;
 }

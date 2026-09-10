@@ -8,8 +8,11 @@ import { Mix } from '../models/mix'
 import { Rival } from '../models/rival'
 import { Item } from '../models/item'
 import { WeeklyMusicScore } from '../models/weeklymusic'
+import { PluginSettings } from '../models/settings'
 import { COURSES2 } from '../data/ii'
 import { COURSES3 } from '../data/gw'
+import { COURSES4 } from '../data/hh'
+import { COURSES5 } from '../data/vw'
 import { PREGENE, COURSES6, MUSIC_OVERRIDE6 } from '../data/exg'
 import { PREGENE7, COURSES7, MUSIC_OVERRIDE7 } from '../data/nbl'
 import { textureslist } from '../data/webui'
@@ -17,7 +20,6 @@ import * as fs from 'fs'
 import { PNG } from '../webui/asset/js/pngjs/png.js'
 import { DB_VER } from './migrate'
 import { getDateCodeInit } from '../utils'
-import { invalidateCommonCache } from './common'
 
 const translate_table = {
       '龕': '€',
@@ -269,7 +271,7 @@ export const copyResourcesFromGame = async (data: {}, send: WebUISend) => {
       let mdb = U.parseXML(U.DecodeString(await IO.ReadFile('./webui/asset/uploads/' + ver + '_mdb.xml'), "shift_jis"), false)
       mdb.mdb.music.forEach(musicValue => {
         let distributionDate = (ver > 1) ? musicValue.info.distribution_date['@content'][0].toString() : ''
-        let songTitleClean = (ver < 2) ? '' : musicValue.info.title_name['@content'].replace(/[龕釁驩曦齷骭齶彜罇雋鬻鬥鬆曩驫齲騫趁鬮盥隍頽餮黻蔕闃饌煢鑷墸鹹瀑疉鑒]/g, m => translate_table[m])
+        let songTitleClean = (ver > 0 && ver < 2) ? '' : musicValue.info.title_name['@content'].replace(/[龕釁驩曦齷骭齶彜罇雋鬻鬥鬆曩驫齲騫趁鬮盥隍頽餮黻蔕闃饌煢鑷墸鹹瀑疉鑒]/g, m => translate_table[m])
         let levelDiv = (ver > 0 && ver < 6) ? 1 : (musicValue.difficulty.exhaust.difnum['@content'][0].toString().length === 3) ? 10 : 1
         if(ver === 7) levelDiv = 10
         let ind = prevAssetMdb['mdb']['music'].findIndex(item => parseInt(item['id']) == parseInt(musicValue['@attr'].id))
@@ -285,6 +287,7 @@ export const copyResourcesFromGame = async (data: {}, send: WebUISend) => {
               break
             case 2:
             case 3:
+            case 4:
               dif[ver] = {
                 'novice': (musicValue.difficulty.novice.difnum['@content'][0] / levelDiv).toString(),
                 'advanced': (musicValue.difficulty.advanced.difnum['@content'][0] / levelDiv).toString(),
@@ -326,6 +329,8 @@ export const copyResourcesFromGame = async (data: {}, send: WebUISend) => {
           dif = prevAssetMdb['mdb']['music'][ind]['difficulty']
           let newInfVer = ver > 1 && (parseInt(prevAssetMdb['mdb']['music'][ind]['info']['inf_ver']) === 0 && parseInt(prevAssetMdb['mdb']['music'][ind]['info']['inf_ver']) < (ver === 2 ? (parseInt(musicValue.difficulty.infinite.difnum['@content'][0]) !== 0 ? 2 : 0) : parseInt(musicValue.info.inf_ver['@content'][0])))
           let newUlt = ver >= 6 && !('ult' in prevAssetMdb['mdb']['music'][ind]['info']) && 'ultimate' in musicValue.difficulty
+          if(songTitleClean !== '') prevAssetMdb['mdb']['music'][ind]['info']['title_name'] = songTitleClean
+          prevAssetMdb['mdb']['music'][ind]['info']['distribution_date'] = distributionDate
           switch (ver) {
             case 0:
               dif[ver] = {
@@ -360,18 +365,18 @@ export const copyResourcesFromGame = async (data: {}, send: WebUISend) => {
                 if(newInfVer) prevAssetMdb['mdb']['music'][ind]['info']['inf_ver'] = musicValue.info.inf_ver['@content'][0].toString()
               }
               break
-            // case 4:
-            // case 5:
-            //   dif[ver] = {
-            //     'novice': (musicValue.difficulty.novice.difnum['@content'][0] / levelDiv).toString(),
-            //     'advanced': (musicValue.difficulty.advanced.difnum['@content'][0] / levelDiv).toString(),
-            //     'exhaust': (musicValue.difficulty.exhaust.difnum['@content'][0] / levelDiv).toString(),
-            //     'maximum': (musicValue.difficulty.maximum.difnum['@content'][0] / levelDiv).toString(),
-            //     'infinite': (musicValue.difficulty.infinite.difnum['@content'][0] / levelDiv).toString(),
-            //   }
-            //   prevAssetMdb['mdb']['music'][ind]['info']['distribution_date'] = musicValue.info.distribution_date['@content'][0].toString()
-            //   prevAssetMdb['mdb']['music'][ind]['info']['inf_ver'] = musicValue.info.inf_ver['@content'][0].toString()
-            //   break
+            case 4:
+            case 5:
+              dif[ver] = {
+                'novice': (musicValue.difficulty.novice.difnum['@content'][0] / levelDiv).toString(),
+                'advanced': (musicValue.difficulty.advanced.difnum['@content'][0] / levelDiv).toString(),
+                'exhaust': (musicValue.difficulty.exhaust.difnum['@content'][0] / levelDiv).toString(),
+                'maximum': !('maximum' in musicValue.difficulty) ? '0' : (musicValue.difficulty.maximum.difnum['@content'][0] / levelDiv).toString(),
+                'infinite': (musicValue.difficulty.infinite.difnum['@content'][0] / levelDiv).toString(),
+              }
+              prevAssetMdb['mdb']['music'][ind]['info']['distribution_date'] = musicValue.info.distribution_date['@content'][0].toString()
+              if(newInfVer) prevAssetMdb['mdb']['music'][ind]['info']['inf_ver'] = musicValue.info.inf_ver['@content'][0].toString()
+              break
             case 6:
             case 7:
               let distributionDate = musicValue.info.distribution_date['@content'][0].toString()
@@ -387,8 +392,6 @@ export const copyResourcesFromGame = async (data: {}, send: WebUISend) => {
                 'infinite': 'infinite' in musicValue.difficulty ? (musicValue.difficulty.infinite.difnum['@content'][0] / levelDiv).toString() : '0',
                 'ultimate': 'ultimate' in musicValue.difficulty ? (musicValue.difficulty.ultimate.difnum['@content'][0] / levelDiv).toString() : '0'
               }
-              prevAssetMdb['mdb']['music'][ind]['info']['title_name'] = songTitleClean
-              prevAssetMdb['mdb']['music'][ind]['info']['distribution_date'] = distributionDate
               if(newInfVer) prevAssetMdb['mdb']['music'][ind]['info']['inf_ver'] = musicValue.info.inf_ver['@content'][0].toString()
               break
           }
@@ -727,6 +730,12 @@ export const copyResourcesFromGame = async (data: {}, send: WebUISend) => {
       } else if(courseData.courseData[cIter].version === 3) {
         courseData.courseData[cIter].info = COURSES3
         courseDataUpdateSuccess = true
+      } else if(courseData.courseData[cIter].version === 4) {
+        courseData.courseData[cIter].info = COURSES4
+        courseDataUpdateSuccess = true
+      } else if(courseData.courseData[cIter].version === 5) {
+        courseData.courseData[cIter].info = COURSES5
+        courseDataUpdateSuccess = true
       } else if(courseData.courseData[cIter].version === 6) {
         courseData.courseData[cIter].info = COURSES6
         courseDataUpdateSuccess = true
@@ -775,13 +784,6 @@ export const copyResourcesFromGame = async (data: {}, send: WebUISend) => {
 export const getRivalScores = async (data: { rivalId: string; refid: string; version: string; }, send: WebUISend) => {
   let ver = parseInt(data.version)
   let rival = await DB.FindOne<Rival>(data.refid, {collection: 'rival', refid: data.rivalId, version: ver})
-
-  if (!rival) {
-    return send.json({
-      error: "Rival not found."
-    });
-  }
-
   send.json({
     rival: await DB.FindOne<Profile>(data.rivalId, {collection: 'profile', version: ver}),
     yourScores: await DB.Find<MusicRecord>(data.refid, { collection: 'music', version: ver }),
@@ -801,7 +803,7 @@ export const addRival = async (data: { rivalId: string; refid: string; version: 
     }
     DB.Insert<Rival>(data.refid, {collection: "rival", sdvxID: rival.id, refid: data.rivalId, name: rival.name, version: ver, mutual: checkMutual, dbver: DB_VER})
     send.json({
-      "msg": "Successfully added profile to rival."
+      "msg": "Successfully added profile to rival. In order for your rivals to appear in-game, they need to add you as their rival as well."
     })
   } else {
     if(checkMutual) {
@@ -816,12 +818,12 @@ export const addRival = async (data: { rivalId: string; refid: string; version: 
 
 export const deleteAllRivals = async (data: { refid: string; version: string }, send: WebUISend) => {
   let ver = parseInt(data.version);
-  
+
   // Find all rivals added by this user
   let myRivals = await DB.Find<Rival>(data.refid, {collection: 'rival', version: ver});
-  
+
   for (let r of myRivals) {
-    // If it was mutual, we need to update the other person's mutual status
+    // If it was mutual, update the other person's mutual status
     if (r.mutual) {
       DB.Upsert<Rival>(r.refid, {collection: "rival", sdvxID: r.sdvxID, refid: data.refid, version: ver}, {$set: {"mutual": false, dbver: DB_VER}});
     }
@@ -829,7 +831,7 @@ export const deleteAllRivals = async (data: { refid: string; version: string }, 
 
   // Remove all rivals from user's collection
   await DB.Remove<Rival>(data.refid, {collection: 'rival', version: ver});
-  
+
   send.json({
     "msg": "Successfully deleted all rivals."
   });
@@ -932,12 +934,10 @@ export const preGeneReward = async (data: { reward: [], refid: string }, send: W
 
 export const manageEvents = async (data: { eventConfig: {} }) => {
   IO.WriteFile('webui/asset/config/events.json', JSON.stringify(data.eventConfig, null, 4));
-  invalidateCommonCache();
 }
 
 export const manageStartupFlags = async (data: { flagConfig: {} }) => {
   IO.WriteFile('webui/asset/config/flags.json', JSON.stringify(data.flagConfig, null, 4));
-  invalidateCommonCache();
 }
 
 export const addWeekly = async(data: { mid: number }) => {
@@ -967,8 +967,8 @@ export const addWeekly = async(data: { mid: number }) => {
     weekly.push({
       weekId: weekly[weekly.length - 1].weekId + 1,
       musicId: data.mid,
-      start: Number(BigInt(newStartDate.getTime())),
-      end: Number(BigInt(newEndDate.getTime()))
+      start: Number(BigInt(newStartDate)),
+      end: Number(BigInt(newEndDate))
     })
   } else {
     let newEndDate = new Date(curWeekMonday)
@@ -977,13 +977,12 @@ export const addWeekly = async(data: { mid: number }) => {
     weekly.push({
       weekId: 1,
       musicId: data.mid,
-      start: Number(BigInt(curWeekMonday.getTime())),
-      end: Number(BigInt(newEndDate.getTime()))
+      start: Number(BigInt(curWeekMonday)),
+      end: Number(BigInt(newEndDate))
     })
   }
 
   IO.WriteFile('webui/asset/config/weeklymusic.json', JSON.stringify(weekly, null, 4));
-  invalidateCommonCache();
 }
 
 export const getWeekRankList = async(data: { week: number, mid: number, mtype: number, version: number}, send: WebUISend) => {
@@ -993,17 +992,7 @@ export const getWeekRankList = async(data: { week: number, mid: number, mtype: n
   })
 }
 
-// Rank lists only change when someone saves a weekly score, but load (x5 per
-// login) and saveE recompute them by scanning the whole weeklymusicscore
-// collection every time. A short TTL turns the repeated scans into cache hits.
-const WEEKLY_RANK_TTL_MS = 10000;
-const weeklyRankCache = new Map<string, { expires: number; data: any[] }>();
-
 export async function getRankListDB(week, mid, mtype, version) {
-  const cacheKey = `${week}:${mid}:${mtype}:${version}`;
-  const cached = weeklyRankCache.get(cacheKey);
-  if (cached && cached.expires > Date.now()) return cached.data;
-
   let rankResults = await DB.Find<WeeklyMusicScore>(null, {collection: 'weeklymusicscore', version, week: week, mid: mid, mtype: mtype})
   let jRankResults = []
   if (rankResults.length > 0) {
@@ -1018,16 +1007,134 @@ export async function getRankListDB(week, mid, mtype, version) {
       exscore: e.exscore,
       rank: ind + 1
     }))
-  }
-  weeklyRankCache.set(cacheKey, { expires: Date.now() + WEEKLY_RANK_TTL_MS, data: jRankResults });
+  } 
   return jRankResults
 }
 
-export const getDateCode = async(data: {}, send: WebUISend) =>  {
+export const getDateCode = async(data: {}, send: WebUISend) => {
   send.json({
     datecode: await getDateCodeInit()
   })
 }
+
+export const saveCustomAkanames = async(data: { akanames: string[] }, send: WebUISend) => {
+  var success = true
+  let akanames = data.akanames
+  try {
+    await DB.Upsert<PluginSettings>({collection: 'settings'}, {$set: {akanames: akanames}})
+  }
+  catch {
+    success = false
+  }
+  send.json({
+    success: success 
+  })
+}
+
+export const saveMorePluginSettings = async(data: { settings: {} }, send: WebUISend) => {
+  var success = true
+  let settings = data.settings
+  try {
+    await DB.Update<PluginSettings>({collection: 'settings'}, {$set: settings})
+  }
+  catch {
+    success = false
+  }
+  send.json({
+    success: success 
+  })
+}
+
+export const getMorePluginSettings = async(data: string[], send: WebUISend) => {
+  var pluginSet = await DB.FindOne<PluginSettings>({collection: 'settings'})
+  send.json({
+    pluginSettings: pluginSet
+  })
+}
+
+export const updateMix = async (data: {
+  refid: string;
+  redirect: string;
+  code: string;
+  name?: string;
+  creator?: string;
+}, send: WebUISend) => {
+  const update: Update<Mix>['$set'] = {};
+
+  if (data.name && data.name.length > 0) {
+    if (data.name.length > 0) update.name = data.name;
+  }
+
+  if (data.creator && data.creator.length > 0) {
+    // const validCreator = data.creator
+    //   .toUpperCase()
+    //   .replace(/[^ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!?#$&*\-\.\ ]/g, '')
+    //   .slice(0, 8);
+    if (data.creator.length > 0) update.creator = data.creator;
+  }
+
+  await DB.Update<Mix>(
+    data.refid,
+    { collection: 'mix', version: 5, code: data.code },
+    { $set: update }
+  );
+
+  let urlRedirect = new URL(data.redirect)
+  urlRedirect.searchParams.delete('edit')
+  send.redirect(`${urlRedirect.pathname}${urlRedirect.search}`)
+};
+
+export const importMix = async (data: { refid: string, json: string }) => {
+  if (data.json.startsWith('`')) {
+    data.json = data.json.slice(1);
+  }
+
+  if (data.json.endsWith('`')) {
+    data.json = data.json.slice(0, data.json.length - 1);
+  }
+
+  const mix: any[] = JSON.parse(data.json);
+
+  let code = mix[0];
+  while (await DB.FindOne<Mix>({ collection: 'mix', code })) {
+    code = _.padStart(_.random(0, 999999999999).toString(), 12, '0');
+  }
+
+  const id = await GetCounter('mix');
+  const musics = mix.slice(9);
+
+  if (musics.length % 2 !== 0) return;
+
+  const mdata = [];
+
+  for (let i = 0; i < musics.length; i += 2) {
+    mdata.push({
+      grade: musics[i + 1],
+      id: musics[i],
+    });
+  }
+
+  await DB.Insert<Mix>(data.refid, {
+    collection: 'mix',
+    version: 5,
+    id,
+    code,
+    name: mix[1],
+    creator: mix[2],
+    param: `{ "dbVer" : "${mix[3]
+      }", "gene" : { "params" : "{ \\"minorVer\\" : \\"${mix[4]
+      }\\", \\"seed\\" : ${mix[5]} }", "ver" : "${mix[6]
+      }" }, "musics" : ${JSON.stringify(mdata)}, "voxdj" : { "params" : "${mix[7]
+      }", "ver" : "${mix[8]}" } }`,
+    jacket: 0,
+    tag: 1,
+    likes: 0
+  });
+};
+
+export const deleteMix = async (data: { refid: string, code: string }) => {
+  await DB.Remove<Mix>(data.refid, { collection: 'mix', version: 5, code: data.code });
+};
 
 export const clearCustomChartScores = async (data: { refid?: string }, send: WebUISend) => {
   const refid = data.refid;

@@ -84,14 +84,27 @@ function getGrade(grade) {
 }
 
 function getMedal(clear, version) {
-    let verLabels = {
-        '1': ["No Data", "PLAYED", "CLEAR", "ULTIMATE CHAIN", "PERFECT ULTIMATE CHAIN"],
-        '2': ["No Data", "PLAYED", "EFFECTIVE CLEAR", "ULTIMATE CHAIN", "PERFECT ULTIMATE CHAIN", "EXCESSIVE CLEAR"],
-        '3': ["No Data", "PLAYED", "EFFECTIVE CLEAR", "EXCESSIVE CLEAR", "ULTIMATE CHAIN", "PERFECT ULTIMATE CHAIN"],
-        '6': ["No Data", "PLAYED", "EFFECTIVE CLEAR", "EXCESSIVE CLEAR", "ULTIMATE CHAIN", "PERFECT ULTIMATE CHAIN", "MAXXIVE CLEAR"],
-        '7': ["No Data", "PLAYED", "EFFECTIVE CLEAR", "EXCESSIVE CLEAR", "MAXXIVE CLEAR", "ULTIMATE CHAIN", "PERFECT ULTIMATE CHAIN"]
+    let verLabels = []
+    switch(version) {
+        case 1:
+            verLabels = ["No Data", "PLAYED", "CLEAR", "ULTIMATE CHAIN", "PERFECT ULTIMATE CHAIN"]
+            break
+        case 2:
+            verLabels = ["No Data", "PLAYED", "EFFECTIVE CLEAR", "ULTIMATE CHAIN", "PERFECT ULTIMATE CHAIN", "EXCESSIVE CLEAR"]
+            break
+        case 3:
+        case 4:
+        case 5:
+            verLabels = ["No Data", "PLAYED", "EFFECTIVE CLEAR", "EXCESSIVE CLEAR", "ULTIMATE CHAIN", "PERFECT ULTIMATE CHAIN"]
+            break
+        case 6: 
+            verLabels = ["No Data", "PLAYED", "EFFECTIVE CLEAR", "EXCESSIVE CLEAR", "ULTIMATE CHAIN", "PERFECT ULTIMATE CHAIN", "MAXXIVE CLEAR"]
+            break
+        case 7:
+            verLabels = ["No Data", "PLAYED", "EFFECTIVE CLEAR", "EXCESSIVE CLEAR", "MAXXIVE CLEAR", "ULTIMATE CHAIN", "PERFECT ULTIMATE CHAIN"]
+            break
     }
-    return verLabels[String(version)][clear]
+    return verLabels[clear]
 }
 
 
@@ -254,19 +267,10 @@ $(document).ready(function() {
             temp_data.exscore = ((score_data[i].exscore) ? score_data[i].exscore : 0);
             temp_data.grade = getGrade(score_data[i].grade);
             temp_data.clear = getMedal(score_data[i].clear, currentProfile.version);
-            
-            temp_data.maxChain = score_data[i].maxChain || 0;
-            temp_data.critical = score_data[i].critical || 0;
-            temp_data.s_critical = score_data[i].s_critical || 0;
-            temp_data.near = score_data[i].near || 0;
-            temp_data.error = score_data[i].error || 0;
-            temp_data.early = score_data[i].early || 0;
-            temp_data.late = score_data[i].late || 0;
-
             music_data.push(temp_data);
         }
 
-        var table = $('#music_score').DataTable({
+        $('#music_score').DataTable({
             data: music_data,
             columns: [
                 { data: 'mid' },
@@ -296,35 +300,8 @@ $(document).ready(function() {
 
         });
 
-        $('#music_score tbody').on('click', 'tr', function () {
-            var data = table.row(this).data();
-            if (data) {
-                $('#modal-songname').text(data.songname);
-                $('#modal-diff').text(data.diff);
-                $('#modal-player-name').text(currentProfile.name);
-                
-                var rankEl = $('#modal-rank');
-                rankEl.text(data.grade);
-                rankEl.attr('data-grade', data.grade);
-                $('#modal-score').text(Number(data.score).toLocaleString());
-                $('#modal-exscore').text(Number(data.exscore).toLocaleString());
-                $('#modal-maxchain').text(Number(data.maxChain).toLocaleString());
-                $('#modal-scrit').text(Number(data.s_critical).toLocaleString());
-                $('#modal-crit').text(Number(data.critical).toLocaleString());
-                $('#modal-near').text(Number(data.near).toLocaleString());
-                $('#modal-early').text(Number(data.early).toLocaleString());
-                $('#modal-late').text(Number(data.late).toLocaleString());
-                $('#modal-error').text(Number(data.error).toLocaleString());
-                $('#modal-medal').text(data.clear);
-
-                $('#score-detail-modal').addClass('is-active');
-            }
-        });
 
     });
 
-});
 
-window.closeScoreModal = function() {
-    $('#score-detail-modal').removeClass('is-active');
-};
+})

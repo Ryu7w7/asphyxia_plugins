@@ -738,7 +738,7 @@ function buildMusicEntry(song: NauticaSong): string {
     `      <bpm_min __type="u32">${bpmMin}</bpm_min>\n` +
     `      <distribution_date __type="u32">${dist}</distribution_date>\n` +
     `      <volume __type="u16">91</volume>\n` +
-    `      <bg_no __type="u16">0</bg_no>\n` +
+    `      <bg_no __type="u16">${song.bgNo ?? 6}</bg_no>\n` +
     `      <genre __type="u32">16</genre>\n` +
     `      <is_fixed __type="u8">1</is_fixed>\n` +
     `      <version __type="u8">7</version>\n` +

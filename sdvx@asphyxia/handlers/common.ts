@@ -1,15 +1,18 @@
-import { EVENT, SDVX_STATION } from '../data/booth';
-import { EVENT2, MUSIC_LIMITED, COURSES2 } from '../data/ii';
-import { EVENT3, MISSION_EVENT3, MUSIC_LIMITED3, COURSES3, EXTENDS3, SP_APICAGENE3 } from '../data/gw';
-import { EVENT6, COURSES6, EXTENDS6, APRILFOOLSSONGS, VALKYRIE_SONGS, LICENSED_SONGS6, 
+import { FLAGS, SDVX_STATION } from '../data/booth';
+import { FLAGS2, MUSIC_LIMITED, COURSES2 } from '../data/ii';
+import { FLAGS3, MISSION_EVENT3, MUSIC_LIMITED3, COURSES3, EXTENDS3, SP_APICAGENE3 } from '../data/gw';
+import { FLAGS4, COURSES4, INFORMATION4, UNLOCK_EVENTS4, EXTENDS4 } from '../data/hh';
+import { FLAGS5, COURSES5, INFORMATION5, UNLOCK_EVENTS5, EXTENDS5, LICENSED_SONGS5, VOLFES } from '../data/vw';
+import { FLAGS6, COURSES6, EXTENDS6, APRILFOOLSSONGS, VALKYRIE_SONGS, LICENSED_SONGS6, 
           CURRENT_ARENA, ARENA_STATION_ITEMS, VALGENE, INFORMATION6, UNLOCK_EVENTS6, 
           MUSIC_OVERRIDE6 
 } from '../data/exg';
-import { EVENT7, COURSES7, EXTENDS7, LICENSED_SONGS7, CURRENT_ARENA7, ARENA_STATION_ITEMS7, 
+import { FLAGS7, COURSES7, EXTENDS7, LICENSED_SONGS7, CURRENT_ARENA7, ARENA_STATION_ITEMS7, 
           VALGENE7, APIGENE7, INFORMATION7, UNLOCK_EVENTS7, EGSONGS_LOCKED, MUSIC_OVERRIDE7,
-          GAMEOVER_CHARA7, QUIZ7
+          GAMEOVER_CHARA7, GAMEOVER_IFS, QUIZ7
 } from '../data/nbl';
-import {getVersion, checkVerStart, getRandomIntInclusive} from '../utils';
+import { getVersion, checkVerStart, getRandomIntInclusive } from '../utils';
+import { PluginSettings } from '../models/settings';
 import { NauticaSong } from '../models/nautica_song';
 
 const parseDiff = (musicId: number, musicType: number, limNo: number) => {
@@ -32,40 +35,16 @@ export const common: EPR = async (info, data, send) => {
   const unlockAllSongs = U.GetConfig('unlock_all_songs');
   const modelInfo = info.model.split(":");
   const version = parseInt(modelInfo[4].slice(0, -2));
-
-  // Every cabinet requests common data on boot (and periodically in some
-  // versions), and computing it reads+parses the whole music_db.json and
-  // builds a multi-thousand-item response — pure CPU blocking the event loop.
-  // When 11 cabinets boot at the same time this serializes and freezes the
-  // server for seconds. The result only changes on config/file changes, so
-  // cache it per version+config-fingerprint; invalidateCaches() is called
-  // from the WebUI handlers (flags/events/weekly) and nautica conversions.
-  const commonCacheKey = [
-    info.model,
-    unlockAllSongs ? 'u1' : 'u0',
-    U.GetConfig('gw_mission') ? 'm1' : 'm0',
-    U.GetConfig('gw_gene') ? 'g1' : 'g0',
-    U.GetConfig('arena_no_endtime') ? 'a1' : 'a0',
-    U.GetConfig('arena_station7'),
-    Math.floor(Date.now() / 60000),
-  ].join('|');
-  const cachedCommon = commonCache.get(commonCacheKey);
-  if (cachedCommon) {
-    return send.object(cachedCommon.data, cachedCommon.options);
-  }
-  const cacheCommon = (data: any, options?: EamuseSendOption) => {
-    commonCache.set(commonCacheKey, { data, options });
-  };
-
+  const pluginSettings = await DB.FindOne<PluginSettings>({collection: 'settings'})
   let station = [];
-  let events = [];
+  let flags = [];
   let courses = [];
   let extend = [];
   let information = [];
   let musicOverride = [];
   let spApica = [];
   let unlockEvents;
-  let currentArena;
+  let currentArenaVolfes;
   let arenaItems;
   let valgene;
   let apigene;
@@ -94,11 +73,22 @@ export const common: EPR = async (info, data, send) => {
 
     // Force unlock disabled
     limitedNo = 2
-    if (ver >= 6) {
+    if (ver >= 5) {
       let distributionDate = music.info['distribution_date']
       if (!distributionDate) return result;
-      const licensedSongs = ver === 6 ? LICENSED_SONGS6 : LICENSED_SONGS7;
-      if (licensedSongs.includes(id)) limitedNo += 1;  // Licensed songs in SV6+ need limited=3 to appear
+      let licensedSongs = []
+      switch(ver) {
+        case 5:
+          licensedSongs = LICENSED_SONGS5
+          break
+        case 6:
+          licensedSongs = LICENSED_SONGS6
+          break
+        case 7:
+          licensedSongs = LICENSED_SONGS7
+          break
+      }
+      if (licensedSongs.includes(id)) limitedNo += 1;  // Some songs (mostly licensed) need limited=3 to appear
       
       if (ver === 6) {
         const isValk = (['G', 'H'].includes(modelInfo[2]))
@@ -113,7 +103,7 @@ export const common: EPR = async (info, data, send) => {
             result.push(parseDiff(id, i, limitedNo))
           }
         }
-        if (parseInt(music.info.inf_ver) == ver) {  // XCD/NBL
+        if (parseInt(music.info.inf_ver) == ver) {  // Match INF version
           if (ver === 6 && id === 469) limitedNo = 2;  // Manual lock SV6; secret XCD
           result.push(parseDiff(id, 3, limitedNo))
         }
@@ -121,11 +111,14 @@ export const common: EPR = async (info, data, send) => {
       }
 
       // Handle unreleased songs
-      const musicOverride = ver === 6 ? MUSIC_OVERRIDE6 : MUSIC_OVERRIDE7;
-      const ovInd = musicOverride.findIndex(o => o.music_id === id)
-      if (ovInd > 0 && 'date' in musicOverride[ovInd]) {
-        distributionDate = String(musicOverride[ovInd].date)
+      if (ver >= 6) {
+        const musicOverride = ver === 6 ? MUSIC_OVERRIDE6 : MUSIC_OVERRIDE7;
+        const ovInd = musicOverride.findIndex(o => o.music_id === id)
+        if (ovInd > 0 && 'date' in musicOverride[ovInd]) {
+          distributionDate = String(musicOverride[ovInd].date)
+        }
       }
+
       if (!checkVerStart(0, 0, distributionDate, date)) {
         console.log("Unreleased song: " + music.info.title_name)
         return result
@@ -149,6 +142,225 @@ export const common: EPR = async (info, data, send) => {
     return result
   }
 
+  const populateInformation = (information) => {
+    let currentTime = parseInt((date.getTime()/100000) as unknown as string) * 100
+    for(const info of information) {
+      extend.push({
+        id: info.id,
+        type: 1,
+        params: [
+          1,
+          currentTime,
+          0,
+          0,
+          0,
+          '[f:0]SERVER INFORMATION',
+          info.str,
+          '',
+          '',
+          '',
+        ],
+      });
+    }
+  }
+
+  const populateAkanames = (akanames) => {
+    let akaId = 1
+    let akaCnt = 0
+    let params = [0,0,0,0,0,'','','','','']
+    for(const [ind, titles] of akanames.entries()) {
+      params[akaCnt] = akaId++
+      params[akaCnt + 5] = titles
+      akaCnt++
+      if(ind+1 === akanames.length || akaCnt === 5 || (akanames.length < 5 && akaCnt >= akanames.length)) {
+        extend.push({
+          id: 0,
+          type: 15,
+          params: params
+        })
+        params = [0,0,0,0,0,'','','','','']
+        akaCnt = 0
+      }
+    }
+  }
+  
+  const populateUnlockEvents = async (gameVersion) => {
+    if(IO.Exists('webui/asset/config/events.json')) {
+      let bufEventData = await IO.ReadFile('webui/asset/json/events.json')
+      let bufEventConfig = await IO.ReadFile('webui/asset/config/events.json')
+      let eventData = JSON.parse(bufEventData.toString())
+      let eventConfig = JSON.parse(bufEventConfig.toString())
+      for(const eData of eventData['events' + Math.abs(gameVersion)]) {
+        let stmpEvntInfo = unlockEvents[eData.id]
+        if(stmpEvntInfo && checkVerStart(version, eData.version, eData.start, date)) {
+          if((eData.type === 'stamp' || eData.type === 'ikiiki') && eventConfig[eData.id] !== undefined && eventConfig[eData.id].toggle) {
+            let stampType = {stamp: 5, ikiiki: 7}
+            for(const stmpData of stmpEvntInfo.info.data) {
+              if(!stmpData.version) {
+                extend.push({
+                  type: 3,
+                  id: stmpData.stmpid,
+                  params: [
+                    stampType[eData.type],
+                    stmpData.stps, 
+                    0,
+                    (gameVersion === 3 && 'stmpdaily' in stmpData) ? stmpData.stmpdaily : stmpData.stps % 10000, 
+                    (stmpData.stmpid.toString() in unlockEvents.refillStamps) ? 999999 : 0,
+                    ('stmpHdJ' in stmpEvntInfo.info) ? stmpEvntInfo.info.stmpHdJ : stmpEvntInfo.info.stmpHd,
+                    stmpEvntInfo.info.stmpHd,
+                    ('stmpFtJ' in stmpEvntInfo.info) ? stmpEvntInfo.info.stmpFtJ : stmpEvntInfo.info.stmpFt,
+                    stmpEvntInfo.info.stmpFt,
+                    stmpData.stprwrd
+                  ]
+                })
+
+                if(eData.id === 'qmastamp') {
+                  for(const quiz of QUIZ7) {
+                    extend.push({
+                      type: 23,
+                      id: quiz.id,
+                      params: [
+                        0, quiz.id, 1, 0, 0,
+                        quiz.text, '', '', '', ''
+                      ]
+                    })
+
+                    for(const [ind, list] of quiz.list.entries()) {
+                      let qParamStr = []
+                      let qListStr = JSON.stringify(list)
+                      let qListEsc = qListStr.replace(/"/g, '\\"')
+                      let sliceLen = 0
+                      let paramStrCnt = 0
+                      if(qListEsc.length > 1000) {
+                        for (let i = 0; i < qListEsc.length; i += 1000) {
+                          if(paramStrCnt === 5) {
+                            paramStrCnt++
+                            console.log("ignoring list. too long - id/ind " + quiz.id + '/' + ind)
+                            break
+                          }
+                          let strAdd = qListEsc.slice(i, i + 1000).replace(/\\"/g, '"')
+                          qParamStr.push(strAdd)
+                          paramStrCnt++
+                        }
+                      } else qParamStr.push(qListEsc.replace(/\\"/g, '"'))
+
+                      while (qParamStr.length < 5) qParamStr.push('')
+
+                      if(paramStrCnt <= 5) extend.push({
+                        type: 23,
+                        id: quiz.id,
+                        params: [
+                          1, quiz.id, 0, 0, 0
+                        ].concat(qParamStr)
+                      })
+                    }
+
+
+                  }
+                }
+              } else if(checkVerStart(version, stmpData.version, stmpData.start, date)) {
+                extend.push({
+                  type: 3,
+                  id: stmpData.stmpid,
+                  params: [
+                    stampType[eData.type],
+                    stmpData.stps, 
+                    0, 
+                    stmpData.stps % 10000, 
+                    (stmpData.stmpid.toString() in unlockEvents.refillStamps) ? 999999 : 0,
+                    ('stmpHdJ' in stmpData) ? stmpData.stmpHdJ : stmpData.stmpHd,
+                    stmpData.stmpHd,
+                    ('stmpFtJ' in stmpData) ? stmpData.stmpFtJ : stmpData.stmpFt,
+                    stmpData.stmpFt,
+                    stmpData.stprwrd
+                  ]
+                })
+              }
+            }
+
+            if(stmpEvntInfo.type === 'select') {
+              extend.push({
+                type: 3,
+                id: stmpEvntInfo.info.id,
+                params: [
+                  9,
+                  ((stmpEvntInfo.info.textstampval !== undefined) ? stmpEvntInfo.info.textstampval : 0),
+                  0,
+                  0,
+                  0,
+                  stmpEvntInfo.info.sheet,
+                  '',
+                  stmpEvntInfo.info.stmpSlHd,
+                  stmpEvntInfo.info.stmpSlFt,
+                  stmpEvntInfo.info.stmpUi
+                ]
+              })
+            }
+          }
+          else if(eData.type === 'completestamp' && eventConfig[eData.id] !== undefined && eventConfig[eData.id].toggle) {
+            extend.push({
+              type: 19,
+              id: stmpEvntInfo.info.id,
+              params: [
+                0, 0, 0, 0, 0,
+                JSON.stringify(stmpEvntInfo.info.data),
+                '',
+                '',
+                '',
+                ''
+              ]
+            })
+          }
+          else if(eData.type === 'tama' && eventConfig[eData.id] !== undefined && eventConfig[eData.id].toggle) {
+            flags.push('TAMAADV_ENABLE')
+            extend.push({
+              type: 20,
+              id: stmpEvntInfo.info.id,
+              params: [
+                0, 0, 0, 0, 0,
+                stmpEvntInfo.info.list,
+                '',
+                '',
+                '',
+                ''
+              ]
+            })
+          }
+          else if(eData.type === 'variant' && eventConfig[eData.id] !== undefined && eventConfig[eData.id].toggle) {
+            extend.push({
+              type: 22,
+              id: stmpEvntInfo.info.id,
+              params: [
+                0,
+                stmpEvntInfo.info.setid,
+                parseInt(eventConfig[eData.id].settings.minOverTrackRank),
+                parseInt(eventConfig[eData.id].settings.minSealDiff),
+                parseInt(eventConfig[eData.id].settings.maxSealRetain),
+                '',
+                '',
+                '',
+                '',
+                ''
+              ]
+            })
+          }
+        } else if (eData.id === 'achmissions' && checkVerStart(version, eData.version, eData.start, date)) {
+          let toggles = Object.keys(eventConfig['achmissions'].toggle)
+          let eventIds = '\t'
+          let prio = '1'
+          toggles.forEach(t => {
+            if(eventConfig['achmissions'].toggle[t] === true) {
+              eventIds += (eventIds === '\t' ? '' : ',') + t.split('_')[1]
+              prio = t.split('_')[1]
+            }
+          })
+          flags.push('ACHIEVEMENT_EVENT_MISSION' + eventIds)
+          flags.push('ACHIEVEMENT_EVENT_MISSION_PRIORITY\t' + prio)
+        }
+      }
+    }
+  }
+
   console.log("Retrieving common data");
   try {
     switch (info.method) {
@@ -157,7 +369,7 @@ export const common: EPR = async (info, data, send) => {
           case 'game': {
             console.log('Game: BOOTH')
             songNum = 187
-            events = EVENT
+            flags = FLAGS
             station = SDVX_STATION
             break
           }
@@ -165,7 +377,7 @@ export const common: EPR = async (info, data, send) => {
             console.log('Game: infinite infection')
             songNum = 554
             courses = COURSES2
-            events = EVENT2
+            flags = FLAGS2
             break
           }
           case 'game_3': {
@@ -174,25 +386,45 @@ export const common: EPR = async (info, data, send) => {
             spApica = SP_APICAGENE3.filter(sp => sp.version <= version)
             courses = COURSES3.filter(c => version >= c.version)
             EXTENDS3.filter(ex => checkVerStart(version, ex.version, 0, date)).forEach(val => extend.push(Object.assign({}, val)));
-            events = EVENT3
+            flags = FLAGS3
             break
           }
         }
         break
       }
+      case 'sv4_common': {
+        console.log('Game: HEAVENLY HAVEN')
+        songNum = 1368
+        courses = COURSES4.filter(c => version >= c.version)
+        flags = FLAGS4
+        information = INFORMATION4
+        unlockEvents = UNLOCK_EVENTS4
+        EXTENDS4.filter(ex => checkVerStart(version, ex.version, 0, date)).forEach(val => extend.push(Object.assign({}, val)));
+        break
+      }
+      case 'sv5_common': {
+        console.log('Game: VIVID WAVE')
+        songNum = 1671
+        courses = COURSES5.filter(c => version >= c.version)
+        flags = FLAGS5
+        currentArenaVolfes = VOLFES
+        information = INFORMATION5
+        unlockEvents = UNLOCK_EVENTS5
+        EXTENDS5.filter(ex => checkVerStart(version, ex.version, 0, date)).forEach(val => extend.push(Object.assign({}, val)));
+        break
+      }
       case 'sv6_common': {
         console.log('Game: EXCEED GEAR')
-        //events = EVENT6;
-        EVENT6.forEach(val => events.push(val));
+        FLAGS6.forEach(val => flags.push(val));
         if(IO.Exists('webui/asset/config/flags.json')) {
           let bufFlagConfig = await IO.ReadFile('webui/asset/config/flags.json')
           let flagConfig = JSON.parse(bufFlagConfig.toString())
           for(const flagIter in flagConfig) {
             if(flagConfig[flagIter]['toggle']) {
-              if(typeof flagConfig[flagIter]['str'] === 'string') events.push(flagConfig[flagIter]['str'])
+              if(typeof flagConfig[flagIter]['str'] === 'string') flags.push(flagConfig[flagIter]['str'])
               else {
                 for(const multiFlagIter in flagConfig[flagIter]['str']) {
-                  events.push(flagConfig[flagIter]['str'][multiFlagIter])
+                  flags.push(flagConfig[flagIter]['str'][multiFlagIter])
                 }
               }
             }
@@ -202,7 +434,7 @@ export const common: EPR = async (info, data, send) => {
         information = INFORMATION6.filter(info => checkVerStart(version, info.version, info.start, date))
         EXTENDS6.filter(ex => checkVerStart(version, ex.version, ex.start, date)).forEach(val => extend.push(Object.assign({}, val)));
         unlockEvents = UNLOCK_EVENTS6;
-        currentArena = CURRENT_ARENA;
+        currentArenaVolfes = CURRENT_ARENA;
         arenaItems = ARENA_STATION_ITEMS;
         musicOverride = MUSIC_OVERRIDE6;
         valgene = VALGENE;
@@ -211,16 +443,16 @@ export const common: EPR = async (info, data, send) => {
       }
       case 'sv7_common': {
         console.log('Game: ∇')
-        EVENT7.forEach(val => events.push(val));
+        FLAGS7.forEach(val => flags.push(val));
         if(IO.Exists('webui/asset/config/flags.json')) {
           let bufFlagConfig = await IO.ReadFile('webui/asset/config/flags.json')
           let flagConfig = JSON.parse(bufFlagConfig.toString())
           for(const flagIter in flagConfig) {
             if(flagConfig[flagIter]['toggle']) {
-              if(typeof flagConfig[flagIter]['str'] === 'string') events.push(flagConfig[flagIter]['str'])
+              if(typeof flagConfig[flagIter]['str'] === 'string') flags.push(flagConfig[flagIter]['str'])
               else {
                 for(const multiFlagIter in flagConfig[flagIter]['str']) {
-                  events.push(flagConfig[flagIter]['str'][multiFlagIter])
+                  flags.push(flagConfig[flagIter]['str'][multiFlagIter])
                 }
               }
             }
@@ -229,7 +461,7 @@ export const common: EPR = async (info, data, send) => {
         courses = COURSES7.filter(course => version >= course.version);
         information = INFORMATION7.filter(info => checkVerStart(version, info.version, info.start, date))
         unlockEvents = UNLOCK_EVENTS7;
-        currentArena = CURRENT_ARENA7;
+        currentArenaVolfes = CURRENT_ARENA7;
         arenaItems = ARENA_STATION_ITEMS7;
         musicOverride = MUSIC_OVERRIDE7;
         valgene = {
@@ -244,27 +476,23 @@ export const common: EPR = async (info, data, send) => {
       }
     }
 
-    if(gameVersion === 1) {
-      const response = {
-        limited: {
-          music: Array.from({ length: songNum }, (_, id) => K.ATTR({id: (id + 1).toString(), flag: unlockAllSongs ? '3' : '2'}, {}))
-        },
-        event: {
-          info: events.map(id => K.ATTR({id: id.toString()}))
-        },
-        catalog: {
-          info: [
-            ...[
-              K.ATTR({id: "1", currency: "1", price: "0"}, {}),
-              K.ATTR({id: "2", currency: "1", price: "0"}, {}),
-            ],
-            ...station.map((prc, ind) => K.ATTR({id: (ind + 1000).toString(), currency: "1", price: prc.toString()}))
-          ]
-        }
+    if(gameVersion === 1)  return send.object({
+      limited: {
+        music: Array.from({ length: songNum }, (_, id) => K.ATTR({id: (id + 1).toString(), flag: unlockAllSongs ? '3' : '2'}, {}))
+      },
+      event: {
+        info: flags.map(id => K.ATTR({id: id.toString()}))
+      },
+      catalog: {
+        info: [
+          ...[
+            K.ATTR({id: "1", currency: "1", price: "0"}, {}),
+            K.ATTR({id: "2", currency: "1", price: "0"}, {}),
+          ],
+          ...station.map((prc, ind) => K.ATTR({id: (ind + 1000).toString(), currency: "1", price: prc.toString()}))
+        ]
       }
-      cacheCommon(response);
-      return send.object(response);
-    }
+    })
 
     // Load songs
     const music_db = await IO.ReadFile('webui/asset/json/music_db.json')
@@ -285,12 +513,12 @@ export const common: EPR = async (info, data, send) => {
       console.log("Highest music id: " + songNum)
     }
 
-    const musicById = new Map<string, any>(mdb.mdb.music.map((s: any) => [String(s.id), s] as [string, any]));
     for (let id = 1; id <= songNum; ++id) {
-      const songData = musicById.get(id.toString());
-      if (songData) {
+      const foundSongIndex = mdb.mdb.music.map(function(x) { return x['id']; }).indexOf(id.toString());
+      if (foundSongIndex != -1) {
+        const songData = mdb.mdb.music[foundSongIndex]
         songs.push(...parseSongData(songData))
-        if (absVersion >= 6 && ('omnimix' in songData.info)) omniList.push(id)  // lazy
+        if (absVersion >= 6 && ('omnimix') in songData.info) omniList.push(id)  // lazy
       }
     }
 
@@ -309,10 +537,10 @@ export const common: EPR = async (info, data, send) => {
 
     let response = {}
 
-    if(gameVersion === 2 || gameVersion === 3) {
+    if([2, 3, 4].includes(gameVersion)) {
       if(gameVersion === 3) {
-        if(U.GetConfig('gw_mission')) events = events.concat(MISSION_EVENT3)
-        if(!U.GetConfig('gw_gene')) events = events.concat([25])
+        if(pluginSettings?.gwMission === true) flags = flags.concat(MISSION_EVENT3)
+        if(!pluginSettings?.gwGenerator === true) flags = flags.concat([25])
 
         let sp = spApica[(Math.random() * spApica.length) | 0];
         extend.push({
@@ -326,14 +554,35 @@ export const common: EPR = async (info, data, send) => {
           ]
         })
       }
+
+      if(pluginSettings?.gwScoreAdjTime !== undefined || pluginSettings?.gwScoreAdjTime !== 0) {
+        extend.push({
+          type: 5,
+          id: 1,
+          params: [
+            0, 0, 0, 0, 0,
+            `scoreadjtime:${pluginSettings.gwScoreAdjTime}`,
+            '', '', '', ''
+          ]
+        })
+      }
+
+      if(information.length > 0) populateInformation(information)
+      
+      if(gameVersion >= 4) await populateUnlockEvents(gameVersion)
+
       response = {
-        event: {
-          info: events.map(e => ({
+        event: gameVersion >= 4 ? {
+          info: flags.map(e => ({
+            event_id: K.ITEM('str', e)
+          }))
+        } : {
+          info: flags.map(e => ({
             event_id: K.ITEM('u32', e)
           }))
         },
         music_limited: {
-          info: unlockAllSongs ? [] : songs
+          info: songs
         },
         skill_course: {
           info: courses.reduce(
@@ -342,11 +591,16 @@ export const common: EPR = async (info, data, send) => {
                 s.courses.map(c => ({
                   season_id: K.ITEM('s32', s.id),
                   season_name: K.ITEM('str', s.name),
-                  season_new_flg: K.ITEM('bool', s.isNew),
+                  season_new_flg: K.ITEM('bool', 'isNew' in c ? c.isNew : s.isNew),
                   course_id: K.ITEM('s16', c.id),
                   course_name: K.ITEM('str', c.name),
                   course_type: K.ITEM('s16', c.type),
                   level: K.ITEM('s16', c.level),
+                  ...(gameVersion === 4 && {
+                    skill_level: K.ITEM('s16', c.level), 
+                    clear_rate: K.ITEM('s32', 5000),
+                    avg_score: K.ITEM('u32', 15000000),
+                  }),
                   skill_name_id: K.ITEM('s16', c.nameID),
                   matching_assist: K.ITEM('bool', c.assist),
                   gauge_type: K.ITEM('s16', 0),
@@ -361,7 +615,7 @@ export const common: EPR = async (info, data, send) => {
             []
           ),
         },
-        ...(gameVersion === 3 && {
+        ...(gameVersion >= 3 && {
           extend: {
             info: extend.map(e => ({
               extend_id: K.ITEM('u32', e.id),
@@ -382,7 +636,7 @@ export const common: EPR = async (info, data, send) => {
       }
     }
 
-    else if(Math.abs(gameVersion) >= 6) {
+    else if(absVersion >= 5) {
       let musicOverrideFin = []
       const createItem = (key, val) => {return (typeof val === 'string') ? K.ITEM('str', val) : ((key === 'volume') ? K.ITEM('u16', val) : K.ITEM('u32', val))}
       for(const music of musicOverride.filter(m => checkVerStart(0, 0, m.start, date))) {
@@ -408,29 +662,9 @@ export const common: EPR = async (info, data, send) => {
         musicOverrideFin.push(chartInfo)
       }
 
-      if(information.length > 0) {
-        let currentTime = parseInt((date.getTime()/100000) as unknown as string) * 100
-        for(const info of information) {
-          extend.push({
-            id: info.id,
-            type: 1,
-            params: [
-              1,
-              currentTime,
-              0,
-              0,
-              0,
-              '[f:0]SERVER INFORMATION',
-              info.str,
-              '',
-              '',
-              '',
-            ],
-          });
-        }
-      }
+      if(information.length > 0) populateInformation(information)
 
-      if(omniList.length > 0) {
+      if(absVersion >= 7 && omniList.length > 0) {
         extend.push({
           id: 1,
           type: 3,
@@ -446,7 +680,7 @@ export const common: EPR = async (info, data, send) => {
             omniList.join(','),
             "Omnimix Songs",
           ]
-        });
+        })
       }
 
       // Add RyuNET category for approved custom charts
@@ -480,293 +714,64 @@ export const common: EPR = async (info, data, send) => {
         const selPattern = charaPattern[Math.floor(Math.random() * charaPattern.length)]
         let chara = []
         for(const pos of selPattern.split(',')) {
-          let tempChara = GAMEOVER_CHARA7[pos][Math.floor(Math.random() * GAMEOVER_CHARA7[pos].length)]
+          const charaFilt = GAMEOVER_CHARA7[pos].filter(ch => version >= ch.version)
+          let tempChara = charaFilt[Math.floor(Math.random() * charaFilt.length)].str
           while(chara.includes(tempChara)) {
-            tempChara = GAMEOVER_CHARA7[pos][Math.floor(Math.random() * GAMEOVER_CHARA7[pos].length)]
+            tempChara = charaFilt[Math.floor(Math.random() * charaFilt.length)].str
           }
           chara.push(tempChara)
         }
 
-        extend.push({
-          id: 1,
-          type: 1,
-          params: [
-            3,
-            0,
-            0,
-            1,
-            0,
-            "[]\t[]\t[]",
-            "[]",
-            "[]",
-            "[]",
-            "characters: " + chara.join(' ')
-          ]
-        })
-      }
-
-      if(IO.Exists('webui/asset/config/events.json')) {
-        let bufEventData = await IO.ReadFile('webui/asset/json/events.json')
-        let bufEventConfig = await IO.ReadFile('webui/asset/config/events.json')
-        let eventData = JSON.parse(bufEventData.toString())
-        let eventConfig = JSON.parse(bufEventConfig.toString())
-        for(const eData of eventData['events' + Math.abs(gameVersion)]) {
-          let stmpEvntInfo = unlockEvents[eData.id]
-          if(stmpEvntInfo && checkVerStart(version, eData.version, eData.start, date)) {
-            if(eData.type === 'stamp' && eventConfig[eData.id] !== undefined && eventConfig[eData.id].toggle) {
-              for(const stmpData of stmpEvntInfo.info.data) {
-                if(!stmpData.version) {
-                  extend.push({
-                    'type': 3,
-                    'id': stmpData.stmpid,
-                    'params': [
-                      5,
-                      stmpData.stps, 
-                      0, 
-                      stmpData.stps % 10000, 
-                      (stmpData.stmpid.toString() in unlockEvents.refillStamps) ? 999999 : 0,
-                      ('stmpHdJ' in stmpEvntInfo.info) ? stmpEvntInfo.info.stmpHdJ : stmpEvntInfo.info.stmpHd,
-                      stmpEvntInfo.info.stmpHd,
-                      ('stmpFtJ' in stmpEvntInfo.info) ? stmpEvntInfo.info.stmpFtJ : stmpEvntInfo.info.stmpFt,
-                      stmpEvntInfo.info.stmpFt,
-                      stmpData.stprwrd
-                    ]
-                  })
-
-                  if(eData.id === 'qmastamp') {
-                    for(const quiz of QUIZ7) {
-                      extend.push({
-                        type: 23,
-                        id: quiz.id,
-                        params: [
-                          0, quiz.id, 1, 0, 0,
-                          quiz.text, '', '', '', ''
-                        ]
-                      })
-
-                      for(const [ind, list] of quiz.list.entries()) {
-                        let qParamStr = []
-                        let qListStr = JSON.stringify(list)
-                        let qListEsc = qListStr.replace(/"/g, '\\"')
-                        let sliceLen = 0
-                        let paramStrCnt = 0
-                        if(qListEsc.length > 1000) {
-                          for (let i = 0; i < qListEsc.length; i += 1000) {
-                            if(paramStrCnt === 5) {
-                              paramStrCnt++
-                              console.log("ignoring list. too long - id/ind " + quiz.id + '/' + ind)
-                              break
-                            }
-                            let strAdd = qListEsc.slice(i, i + 1000).replace(/\\"/g, '"')
-                            qParamStr.push(strAdd)
-                            paramStrCnt++
-                          }
-                        } else qParamStr.push(qListEsc.replace(/\\"/g, '"'))
-
-                        while (qParamStr.length < 5) qParamStr.push('')
-
-                        if(paramStrCnt <= 5) extend.push({
-                          type: 23,
-                          id: quiz.id,
-                          params: [
-                            1, quiz.id, 0, 0, 0
-                          ].concat(qParamStr)
-                        })
-                      }
-
-
-                    }
-                  }
-                } else if(checkVerStart(version, stmpData.version, stmpData.start, date)) {
-                  extend.push({
-                    type: 3,
-                    id: stmpData.stmpid,
-                    params: [
-                      5,
-                      stmpData.stps, 
-                      0, 
-                      stmpData.stps % 10000, 
-                      (stmpData.stmpid.toString() in unlockEvents.refillStamps) ? 999999 : 0,
-                      ('stmpHdJ' in stmpData) ? stmpData.stmpHdJ : stmpData.stmpHd,
-                      stmpData.stmpHd,
-                      ('stmpFtJ' in stmpData) ? stmpData.stmpFtJ : stmpData.stmpFt,
-                      stmpData.stmpFt,
-                      stmpData.stprwrd
-                    ]
-                  })
-                }
-              }
-
-              if(stmpEvntInfo.type === 'select') {
-                extend.push({
-                  type: 3,
-                  id: stmpEvntInfo.info.id,
-                  params: [
-                    9,
-                    ((stmpEvntInfo.info.textstampval !== undefined) ? stmpEvntInfo.info.textstampval : 0),
-                    0,
-                    0,
-                    0,
-                    stmpEvntInfo.info.sheet,
-                    '',
-                    stmpEvntInfo.info.stmpSlHd,
-                    stmpEvntInfo.info.stmpSlFt,
-                    stmpEvntInfo.info.stmpBg
-                  ]
-                })
-              }
-            }
-            else if(eData.type === 'completestamp' && eventConfig[eData.id] !== undefined && eventConfig[eData.id].toggle) {
-              extend.push({
-                type: 19,
-                id: stmpEvntInfo.info.id,
-                params: [
-                  0, 0, 0, 0, 0,
-                  JSON.stringify(stmpEvntInfo.info.data),
-                  '',
-                  '',
-                  '',
-                  ''
-                ]
-              })
-            }
-            else if(eData.type === 'tama' && eventConfig[eData.id] !== undefined && eventConfig[eData.id].toggle) {
-              events.push('TAMAADV_ENABLE')
-              extend.push({
-                type: 20,
-                id: stmpEvntInfo.info.id,
-                params: [
-                  0, 0, 0, 0, 0,
-                  stmpEvntInfo.info.list,
-                  '',
-                  '',
-                  '',
-                  ''
-                ]
-              })
-            }
-            else if(eData.type === 'variant' && eventConfig[eData.id] !== undefined && eventConfig[eData.id].toggle) {
-              extend.push({
-                type: 22,
-                id: stmpEvntInfo.info.id,
-                params: [
-                  0,
-                  stmpEvntInfo.info.setid,
-                  parseInt(eventConfig[eData.id].settings.minOverTrackRank),
-                  parseInt(eventConfig[eData.id].settings.minSealDiff),
-                  parseInt(eventConfig[eData.id].settings.maxSealRetain),
-                  '',
-                  '',
-                  '',
-                  '',
-                  ''
-                ]
-              })
-            }
-          } else if (eData.id === 'achmissions' && checkVerStart(version, eData.version, eData.start, date)) {
-            let toggles = Object.keys(eventConfig['achmissions'].toggle)
-            let eventIds = '\t'
-            let prio = '1'
-            toggles.forEach(t => {
-              if(eventConfig['achmissions'].toggle[t] === true) {
-                eventIds += (eventIds === '\t' ? '' : ',') + t.split('_')[1]
-                prio = t.split('_')[1]
-              }
-            })
-            events.push('ACHIEVEMENT_EVENT_MISSION' + eventIds)
-            events.push('ACHIEVEMENT_EVENT_MISSION_PRIORITY\t' + prio)
-          }
-        }
-      }
-
-      const arenaOpen = BigInt(date.getTime()) >= currentArena.time_start && (BigInt(date.getTime()) < currentArena.time_end || U.GetConfig('arena_no_endtime'))
-      const shopItemSet = arenaItems[U.GetConfig('arena_station7')]
-      const shopOpen = arenaOpen && !_.isEmpty(shopItemSet)
-      let arenaData = {}
-
-      const arenaStart = new Date(Number(currentArena.time_start) * 1000).toISOString().split('T')[0].split('-').join('')
-      if(arenaOpen && checkVerStart(version, 20260421, arenaStart, date) && currentArena.season !== 0) {
-        arenaData = {
-          season: K.ITEM('s32', currentArena.season),
-          rule: K.ITEM('s32', currentArena.rule),
-          rank_match_target: K.ITEM('s32', currentArena.rank_match_target),
-          time_start: K.ITEM('u64', currentArena.time_start),
-          time_end: K.ITEM('u64', currentArena.time_end),
-          shop_start: K.ITEM('u64', currentArena.shop_start),
-          shop_end: K.ITEM('u64', currentArena.shop_end),
-          is_open: K.ITEM('bool', arenaOpen),
-          is_shop: K.ITEM('bool', shopOpen),
-          catalog: (shopOpen && version >= shopItemSet.version) ? shopItemSet.items.map(item => ({
-            catalog_id: K.ITEM('s32', item[0]),
-            catalog_type: K.ITEM('s32', item[1]),
-            price: K.ITEM('s32', item[2]),
-            item_type: K.ITEM('s32', item[3]),
-            item_id: K.ITEM('s32', item[4]),
-            param: K.ITEM('s32', item[5]),
-          })) : []
-        }
-      }
-      let valgene_info = []
-      let valgene_items = []
-
-      valgene_info = valgene.info.filter(val => checkVerStart(version, val.version, val.start ?? 0, date)).map(val => ({
-        valgene_name: K.ITEM('str', val.valgene_name),
-        valgene_name_english: K.ITEM('str', val.valgene_name_english),
-        valgene_id: K.ITEM('s32', val.valgene_id)
-      }))
-
-      valgene.catalog.forEach((val) => {
-        val.items.forEach((itemVal) => {
-          itemVal.item_ids.forEach((item_id) => {
-            valgene_items.push({
-              valgene_id: K.ITEM('s32', val.volume),
-              rarity: K.ITEM('s32', valgene.rarity[itemVal.type.toString()]),
-              item_type: K.ITEM('s32', itemVal.type),
-              item_id: K.ITEM('s32', item_id)
-            })
+        const gameoverIfs = GAMEOVER_IFS.filter(g => g.version >= version);
+        if(gameoverIfs.length === 0 || Math.random() < 0.5) { 
+          extend.push({
+            id: 1,
+            type: 1,
+            params: [
+              3,
+              0,
+              0,
+              1,
+              0,
+              "[]\t[]\t[]",
+              "[]",
+              "[]",
+              "[]",
+              "characters: " + chara.join(' ')
+            ]
           })
-        })
-      })
-
-      let apigeneInfo = []
-      let apigeneItems = []
-
-      if(gameVersion === 7) {
-        apigeneInfo = apigene.info.filter(val => version >= val.version).map(api => ({
-          apigene_id: K.ITEM('s32', api.apigene_id),
-          name: K.ITEM('str', api.name),
-          name_english: K.ITEM('str', api.name_english),
-          common_rate: K.ITEM('s32', api.common_rate),
-          uncommon_rate: K.ITEM('s32', api.uncommon_rate),
-          rare_rate: K.ITEM('s32', api.rare_rate),
-          price: K.ITEM('s32', api.price),
-          no_duplicate: K.ITEM('bool', api.no_duplicate)
-        }))
-
-        apigene.catalog.forEach((val) => {
-          if(version >= apigene.info.find(a => a.apigene_id === val.volume).version) {
-            val.items.forEach((itemVal) => {
-              itemVal.item_ids.forEach((item_id) => {
-                apigeneItems.push({
-                  apigene_id: K.ITEM('s32', val.volume),
-                  rarity: K.ITEM('s32', apigene.rarity[itemVal.type.toString()]),
-                  item_type: K.ITEM('s32', itemVal.type),
-                  item_id: K.ITEM('s32', item_id)
-                })
-              })
-            })
-          }
-        })
+        } else {
+          extend.push({
+            id: 1,
+            type: 1,
+            params: [
+              3,
+              0,
+              0,
+              1,
+              0,
+              '',
+              '',
+              '',
+              '',
+              gameoverIfs[Math.floor(Math.random() * gameoverIfs.length)].str
+            ]
+          })
+        }
       }
 
-      if(currentDate.substring(0,4) === '2/5/') events.push("EVENTDATE_ONIGO")
-      if(currentDate.substring(0,5) === '2/14/') events.push('VALENTINES_DAY_2024')
-      if(currentDate.substring(0,5) === '2/15/') events.push('WHITE_DAY_2024')
+      if(pluginSettings?.akanames && pluginSettings.akanames.length > 0) populateAkanames(pluginSettings.akanames)
+
+      await populateUnlockEvents(Math.abs(gameVersion))
+
+      if(currentDate.substring(0,4) === '2/5/') flags.push("EVENTDATE_ONIGO")
+      if(currentDate.substring(0,5) === '2/14/') flags.push('VALENTINES_DAY_2024')
+      if(currentDate.substring(0,5) === '2/15/') flags.push('WHITE_DAY_2024')
       if(currentDate.substring(0,4) === '4/1/') {
-        events.push('EVENTDATE_APRILFOOL');
-        events.push('YUKKURI_RASIS_CREW_ENABLE')
-        events.push('YUKKURI_RASIS_TITLE_ENABLE')
-        events.push('APRIL_RAINBOW_LINE_ENABLE')
+        flags.push('EVENTDATE_APRILFOOL');
+        flags.push('YUKKURI_RASIS_CREW_ENABLE')
+        flags.push('YUKKURI_RASIS_TITLE_ENABLE')
+        flags.push('APRIL_RAINBOW_LINE_ENABLE')
         for (const afsong in APRILFOOLSSONGS) {
           for (let j = 0; j < 5; ++j) {
             songs.push({
@@ -777,35 +782,115 @@ export const common: EPR = async (info, data, send) => {
           }
         }
       }
-      if(currentDate.substring(0,5) === '5/10/') events.push("EVENTDATE_GOTT")
-      if(['10/24/', '10/25/', '10/26/', '10/27/', '10/28/', '10/29/', '10/30/', '10/31/'].includes(currentDate.substring(0,6))) events.push('HALLOWEEN_EVENT')
-      if(['12/24/', '12/25/', '12/26/'].includes(currentDate.substring(0,6))) events.push('MERRY_CHRISTMAS_2023')
+      if(currentDate.substring(0,5) === '5/10/') flags.push("EVENTDATE_GOTT")
+      if(['10/24/', '10/25/', '10/26/', '10/27/', '10/28/', '10/29/', '10/30/', '10/31/'].includes(currentDate.substring(0,6))) flags.push('HALLOWEEN_EVENT')
+      if(['12/24/', '12/25/', '12/26/'].includes(currentDate.substring(0,6))) flags.push('MERRY_CHRISTMAS_2023')
 
+      let arenaData = {}
+      let valgene_info = []
+      let valgene_items = []
+      let apigeneInfo = []
+      let apigeneItems = []
       let curWeekly = []
-      if(IO.Exists('webui/asset/config/weeklymusic.json')) {
-        let bufWeeklyMusic = await IO.ReadFile('webui/asset/config/weeklymusic.json')
-        let weeklyMusic = JSON.parse(bufWeeklyMusic.toString())
-        let weekData
-        for(let weekIter in weeklyMusic) {
-          if(Number(date) > weeklyMusic[weekIter].start && Number(date) <= weeklyMusic[weekIter].end) weekData = weeklyMusic[weekIter]
+
+      if(absVersion >= 6) {
+        const nblArenaNoEnd = (pluginSettings?.nblArenaNoEnd !== undefined) ? pluginSettings.nblArenaNoEnd : false
+        const nblArenaStation = (pluginSettings?.nblArenaStation !== undefined) ? pluginSettings.nblArenaStation : "None"
+        const nowUnix = BigInt(Math.floor(date.getTime() / 1000))
+        const arenaOpen = nowUnix >= currentArenaVolfes.time_start && (nowUnix < currentArenaVolfes.time_end || nblArenaNoEnd)
+        const shopItemSet = arenaItems[nblArenaStation]
+        const shopOpen = arenaOpen && !_.isEmpty(shopItemSet)
+        const arenaStart = new Date(Number(currentArenaVolfes.time_start) * 1000).toISOString().split('T')[0].split('-').join('')
+        if(arenaOpen && checkVerStart(version, 20260421, arenaStart, date) && currentArenaVolfes.season !== 0) {
+          arenaData = {
+            season: K.ITEM('s32', currentArenaVolfes.season),
+            rule: K.ITEM('s32', currentArenaVolfes.rule),
+            rank_match_target: K.ITEM('s32', currentArenaVolfes.rank_match_target),
+            time_start: K.ITEM('u64', currentArenaVolfes.time_start),
+            time_end: K.ITEM('u64', currentArenaVolfes.time_end),
+            shop_start: K.ITEM('u64', currentArenaVolfes.shop_start),
+            shop_end: K.ITEM('u64', currentArenaVolfes.shop_end),
+            is_open: K.ITEM('bool', arenaOpen),
+            is_shop: K.ITEM('bool', shopOpen),
+            catalog: (shopOpen && version >= shopItemSet.version) ? shopItemSet.items.map(item => ({
+              catalog_id: K.ITEM('s32', item[0]),
+              catalog_type: K.ITEM('s32', item[1]),
+              price: K.ITEM('s32', item[2]),
+              item_type: K.ITEM('s32', item[3]),
+              item_id: K.ITEM('s32', item[4]),
+              param: K.ITEM('s32', item[5]),
+            })) : []
+          }
         }
-        if(weekData != undefined) {
-          curWeekly.push({
-            weekId: weekData.weekId,
-            musicId: weekData.musicId,
-            start: weekData.start,
-            end: weekData.end
+
+        valgene_info = valgene.info.filter(val => checkVerStart(version, val.version, val.start ?? 0, date)).map(val => ({
+          valgene_name: K.ITEM('str', val.valgene_name),
+          valgene_name_english: K.ITEM('str', val.valgene_name_english),
+          valgene_id: K.ITEM('s32', val.valgene_id)
+        }))
+
+        valgene.catalog.forEach((val) => {
+          val.items.forEach((itemVal) => {
+            itemVal.item_ids.forEach((item_id) => {
+              valgene_items.push({
+                valgene_id: K.ITEM('s32', val.volume),
+                rarity: K.ITEM('s32', valgene.rarity[itemVal.type.toString()]),
+                item_type: K.ITEM('s32', itemVal.type),
+                item_id: K.ITEM('s32', item_id)
+              })
+            })
+          })
+        })
+
+        if(IO.Exists('webui/asset/config/weeklymusic.json')) {
+          let bufWeeklyMusic = await IO.ReadFile('webui/asset/config/weeklymusic.json')
+          let weeklyMusic = JSON.parse(bufWeeklyMusic.toString())
+          let weekData
+          for(let weekIter in weeklyMusic) {
+            if(Number(date) > weeklyMusic[weekIter].start && Number(date) <= weeklyMusic[weekIter].end) weekData = weeklyMusic[weekIter]
+          }
+          if(weekData != undefined) {
+            curWeekly.push({
+              weekId: weekData.weekId,
+              musicId: weekData.musicId,
+              start: weekData.start,
+              end: weekData.end
+            })
+          }
+        }
+
+        if(gameVersion === 7) {
+          apigeneInfo = apigene.info.filter(val => version >= val.version).map(api => ({
+            apigene_id: K.ITEM('s32', api.apigene_id),
+            name: K.ITEM('str', api.name),
+            name_english: K.ITEM('str', api.name_english),
+            common_rate: K.ITEM('s32', api.common_rate),
+            uncommon_rate: K.ITEM('s32', api.uncommon_rate),
+            rare_rate: K.ITEM('s32', api.rare_rate),
+            price: K.ITEM('s32', api.price),
+            no_duplicate: K.ITEM('bool', api.no_duplicate)
+          }))
+
+          apigene.catalog.forEach((val) => {
+            if(version >= apigene.info.find(a => a.apigene_id === val.volume).version) {
+              val.items.forEach((itemVal) => {
+                itemVal.item_ids.forEach((item_id) => {
+                  apigeneItems.push({
+                    apigene_id: K.ITEM('s32', val.volume),
+                    rarity: K.ITEM('s32', apigene.rarity[itemVal.type.toString()]),
+                    item_type: K.ITEM('s32', itemVal.type),
+                    item_id: K.ITEM('s32', item_id)
+                  })
+                })
+              })
+            }
           })
         }
       }
+
       response = {
-        valgene: {
-          info: valgene_info,
-          catalog: valgene_items
-        },
-        arena: arenaData,
         event: {
-          info: events.map(e => ({
+          info: flags.map(e => ({
             event_id: K.ITEM('str', e),
           })),
         },
@@ -825,7 +910,6 @@ export const common: EPR = async (info, data, send) => {
             param_str_5: K.ITEM('str', e.params[9]),
           })),
         },
-        music: { info: musicOverrideFin },
         music_limited: { info: songs },
         skill_course: {
           info: courses.reduce(
@@ -881,27 +965,53 @@ export const common: EPR = async (info, data, send) => {
             []
           ),
         },
-        weekly_music: curWeekly.length > 0 ? curWeekly.map(w => ({
-          week_id: K.ITEM('s32', w.weekId),
-          music_id: K.ITEM('s32', w.musicId),
-          time_start: K.ITEM('u64', BigInt(w.start)),
-          time_end: K.ITEM('u64', BigInt(w.end))
-        })) : []
-      }
-
-      if(gameVersion === 7) {
-        response['apigene'] = {
-          info: apigeneInfo,
-          catalog: apigeneItems
-        }
+        ...((absVersion === 5 && (pluginSettings?.vwVolfes !== undefined && pluginSettings.vwVolfes === true)) && {
+          festival: {
+            fes_id: K.ITEM('s32', currentArenaVolfes.id),
+            fes_name: K.ITEM('str', currentArenaVolfes.name),
+            time_start: K.ITEM('u64', currentArenaVolfes.time_start),
+            time_end: K.ITEM('u64', currentArenaVolfes.time_end),
+            shop_start: K.ITEM('u64', currentArenaVolfes.shop_start),
+            shop_end: K.ITEM('u64', currentArenaVolfes.shop_end),
+            is_open: K.ITEM('bool', true),
+            is_shop: K.ITEM('bool', true),
+            catalog: currentArenaVolfes.catalog.map(item => ({
+              catalog_id: K.ITEM('s32', item[0]),
+              catalog_type: K.ITEM('s32', item[1]),
+              price: K.ITEM('s32', item[2]),
+              item_type: K.ITEM('s32', item[3]),
+              item_id: K.ITEM('s32', item[4]),
+              param: K.ITEM('s32', item[5]),
+              num: K.ITEM('s32', item[6]),
+            }))
+          }
+        }),
+        ...(absVersion >= 6 && {
+          valgene: {
+            info: valgene_info,
+            catalog: valgene_items
+          },
+          arena: arenaData,
+          music: { info: musicOverrideFin },
+          weekly_music: curWeekly.length > 0 ? curWeekly.map(w => ({
+            week_id: K.ITEM('s32', w.weekId),
+            music_id: K.ITEM('s32', w.musicId),
+            time_start: K.ITEM('u64', BigInt(w.start)),
+            time_end: K.ITEM('u64', BigInt(w.end))
+          })) : [],
+          ...(absVersion >= 7 && {
+            apigene: {
+              info: apigeneInfo,
+              catalog: apigeneItems
+            }
+          })
+        }),
       }
     }
 
-    const options: EamuseSendOption = { encoding: 'utf8' };
-    cacheCommon(response, options);
     send.object(
       response,
-      options
+      { encoding: 'utf8' }
     );
   } catch (error) {
     console.log(error)

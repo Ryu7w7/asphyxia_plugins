@@ -1,5 +1,5 @@
 var currentVersion, currentProfile, currentCustom, courseDb
-var versionText = ['', 'BOOTH', 'INFINTE INFECTION', 'GRAVITY WARS', 'HEAVENLY HAVEN', 'VIVIDWAVE', 'EXCEED GEAR', '∇']
+var versionText = ['', 'BOOTH', 'INFINTE INFECTION', 'GRAVITY WARS', 'HEAVENLY HAVEN', 'VIVID WAVE', 'EXCEED GEAR', '∇']
 
 function zeroPad(num, places) {
     var zero = places - num.toString().length + 1;
@@ -190,12 +190,23 @@ $('[name="stampRD"]').change(function() {
     });
     $('#rd_pre').fadeIn(200);
 });
-var profile_data, database, databaseext;
+
+async function getMorePluginSettings() {
+    return await emit("getMorePluginSettings").then(
+        function(response) {
+            if(response.data.pluginSettings === null) return {}
+            return response.data.pluginSettings
+        }
+    )
+}
+
+var profile_data, database, databaseext, pluginSettings;
 var play_bgm = false;
 var play_sel = false;
 $(document).ready(async function() {
-    profile_data = JSON.parse(document.getElementById("data-pass").textContent);
-    customize_data = JSON.parse(document.getElementById("data-pass-custom").textContent);
+    var pluginSettings = await getMorePluginSettings()
+    profile_data = JSON.parse(document.getElementById("data-pass").innerText);
+    customize_data = JSON.parse(document.getElementById("data-pass-custom").innerText);
     let urlParams = new URLSearchParams(window.location.search);
     currentVersion = (urlParams.has('version') && urlParams.get('version') !== "") ? parseInt(urlParams.get('version')) : profile_data[profile_data.length - 1].version
     currentProfile = profile_data.find(p => p.version === currentVersion)
@@ -229,13 +240,15 @@ $(document).ready(async function() {
     
     const datecodeLimit = [
         [20251209, 40287, 5553, 46, 762, 92, 2136, 176, 19],
-        [20251224, 40301, 6001, 47, 781, 92, 2176, 178, 0],
-        [20251226, 0, 6501, 0, 0, 0, 0, 0, 0],
-        [20260113, 0, 6502, 0, 0, 0, 0, 0, 0],
-        [20260203, 40302, 6504, 47, 795, 92, 2216, 179, 0],
-        [20260303, 0, 6507, 48, 815, 101, 0, 181, 0],
+        [20260303, 40302, 6507, 48, 815, 101, 2216, 181, 0],
         [20260324, 0, 0, 0, 842, 0, 2256, 182, 31],
-        [20260421, 40305, 6508, 0, 861, 0, 2296, 183, 0]
+        [20260421, 40305, 6508, 0, 861, 0, 2296, 183, 0],
+        [20260615, 0, 0, 58, 871, 111, 0, 193, 0],
+        [20260630, 0, 0, 0, 885, 0, 2336, 196, 42],
+        [20260714, 0, 6509, 0, 0, 0, 0, 0, 0],
+        [20260804, 0, 6902, 0, 0, 0, 0, 0, 0],
+        [20260825, 0, 0, 0, 916, 0, 2388, 199, 0],
+        [20260901, 0, 0, 59, 946, 114, 0, 200, 0]
     ].filter(lim => lim[0] <= finDateCode).forEach(lim => {
         lim.forEach((l, ind) => {
             if(l !== 0) finalLim[ind] = l
@@ -263,6 +276,11 @@ $(document).ready(async function() {
         $('#apica').attr('hidden', 'true')
         $('#skillt').attr('hidden', 'true')
         $('#aptitle').attr('hidden', 'true')
+        $('#bplsupport').attr('hidden', 'true')
+        $('#bplpro').attr('hidden', 'true')
+        $('#valgene').attr('hidden', 'true')
+        $('#customize').attr('hidden', 'true')
+    } else if (currentVersion === 4 || currentVersion === 5) {
         $('#bplsupport').attr('hidden', 'true')
         $('#bplpro').attr('hidden', 'true')
         $('#valgene').attr('hidden', 'true')
@@ -315,7 +333,7 @@ $(document).ready(async function() {
         if(skill.length > 1) $('[name="skilltitle"]').val(skill[0]["name"]);
         else $('[name="skilltitle"]').attr('disabled', 'disabled')
 
-        let citemCut = [7, 7, 8, 8, 12, 12, 12]
+        let citemCut = [7, 7, 8, 8, 12, 12, 15]
         for (var i in databaseext["appeal_frame"].slice(0, citemCut[currentVersion - 1])) {
             $('[name="creatorItem"]').append($('<option>', {
                 value: databaseext["appeal_frame"][i].id,
@@ -341,11 +359,22 @@ $(document).ready(async function() {
         database = json;
         
         let akahtml = ''
+        let akaExists = false
         for (var i in database["akaname"].filter(aka => aka.value <= finalLim[1])) {
+            if(parseInt(database['akaname'][i].value) === 10001) {
+                if(currentVersion >= 5 && pluginSettings.akanames) {
+                    let akaId = 1
+                    for(const title of pluginSettings.akanames) {
+                        if(akaId === currentProfile['akaname']) akaExists = true
+                        akahtml += '<option value=' + akaId + '>' + akaId++ + " - " + title + ' (Custom title)</option>'
+                    }
+                }
+            }
             akahtml += '<option value=' + database['akaname'][i].value + '>' + database["akaname"][i].value + " - " + database["akaname"][i].name + '</option>'
+            if(parseInt(database['akaname'][i].value) === currentProfile['akaname']) akaExists = true
         }
         $('[name="akaname"]').html(akahtml);
-        $('[name="akaname"]').val(currentProfile["akaname"] === 0 ? 10001 : currentProfile['akaname']);
+        $('[name="akaname"]').val(!akaExists || (currentProfile['akaname'] === 0) ? 10001 : currentProfile['akaname']);
 
         let bgmhtml = ''
         let bgmId = (items_bgm.find(x => parseInt(x.id) === currentCustom[0]) || unlock_all) ? currentCustom[0] : 0
