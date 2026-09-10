@@ -7,49 +7,50 @@ var diffClasses = ['', 'chip-nov', 'chip-adv', 'chip-exh', 'chip-mxm'];
 // Values sourced from the official ∇ music_db.xml. Grouped by game version.
 var BG_GROUPS = [
   { group: 'I BOOTH', entries: [
-    [0,'Bridge (good high school)'],[1,'Dome (Broken 8cmix)'],[2,'Space (ALBIDA, pulse laser)'],
-    [3,'Pop Yellow (ヒマワリ)'],[4,'Moon (MAX 300)'],[5,'Dome Red (PANIC HOLIC)'],
-    [6,'Moon 2 (非公開日誌)'],[7,'Moon 3 (Master Spark)'],[8,'Blaster (Two Fates)'],
-    [9,'MAXIMA (幸福安心委員会)'],[10,'Ruins (UNLIMITED FIRE)'],[34,'KAC 2012 Medley']
+    [0,'Highway Bridge'],[1,'Cyber Dome (Blue)'],[2,'Deep Space & Nebula'],
+    [3,'Pop Style Retro'],[4,'Lunar Orbit (Full Moon)'],[5,'Cyber Dome (Red)'],
+    [6,'Purple Moon Space'],[7,'Red Moon & Eclipse'],[8,'Blaster Gate Dimension'],
+    [9,'MAXIMA Training Dojo'],[10,'Ancient Stone Ruins'],[34,'KAC 2012 Classic Arena']
   ]},
   { group: 'II INFINITE INFECTION', entries: [
-    [11,'Sandstorm / Desert'],[12,'Star (ウサテイ)'],[13,'Moon Rabbit / Rocket'],
-    [14,'Illusion Sky'],[15,'Cyber Red (最終鬼畜妹フランドール)'],[16,'Scarlet / Werewolf'],
-    [18,'KAC 2013 Finals (HistorIa)'],[27,'Cleopatrysm / Egypt']
+    [11,'Desert Sandstorm'],[12,'Starry Cosmos'],[13,'Rocket Launch Station'],
+    [14,'Sky Illusion & Mirage'],[15,'Cyber Matrix Grid'],[16,'Scarlet Twilight Sky'],
+    [18,'KAC 2013 HistorIa Arena'],[27,'Egyptian Pyramids']
   ]},
   { group: 'III GRAVITY WARS', entries: [
-    [29,'Kokonatsu Vocal'],[30,'Gravity Wars Standard (Seraphim)'],[31,'Cyber City (イグジスタンス)'],
-    [36,'Everlasting Message (KAC 2015)'],[38,'Summer 2015 (In The Breeze)'],[39,'veRtrageS / Regalia'],
-    [40,'Firestorm / Vermilia'],[41,'Tsumabuki / Eastern (紅の剣舞)'],[42,'Masakari Blade'],
-    [43,"Lachryma《Re:Queen'M》"],[44,'Gekkou Ranbu (月光乱舞)'],[45,'REVOLVER'],
-    [46,'Superstar Mitsuru (She is my wife)'],[48,'FLügeL《Λrp:ΣggyR》'],[49,'Prayer'],
-    [50,'JOMANDA']
+    [29,'Vocal Pop Stage'],[30,'Gravity Wars Main Stage'],[31,'Deep Ocean Cyber City'],
+    [36,'KAC 2015 Golden Arena'],[38,'Tropical Beach Resort'],[39,'Dark Cyber Metropolis'],
+    [40,'Crimson Firestorm'],[41,'Samurai Katana Dojo'],[42,'Crimson Blade Arena'],
+    [43,"Queen's Crimson Realm"],[44,'Moonlit Bamboo Forest'],[45,'Clockwork & Gear Dimension'],
+    [46,'Retro Disco & Mirrorball'],[48,'Angelic Wings Sky Realm'],[49,'Sacred Marble Cathedral'],
+    [50,'Cross Dimension & Laser Beams']
   ]},
   { group: 'IV HEAVENLY HAVEN', entries: [
-    [51,'Heavenly Haven Sea (Second Heaven)'],[53,'HE4VEN ～天国へようこそ～'],[54,'iLLness LiLin'],
-    [57,'Royal Action / Enigma II'],[58,'Heavenly Haven Sky (Fafnir)'],[59,'Spectrum / Aoarashi'],
-    [60,'Cyber City (Ghost Mascot)'],[61,'Sakura Traditional (春時雨)'],[63,'Neon Pop (嘘とぬいぐるみ)'],
-    [65,'Dyscontrolled Galaxy / Beam'],[66,'WHITEOUT'],[67,'FIN4LE ～終止線の彼方へ～'],
-    [69,'I (kuroma)'],[70,'GERBERA -For Finalists-'],[71,'Twilight / Cloud 9 (Last Resort)'],
-    [73,'Made In Love'],[74,'Xronièr'],[77,'Σmbryø'],[78,'*Feels Seasickness...*']
+    [51,'Tropical Ocean & Blue Sea'],[53,'Celestial White Heaven & Clouds'],[54,'Crimson Underworld & Flames'],
+    [57,'Royal Blue Dimension'],[58,'Clear Blue Sky & Clouds'],[59,'Cosmic Aurora Borealis'],
+    [60,'Cyberpunk Night City'],[61,'Sakura Cherry Blossoms'],[63,'Neon Club & Synth City'],
+    [65,'Laser Matrix & Warp Speed'],[66,'Snow Blizzard & Ice Realm'],[67,'Golden Hyper Speed Lines'],
+    [69,'Dark Cyber Monolith'],[70,'KAC Finalist Golden Arena'],[71,'Sunset Twilight Horizon'],
+    [73,'Digital Cyber Heart'],[74,'Chrono Gears & Clock Tower'],[77,'Cyan Genesis Void'],
+    [78,'Water Ripples & Ocean Depths']
   ]},
   { group: 'V VIVID WAVE', entries: [
-    [75,'Vivid Wave Standard (Galaxy Burst)'],[76,'AUTOMATION PARADISE'],[79,'Cross Fire / GODHEART'],
-    [80,'Σgø'],[81,'*Spatiotemporal ShockWAVE*'],[82,'Gray City (ReviveR, 9TH5IN)'],
-    [84,'VVelcome!!'],[86,'Ethereal Lotus / Starlight']
+    [75,'Vivid Pink Club & Dancefloor'],[76,'AUTOMATION PARADISE DJ Booth'],[79,'Golden Cross Flare'],
+    [80,'Golden Genesis Void'],[81,'Spatiotemporal Shockwave'],[82,'Monochrome Metropolis (Gray City)'],
+    [84,'Carnival & Festival Lights'],[86,'Ethereal Lotus Garden']
   ]},
   { group: 'VI EXCEED GEAR', entries: [
-    [88,'Valkyrie Assault / Air (POSSESSION)'],[90,'《Re:miniscence》'],[91,'Exceed Gear Standard 1 (Xb10r)'],
-    [94,'Exceed Gear Standard 2 (VOLAQUAS)'],[95,"Bl∞min'"],[96,'UNDERTALE (Heartache, Bonetrousle)'],
-    [97,'いまきみに (Silentroom)'],[98,'You Are My Best RivaL!!'],[100,'HALO / Ragnarøk'],
-    [101,'Megamix Festival (うぇるかむ)'],[102,'APOCALYPSE RAY'],[103,"Heaven's Rain"],
-    [104,'Rainbow / ALMiRAJ'],[105,'Akasha (Λkasha)'],[106,'NEMSYS ARENA World Hexathlon'],
-    [107,'Knew Order / Allegro Saetta'],[109,"Don't you dare play GOD"],[110,'Golden Rotation / Titanomachia'],
-    [111,'Our garden is blue.'],[113,'Kannagi (神凪)'],[114,'If Summer Ever Comes / Overdelta']
+    [88,'Valkyrie Flight Arena'],[90,'Crystal Memory Void'],[91,'Exceed Gear Blue Cyber Grid'],
+    [94,'Exceed Gear Red Cyber Grid'],[95,'Blooming Floral Garden'],[96,'UNDERTALE (Pixel Castle & Battle Grid)'],
+    [97,'Starlit Night Horizon'],[98,'Rival Dual Combat Arena'],[100,'Sacred Holy Light & Columns'],
+    [101,'Megamix Festival & Torii Gate'],[102,'Apocalypse Crimson Void'],[103,'Sacred Celestial Rain'],
+    [104,'Rainbow Crystal Prism'],[105,'Akasha Cosmic Vortex'],[106,'NEMSYS Hexathlon Stadium'],
+    [107,'Neo Tokyo Night City'],[109,'Cyber Gothic Cathedral'],[110,'Golden Titan Colosseum'],
+    [111,'Botanical Blue Sanctuary'],[113,'Shinto Shrine & Sacred Torii'],[114,'Summer Sunset Mirage']
   ]},
   { group: 'VII NABLA', entries: [
-    [112,'Waltz of Dahlia / Gryphone'],[116,'KISKIL-LILLA'],[117,'NABLA Standard (RIZING-GAMERS)'],
-    [118,'ALIVE (ΔLI∇E)']
+    [112,'Black Dahlia Rose Garden'],[116,'Dark Gothic Citadel'],[117,'NABLA Cyberpunk Arena'],
+    [118,'ALIVE Supreme Cosmic Realm']
   ]}
 ];
 
