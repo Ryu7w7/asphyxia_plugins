@@ -6,41 +6,50 @@ var diffClasses = ['', 'chip-nov', 'chip-adv', 'chip-exh', 'chip-mxm'];
 // ─── Background (bg_no) selector ────────────────────────────────────────────
 // Values sourced from the official ∇ music_db.xml. Grouped by game version.
 var BG_GROUPS = [
-  { group: 'I BOOTH',          entries: [
-    [0,'Bridge'],[1,'Dome'],[2,'Space'],[3,'Pop'],[4,'Moon'],
-    [5,'Dome Red'],[6,'Moon 2'],[7,'Moon 3'],[8,'KAC 2012'],
-    [9,'Blaster'],[10,'MAXIMA'],[11,'Ruins']
+  { group: 'I BOOTH', entries: [
+    [0,'Bridge (good high school)'],[1,'Dome (Broken 8cmix)'],[2,'Space (ALBIDA, pulse laser)'],
+    [3,'Pop Yellow (ヒマワリ)'],[4,'Moon (MAX 300)'],[5,'Dome Red (PANIC HOLIC)'],
+    [6,'Moon 2 (非公開日誌)'],[7,'Moon 3 (Master Spark)'],[8,'Blaster (Two Fates)'],
+    [9,'MAXIMA (幸福安心委員会)'],[10,'Ruins (UNLIMITED FIRE)'],[34,'KAC 2012 Medley']
   ]},
-  { group: 'II',               entries: [[12,'Star'],[13,'KAC 2013']]},
-  { group: 'III GRAVITY WARS', entries: [[14,'Default']]},
-  { group: 'IV HEAVENLY HAVEN',entries: [
-    [15,'Sea'],[16,'Sky'],[18,'City'],[19,'Tunnel'],
-    [27,'Beam'],[29,'Sakura'],[30,'Twilight'],[31,'Pop 2']
+  { group: 'II INFINITE INFECTION', entries: [
+    [11,'Sandstorm / Desert'],[12,'Star (ウサテイ)'],[13,'Moon Rabbit / Rocket'],
+    [14,'Illusion Sky'],[15,'Cyber Red (最終鬼畜妹フランドール)'],[16,'Scarlet / Werewolf'],
+    [18,'KAC 2013 Finals (HistorIa)'],[27,'Cleopatrysm / Egypt']
   ]},
-  { group: 'V VIVID WAVE',     entries: [[34,'Stage'],[36,'Ver5 Test'],[38,'Japan']]},
-  { group: 'VI EXCEED GEAR',   entries: [
-    [39,'EXG 1'],[40,'EXG 2'],[41,'ExGate'],[42,'ExGate Alive'],
-    [43,'ExGate Everlast'],[44,'ExGate Kannagi'],[45,'ExGate Vallisneria'],
-    [46,'Diver Basic 1'],[47,'Diver Basic 2'],[48,'Diver Basic 3'],[49,'Diver Basic 4'],
-    [50,'Diver Soul'],[51,'Diver Mixx'],[53,'Diver Rishna'],[54,'Diver Noisya'],
-    [57,'Diver Pilica'],[58,'Diver Haruka'],[59,'Diver Shion'],[60,'Diver Nana'],
-    [61,'Diver Rasisdeth'],[63,'Diver Xhrono'],[65,'Diver Tex'],[66,'Diver Tex Blue'],
-    [67,'Diver Tex Purple'],[68,'Diver Tex White'],[69,'Diver Akasha'],
-    [70,'Diver Akasha KAC'],[71,'Grace vs Rasis'],[72,'Grace Challenge']
+  { group: 'III GRAVITY WARS', entries: [
+    [29,'Kokonatsu Vocal'],[30,'Gravity Wars Standard (Seraphim)'],[31,'Cyber City (イグジスタンス)'],
+    [36,'Everlasting Message (KAC 2015)'],[38,'Summer 2015 (In The Breeze)'],[39,'veRtrageS / Regalia'],
+    [40,'Firestorm / Vermilia'],[41,'Tsumabuki / Eastern (紅の剣舞)'],[42,'Masakari Blade'],
+    [43,'Lachryma《Re:Queen''M》'],[44,'Gekkou Ranbu (月光乱舞)'],[45,'REVOLVER'],
+    [46,'Superstar Mitsuru (She is my wife)'],[48,'FLügeL《Λrp:ΣggyR》'],[49,'Prayer'],
+    [50,'JOMANDA']
   ]},
-  { group: 'VII NABLA',        entries: [
-    [73,'Default 1'],[74,'Default 2'],[75,'Omega Shinwa'],[76,'Omega MAXIMA'],
-    [77,'Omega Nianoa'],[78,'Omega Inoten'],[79,'Omega Arashi'],[80,'Omega Hiyuki'],
-    [81,'Omega Cyberspace'],[82,'Omega Capsaicin'],[83,'Omega18 MAXMA'],[84,'Omega18 Tama'],
-    [86,'Planet'],[87,'Planet Yusha'],[88,'BPL Normal'],[89,'BPL Grace'],
-    [90,'BPL S3 Normal'],[91,'BPL S3 Dream'],[92,'BPL S3 Final'],
-    [93,'BPL S5 Normal'],[94,'BPL S5 Final'],[95,'Tenkaichi'],[96,'Tenkaichi 02'],
-    [97,'Tenkaichi 03'],[98,'Pop Tama'],[99,'Superstar Mitsuru'],[100,'Nishinippori'],
-    [101,'Megamix'],[102,'Jomanda'],[103,'Undertale'],[104,'Automation Paradise'],
-    [105,'Beach Day'],[106,'Beach Night'],[107,'KAC 5th Rasis'],[108,'KAC 5th Small'],
-    [109,'KAC 6th Nianoa'],[110,'KAC 6th Reigure'],[111,'KAC 7th Rasis'],
-    [112,'KAC 8th Kanade'],[113,'KAC 8th Lefrigh'],[114,'KAC 9th Kureha'],
-    [115,'EDP 2016'],[116,'YAMBR RedBull'],[117,'2015 KAC'],[118,'2015 Summer']
+  { group: 'IV HEAVENLY HAVEN', entries: [
+    [51,'Heavenly Haven Sea (Second Heaven)'],[53,'HE4VEN ～天国へようこそ～'],[54,'iLLness LiLin'],
+    [57,'Royal Action / Enigma II'],[58,'Heavenly Haven Sky (Fafnir)'],[59,'Spectrum / Aoarashi'],
+    [60,'Cyber City (Ghost Mascot)'],[61,'Sakura Traditional (春時雨)'],[63,'Neon Pop (嘘とぬいぐるみ)'],
+    [65,'Dyscontrolled Galaxy / Beam'],[66,'WHITEOUT'],[67,'FIN4LE ～終止線の彼方へ～'],
+    [69,'I (kuroma)'],[70,'GERBERA -For Finalists-'],[71,'Twilight / Cloud 9 (Last Resort)'],
+    [73,'Made In Love'],[74,'Xronièr'],[77,'Σmbryø'],[78,'*Feels Seasickness...*']
+  ]},
+  { group: 'V VIVID WAVE', entries: [
+    [75,'Vivid Wave Standard (Galaxy Burst)'],[76,'AUTOMATION PARADISE'],[79,'Cross Fire / GODHEART'],
+    [80,'Σgø'],[81,'*Spatiotemporal ShockWAVE*'],[82,'Gray City (ReviveR, 9TH5IN)'],
+    [84,'VVelcome!!'],[86,'Ethereal Lotus / Starlight']
+  ]},
+  { group: 'VI EXCEED GEAR', entries: [
+    [88,'Valkyrie Assault / Air (POSSESSION)'],[90,'《Re:miniscence》'],[91,'Exceed Gear Standard 1 (Xb10r)'],
+    [94,'Exceed Gear Standard 2 (VOLAQUAS)'],[95,'Bl∞min'''],[96,'UNDERTALE (Heartache, Bonetrousle)'],
+    [97,'いまきみに (Silentroom)'],[98,'You Are My Best RivaL!!'],[100,'HALO / Ragnarøk'],
+    [101,'Megamix Festival (うぇるかむ)'],[102,'APOCALYPSE RAY'],[103,'Heaven''s Rain'],
+    [104,'Rainbow / ALMiRAJ'],[105,'Akasha (Λkasha)'],[106,'NEMSYS ARENA World Hexathlon'],
+    [107,'Knew Order / Allegro Saetta'],[109,'Don''t you dare play GOD'],[110,'Golden Rotation / Titanomachia'],
+    [111,'Our garden is blue.'],[113,'Kannagi (神凪)'],[114,'If Summer Ever Comes / Overdelta']
+  ]},
+  { group: 'VII NABLA', entries: [
+    [112,'Waltz of Dahlia / Gryphone'],[116,'KISKIL-LILLA'],[117,'NABLA Standard (RIZING-GAMERS)'],
+    [118,'ALIVE (ΔLI∇E)']
   ]}
 ];
 

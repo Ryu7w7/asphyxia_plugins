@@ -1,104 +1,424 @@
-﻿{
+{
   "backgrounds": [
-    { "value": 0,  "label": "BOOTH - Bridge",           "group": "I BOOTH" },
-    { "value": 1,  "label": "BOOTH - Dome",              "group": "I BOOTH" },
-    { "value": 2,  "label": "BOOTH - Space",             "group": "I BOOTH" },
-    { "value": 3,  "label": "BOOTH - Pop",               "group": "I BOOTH" },
-    { "value": 4,  "label": "BOOTH - Moon",              "group": "I BOOTH" },
-    { "value": 5,  "label": "BOOTH - Dome Red",          "group": "I BOOTH" },
-    { "value": 6,  "label": "BOOTH - Moon 2",            "group": "I BOOTH" },
-    { "value": 7,  "label": "BOOTH - Moon 3",            "group": "I BOOTH" },
-    { "value": 8,  "label": "BOOTH - KAC 2012",          "group": "I BOOTH" },
-    { "value": 9,  "label": "BOOTH - Blaster",           "group": "I BOOTH" },
-    { "value": 10, "label": "BOOTH - MAXIMA",            "group": "I BOOTH" },
-    { "value": 11, "label": "BOOTH - Ruins (Iseki)",     "group": "I BOOTH" },
-    { "value": 12, "label": "II - Star",                 "group": "II" },
-    { "value": 13, "label": "II - KAC 2013",             "group": "II" },
-    { "value": 14, "label": "III GW - Default",          "group": "III GRAVITY WARS" },
-    { "value": 15, "label": "IV HH - Sea",               "group": "IV HEAVENLY HAVEN" },
-    { "value": 16, "label": "IV HH - Sky",               "group": "IV HEAVENLY HAVEN" },
-    { "value": 18, "label": "IV HH - City",              "group": "IV HEAVENLY HAVEN" },
-    { "value": 19, "label": "IV HH - Tunnel",            "group": "IV HEAVENLY HAVEN" },
-    { "value": 27, "label": "IV HH - Beam",              "group": "IV HEAVENLY HAVEN" },
-    { "value": 29, "label": "IV HH - Sakura",            "group": "IV HEAVENLY HAVEN" },
-    { "value": 30, "label": "IV HH - Twilight",          "group": "IV HEAVENLY HAVEN" },
-    { "value": 31, "label": "IV HH - Pop 2",             "group": "IV HEAVENLY HAVEN" },
-    { "value": 34, "label": "V VW - Stage",              "group": "V VIVID WAVE" },
-    { "value": 36, "label": "V VW - Ver5 Test",          "group": "V VIVID WAVE" },
-    { "value": 38, "label": "V VW - Japan",              "group": "V VIVID WAVE" },
-    { "value": 39, "label": "VI EG - EXG 1",             "group": "VI EXCEED GEAR" },
-    { "value": 40, "label": "VI EG - EXG 2",             "group": "VI EXCEED GEAR" },
-    { "value": 41, "label": "VI EG - ExGate",            "group": "VI EXCEED GEAR" },
-    { "value": 42, "label": "VI EG - ExGate Alive",      "group": "VI EXCEED GEAR" },
-    { "value": 43, "label": "VI EG - ExGate Everlast",   "group": "VI EXCEED GEAR" },
-    { "value": 44, "label": "VI EG - ExGate Kannagi",    "group": "VI EXCEED GEAR" },
-    { "value": 45, "label": "VI EG - ExGate Vallisneria","group": "VI EXCEED GEAR" },
-    { "value": 46, "label": "VI EG - Diver Basic 1",     "group": "VI EXCEED GEAR" },
-    { "value": 47, "label": "VI EG - Diver Basic 2",     "group": "VI EXCEED GEAR" },
-    { "value": 48, "label": "VI EG - Diver Basic 3",     "group": "VI EXCEED GEAR" },
-    { "value": 49, "label": "VI EG - Diver Basic 4",     "group": "VI EXCEED GEAR" },
-    { "value": 50, "label": "VI EG - Diver Soul",        "group": "VI EXCEED GEAR" },
-    { "value": 51, "label": "VI EG - Diver Mixx",        "group": "VI EXCEED GEAR" },
-    { "value": 53, "label": "VI EG - Diver Rishna",      "group": "VI EXCEED GEAR" },
-    { "value": 54, "label": "VI EG - Diver Noisya",      "group": "VI EXCEED GEAR" },
-    { "value": 57, "label": "VI EG - Diver Pilica",      "group": "VI EXCEED GEAR" },
-    { "value": 58, "label": "VI EG - Diver Haruka",      "group": "VI EXCEED GEAR" },
-    { "value": 59, "label": "VI EG - Diver Shion",       "group": "VI EXCEED GEAR" },
-    { "value": 60, "label": "VI EG - Diver Nana",        "group": "VI EXCEED GEAR" },
-    { "value": 61, "label": "VI EG - Diver Rasisdeth",   "group": "VI EXCEED GEAR" },
-    { "value": 63, "label": "VI EG - Diver Xhrono",      "group": "VI EXCEED GEAR" },
-    { "value": 65, "label": "VI EG - Diver Tex",         "group": "VI EXCEED GEAR" },
-    { "value": 66, "label": "VI EG - Diver Tex Blue",    "group": "VI EXCEED GEAR" },
-    { "value": 67, "label": "VI EG - Diver Tex Purple",  "group": "VI EXCEED GEAR" },
-    { "value": 68, "label": "VI EG - Diver Tex White",   "group": "VI EXCEED GEAR" },
-    { "value": 69, "label": "VI EG - Diver Akasha",      "group": "VI EXCEED GEAR" },
-    { "value": 70, "label": "VI EG - Diver Akasha KAC",  "group": "VI EXCEED GEAR" },
-    { "value": 71, "label": "VI EG - Grace vs Rasis",    "group": "VI EXCEED GEAR" },
-    { "value": 72, "label": "VI EG - Grace Challenge",   "group": "VI EXCEED GEAR" },
-    { "value": 73, "label": "VII NBL - Default 1",       "group": "VII NABLA" },
-    { "value": 74, "label": "VII NBL - Default 2",       "group": "VII NABLA" },
-    { "value": 75, "label": "VII NBL - Omega Shinwa",    "group": "VII NABLA" },
-    { "value": 76, "label": "VII NBL - Omega MAXIMA",    "group": "VII NABLA" },
-    { "value": 77, "label": "VII NBL - Omega Nianoa",    "group": "VII NABLA" },
-    { "value": 78, "label": "VII NBL - Omega Inoten",    "group": "VII NABLA" },
-    { "value": 79, "label": "VII NBL - Omega Arashi",    "group": "VII NABLA" },
-    { "value": 80, "label": "VII NBL - Omega Hiyuki",    "group": "VII NABLA" },
-    { "value": 81, "label": "VII NBL - Omega Cyberspace","group": "VII NABLA" },
-    { "value": 82, "label": "VII NBL - Omega Capsaicin", "group": "VII NABLA" },
-    { "value": 83, "label": "VII NBL - Omega18 MAXMA",   "group": "VII NABLA" },
-    { "value": 84, "label": "VII NBL - Omega18 Tama",    "group": "VII NABLA" },
-    { "value": 86, "label": "VII NBL - Planet",          "group": "VII NABLA" },
-    { "value": 87, "label": "VII NBL - Planet Yusha",    "group": "VII NABLA" },
-    { "value": 88, "label": "VII NBL - BPL Normal",      "group": "VII NABLA" },
-    { "value": 89, "label": "VII NBL - BPL Grace",       "group": "VII NABLA" },
-    { "value": 90, "label": "VII NBL - BPL S3 Normal",   "group": "VII NABLA" },
-    { "value": 91, "label": "VII NBL - BPL S3 Dream",    "group": "VII NABLA" },
-    { "value": 92, "label": "VII NBL - BPL S3 Final",    "group": "VII NABLA" },
-    { "value": 93, "label": "VII NBL - BPL S5 Normal",   "group": "VII NABLA" },
-    { "value": 94, "label": "VII NBL - BPL S5 Final",    "group": "VII NABLA" },
-    { "value": 95, "label": "VII NBL - Tenkaichi",       "group": "VII NABLA" },
-    { "value": 96, "label": "VII NBL - Tenkaichi 02",    "group": "VII NABLA" },
-    { "value": 97, "label": "VII NBL - Tenkaichi 03",    "group": "VII NABLA" },
-    { "value": 98, "label": "VII NBL - Pop Tama",        "group": "VII NABLA" },
-    { "value": 99, "label": "VII NBL - Superstar Mitsuru","group": "VII NABLA" },
-    { "value": 100,"label": "VII NBL - Nishinippori",    "group": "VII NABLA" },
-    { "value": 101,"label": "VII NBL - Megamix",         "group": "VII NABLA" },
-    { "value": 102,"label": "VII NBL - Jomanda",         "group": "VII NABLA" },
-    { "value": 103,"label": "VII NBL - Undertale",       "group": "VII NABLA" },
-    { "value": 104,"label": "VII NBL - Automation",      "group": "VII NABLA" },
-    { "value": 105,"label": "VII NBL - Beach Day",       "group": "VII NABLA" },
-    { "value": 106,"label": "VII NBL - Beach Night",     "group": "VII NABLA" },
-    { "value": 107,"label": "VII NBL - KAC 5th Rasis",  "group": "VII NABLA" },
-    { "value": 108,"label": "VII NBL - KAC 5th Small",  "group": "VII NABLA" },
-    { "value": 109,"label": "VII NBL - KAC 6th Nianoa", "group": "VII NABLA" },
-    { "value": 110,"label": "VII NBL - KAC 6th Reigure","group": "VII NABLA" },
-    { "value": 111,"label": "VII NBL - KAC 7th Rasis",  "group": "VII NABLA" },
-    { "value": 112,"label": "VII NBL - KAC 8th Kanade", "group": "VII NABLA" },
-    { "value": 113,"label": "VII NBL - KAC 8th Lefrigh","group": "VII NABLA" },
-    { "value": 114,"label": "VII NBL - KAC 9th Kureha", "group": "VII NABLA" },
-    { "value": 115,"label": "VII NBL - EDP 2016",        "group": "VII NABLA" },
-    { "value": 116,"label": "VII NBL - YAMBR RedBull",   "group": "VII NABLA" },
-    { "value": 117,"label": "VII NBL - 2015 KAC",        "group": "VII NABLA" },
-    { "value": 118,"label": "VII NBL - 2015 Summer",     "group": "VII NABLA" }
+    {
+      "value": 0,
+      "label": "[0] Bridge (good high school)",
+      "group": "I BOOTH"
+    },
+    {
+      "value": 1,
+      "label": "[1] Dome (Broken 8cmix)",
+      "group": "I BOOTH"
+    },
+    {
+      "value": 2,
+      "label": "[2] Space (ALBIDA, pulse laser)",
+      "group": "I BOOTH"
+    },
+    {
+      "value": 3,
+      "label": "[3] Pop Yellow (ヒマワリ)",
+      "group": "I BOOTH"
+    },
+    {
+      "value": 4,
+      "label": "[4] Moon (MAX 300)",
+      "group": "I BOOTH"
+    },
+    {
+      "value": 5,
+      "label": "[5] Dome Red (PANIC HOLIC)",
+      "group": "I BOOTH"
+    },
+    {
+      "value": 6,
+      "label": "[6] Moon 2 (非公開日誌)",
+      "group": "I BOOTH"
+    },
+    {
+      "value": 7,
+      "label": "[7] Moon 3 (Master Spark)",
+      "group": "I BOOTH"
+    },
+    {
+      "value": 8,
+      "label": "[8] Blaster (Two Fates)",
+      "group": "I BOOTH"
+    },
+    {
+      "value": 9,
+      "label": "[9] MAXIMA (幸福安心委員会)",
+      "group": "I BOOTH"
+    },
+    {
+      "value": 10,
+      "label": "[10] Ruins (UNLIMITED FIRE)",
+      "group": "I BOOTH"
+    },
+    {
+      "value": 34,
+      "label": "[34] KAC 2012 Medley",
+      "group": "I BOOTH"
+    },
+    {
+      "value": 11,
+      "label": "[11] Sandstorm / Desert",
+      "group": "II INFINITE INFECTION"
+    },
+    {
+      "value": 12,
+      "label": "[12] Star (ウサテイ)",
+      "group": "II INFINITE INFECTION"
+    },
+    {
+      "value": 13,
+      "label": "[13] Moon Rabbit / Rocket",
+      "group": "II INFINITE INFECTION"
+    },
+    {
+      "value": 14,
+      "label": "[14] Illusion Sky",
+      "group": "II INFINITE INFECTION"
+    },
+    {
+      "value": 15,
+      "label": "[15] Cyber Red (最終鬼畜妹フランドール)",
+      "group": "II INFINITE INFECTION"
+    },
+    {
+      "value": 16,
+      "label": "[16] Scarlet / Werewolf",
+      "group": "II INFINITE INFECTION"
+    },
+    {
+      "value": 18,
+      "label": "[18] KAC 2013 Finals (HistorIa)",
+      "group": "II INFINITE INFECTION"
+    },
+    {
+      "value": 27,
+      "label": "[27] Cleopatrysm / Egypt",
+      "group": "II INFINITE INFECTION"
+    },
+    {
+      "value": 29,
+      "label": "[29] Kokonatsu Vocal",
+      "group": "III GRAVITY WARS"
+    },
+    {
+      "value": 30,
+      "label": "[30] Gravity Wars Standard (Seraphim)",
+      "group": "III GRAVITY WARS"
+    },
+    {
+      "value": 31,
+      "label": "[31] Cyber City (イグジスタンス)",
+      "group": "III GRAVITY WARS"
+    },
+    {
+      "value": 36,
+      "label": "[36] Everlasting Message (KAC 2015)",
+      "group": "III GRAVITY WARS"
+    },
+    {
+      "value": 38,
+      "label": "[38] Summer 2015 (In The Breeze)",
+      "group": "III GRAVITY WARS"
+    },
+    {
+      "value": 39,
+      "label": "[39] veRtrageS / Regalia",
+      "group": "III GRAVITY WARS"
+    },
+    {
+      "value": 40,
+      "label": "[40] Firestorm / Vermilia",
+      "group": "III GRAVITY WARS"
+    },
+    {
+      "value": 41,
+      "label": "[41] Tsumabuki / Eastern (紅の剣舞)",
+      "group": "III GRAVITY WARS"
+    },
+    {
+      "value": 42,
+      "label": "[42] Masakari Blade",
+      "group": "III GRAVITY WARS"
+    },
+    {
+      "value": 44,
+      "label": "[44] Gekkou Ranbu (月光乱舞)",
+      "group": "III GRAVITY WARS"
+    },
+    {
+      "value": 45,
+      "label": "[45] REVOLVER",
+      "group": "III GRAVITY WARS"
+    },
+    {
+      "value": 46,
+      "label": "[46] Superstar Mitsuru (She is my wife)",
+      "group": "III GRAVITY WARS"
+    },
+    {
+      "value": 48,
+      "label": "[48] FLügeL《Λrp:ΣggyR》",
+      "group": "III GRAVITY WARS"
+    },
+    {
+      "value": 49,
+      "label": "[49] Prayer",
+      "group": "III GRAVITY WARS"
+    },
+    {
+      "value": 50,
+      "label": "[50] JOMANDA",
+      "group": "III GRAVITY WARS"
+    },
+    {
+      "value": 51,
+      "label": "[51] Heavenly Haven Sea (Second Heaven)",
+      "group": "IV HEAVENLY HAVEN"
+    },
+    {
+      "value": 53,
+      "label": "[53] HE4VEN ～天国へようこそ～",
+      "group": "IV HEAVENLY HAVEN"
+    },
+    {
+      "value": 54,
+      "label": "[54] iLLness LiLin",
+      "group": "IV HEAVENLY HAVEN"
+    },
+    {
+      "value": 57,
+      "label": "[57] Royal Action / Enigma II",
+      "group": "IV HEAVENLY HAVEN"
+    },
+    {
+      "value": 58,
+      "label": "[58] Heavenly Haven Sky (Fafnir)",
+      "group": "IV HEAVENLY HAVEN"
+    },
+    {
+      "value": 59,
+      "label": "[59] Spectrum / Aoarashi",
+      "group": "IV HEAVENLY HAVEN"
+    },
+    {
+      "value": 60,
+      "label": "[60] Cyber City (Ghost Mascot)",
+      "group": "IV HEAVENLY HAVEN"
+    },
+    {
+      "value": 61,
+      "label": "[61] Sakura Traditional (春時雨)",
+      "group": "IV HEAVENLY HAVEN"
+    },
+    {
+      "value": 63,
+      "label": "[63] Neon Pop (嘘とぬいぐるみ)",
+      "group": "IV HEAVENLY HAVEN"
+    },
+    {
+      "value": 65,
+      "label": "[65] Dyscontrolled Galaxy / Beam",
+      "group": "IV HEAVENLY HAVEN"
+    },
+    {
+      "value": 66,
+      "label": "[66] WHITEOUT",
+      "group": "IV HEAVENLY HAVEN"
+    },
+    {
+      "value": 67,
+      "label": "[67] FIN4LE ～終止線の彼方へ～",
+      "group": "IV HEAVENLY HAVEN"
+    },
+    {
+      "value": 69,
+      "label": "[69] I (kuroma)",
+      "group": "IV HEAVENLY HAVEN"
+    },
+    {
+      "value": 70,
+      "label": "[70] GERBERA -For Finalists-",
+      "group": "IV HEAVENLY HAVEN"
+    },
+    {
+      "value": 71,
+      "label": "[71] Twilight / Cloud 9 (Last Resort)",
+      "group": "IV HEAVENLY HAVEN"
+    },
+    {
+      "value": 73,
+      "label": "[73] Made In Love",
+      "group": "IV HEAVENLY HAVEN"
+    },
+    {
+      "value": 74,
+      "label": "[74] Xronièr",
+      "group": "IV HEAVENLY HAVEN"
+    },
+    {
+      "value": 77,
+      "label": "[77] Σmbryø",
+      "group": "IV HEAVENLY HAVEN"
+    },
+    {
+      "value": 78,
+      "label": "[78] *Feels Seasickness...*",
+      "group": "IV HEAVENLY HAVEN"
+    },
+    {
+      "value": 75,
+      "label": "[75] Vivid Wave Standard (Galaxy Burst)",
+      "group": "V VIVID WAVE"
+    },
+    {
+      "value": 76,
+      "label": "[76] AUTOMATION PARADISE",
+      "group": "V VIVID WAVE"
+    },
+    {
+      "value": 79,
+      "label": "[79] Cross Fire / GODHEART",
+      "group": "V VIVID WAVE"
+    },
+    {
+      "value": 80,
+      "label": "[80] Σgø",
+      "group": "V VIVID WAVE"
+    },
+    {
+      "value": 81,
+      "label": "[81] *Spatiotemporal ShockWAVE*",
+      "group": "V VIVID WAVE"
+    },
+    {
+      "value": 82,
+      "label": "[82] Gray City (ReviveR, 9TH5IN)",
+      "group": "V VIVID WAVE"
+    },
+    {
+      "value": 84,
+      "label": "[84] VVelcome!!",
+      "group": "V VIVID WAVE"
+    },
+    {
+      "value": 86,
+      "label": "[86] Ethereal Lotus / Starlight",
+      "group": "V VIVID WAVE"
+    },
+    {
+      "value": 88,
+      "label": "[88] Valkyrie Assault / Air (POSSESSION)",
+      "group": "VI EXCEED GEAR"
+    },
+    {
+      "value": 90,
+      "label": "[90] 《Re:miniscence》",
+      "group": "VI EXCEED GEAR"
+    },
+    {
+      "value": 91,
+      "label": "[91] Exceed Gear Standard 1 (Xb10r)",
+      "group": "VI EXCEED GEAR"
+    },
+    {
+      "value": 94,
+      "label": "[94] Exceed Gear Standard 2 (VOLAQUAS)",
+      "group": "VI EXCEED GEAR"
+    },
+    {
+      "value": 96,
+      "label": "[96] UNDERTALE (Heartache, Bonetrousle)",
+      "group": "VI EXCEED GEAR"
+    },
+    {
+      "value": 97,
+      "label": "[97] いまきみに (Silentroom)",
+      "group": "VI EXCEED GEAR"
+    },
+    {
+      "value": 98,
+      "label": "[98] You Are My Best RivaL!!",
+      "group": "VI EXCEED GEAR"
+    },
+    {
+      "value": 100,
+      "label": "[100] HALO / Ragnarøk",
+      "group": "VI EXCEED GEAR"
+    },
+    {
+      "value": 101,
+      "label": "[101] Megamix Festival (うぇるかむ)",
+      "group": "VI EXCEED GEAR"
+    },
+    {
+      "value": 102,
+      "label": "[102] APOCALYPSE RAY",
+      "group": "VI EXCEED GEAR"
+    },
+    {
+      "value": 104,
+      "label": "[104] Rainbow / ALMiRAJ",
+      "group": "VI EXCEED GEAR"
+    },
+    {
+      "value": 105,
+      "label": "[105] Akasha (Λkasha)",
+      "group": "VI EXCEED GEAR"
+    },
+    {
+      "value": 106,
+      "label": "[106] NEMSYS ARENA World Hexathlon",
+      "group": "VI EXCEED GEAR"
+    },
+    {
+      "value": 107,
+      "label": "[107] Knew Order / Allegro Saetta",
+      "group": "VI EXCEED GEAR"
+    },
+    {
+      "value": 110,
+      "label": "[110] Golden Rotation / Titanomachia",
+      "group": "VI EXCEED GEAR"
+    },
+    {
+      "value": 111,
+      "label": "[111] Our garden is blue.",
+      "group": "VI EXCEED GEAR"
+    },
+    {
+      "value": 113,
+      "label": "[113] Kannagi (神凪)",
+      "group": "VI EXCEED GEAR"
+    },
+    {
+      "value": 114,
+      "label": "[114] If Summer Ever Comes / Overdelta",
+      "group": "VI EXCEED GEAR"
+    },
+    {
+      "value": 112,
+      "label": "[112] Waltz of Dahlia / Gryphone",
+      "group": "VII NABLA"
+    },
+    {
+      "value": 116,
+      "label": "[116] KISKIL-LILLA",
+      "group": "VII NABLA"
+    },
+    {
+      "value": 117,
+      "label": "[117] NABLA Standard (RIZING-GAMERS)",
+      "group": "VII NABLA"
+    },
+    {
+      "value": 118,
+      "label": "[118] ALIVE (ΔLI∇E)",
+      "group": "VII NABLA"
+    }
   ]
 }
