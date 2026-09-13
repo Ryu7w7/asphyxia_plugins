@@ -783,33 +783,44 @@ export const copyResourcesFromGame = async (data: {}, send: WebUISend) => {
 
 export const getRivalScores = async (data: { rivalId: string; refid: string; version: string; }, send: WebUISend) => {
   let ver = parseInt(data.version)
-  let rival = await DB.FindOne<Rival>(data.refid, {collection: 'rival', refid: data.rivalId, version: ver})
   send.json({
-    rival: await DB.FindOne<Profile>(data.rivalId, {collection: 'profile', version: ver}),
+    rival: await DB.FindOne<Profile>(data.rivalId, {collection: 'profile', version: ver}) || await DB.FindOne<Profile>(data.rivalId, {collection: 'profile'}),
     yourScores: await DB.Find<MusicRecord>(data.refid, { collection: 'music', version: ver }),
-    rivalScores: await DB.Find<MusicRecord>(rival.refid, { collection: 'music', version: ver })
+    rivalScores: await DB.Find<MusicRecord>(data.rivalId, { collection: 'music', version: ver })
   })
 }
 
 export const addRival = async (data: { rivalId: string; refid: string; version: string }, send: WebUISend) => {
   let ver = parseInt(data.version)
-  let you = await DB.FindOne<Profile>(data.refid, {collection: 'profile', version: ver})
-  let rival = await DB.FindOne<Profile>(data.rivalId, {collection: 'profile', version: ver})
+  if (data.rivalId === data.refid) {
+    return send.json({
+      "msg": "You cannot add yourself as a rival."
+    })
+  }
+
+  let you = await DB.FindOne<Profile>(data.refid, {collection: 'profile', version: ver}) || await DB.FindOne<Profile>(data.refid, {collection: 'profile'})
+  let rival = await DB.FindOne<Profile>(data.rivalId, {collection: 'profile', version: ver}) || await DB.FindOne<Profile>(data.rivalId, {collection: 'profile'})
+
+  if (!you || !rival) {
+    return send.json({
+      "msg": "Profile not found."
+    })
+  }
 
   let checkMutual = (await DB.Count<Rival>(data.rivalId, {collection: 'rival', refid: data.refid, version: ver}) > 0)
   if(await DB.Count<Rival>(data.refid, {collection: 'rival', refid: data.rivalId, version: ver}) === 0) {
     if(checkMutual) {
-      DB.Upsert<Rival>(data.rivalId, {collection: "rival", sdvxID: you.id, refid: data.refid, name: you.name, version: ver}, {$set: {mutual: checkMutual, dbver: DB_VER}})
+      await DB.Upsert<Rival>(data.rivalId, {collection: "rival", refid: data.refid, version: ver}, {$set: {mutual: true, dbver: DB_VER}})
     }
-    DB.Insert<Rival>(data.refid, {collection: "rival", sdvxID: rival.id, refid: data.rivalId, name: rival.name, version: ver, mutual: checkMutual, dbver: DB_VER})
+    await DB.Insert<Rival>(data.refid, {collection: "rival", sdvxID: rival.id, refid: data.rivalId, name: rival.name, version: ver, mutual: checkMutual, dbver: DB_VER})
     send.json({
       "msg": "Successfully added profile to rival. In order for your rivals to appear in-game, they need to add you as their rival as well."
     })
   } else {
     if(checkMutual) {
-      DB.Upsert<Rival>(data.rivalId, {collection: "rival", sdvxID: you.id, refid: data.refid, name: you.name, version: ver}, {$set: {"mutual": false, dbver: DB_VER}})
+      await DB.Upsert<Rival>(data.rivalId, {collection: "rival", refid: data.refid, version: ver}, {$set: {mutual: false, dbver: DB_VER}})
     }
-    DB.Remove<Rival>(data.refid, {collection: "rival", sdvxID: rival.id, refid: data.rivalId, name: rival.name, version: ver, dbver: DB_VER})
+    await DB.Remove<Rival>(data.refid, {collection: "rival", refid: data.rivalId, version: ver})
     send.json({
       "msg": "Successfully removed rival."
     })
@@ -825,7 +836,7 @@ export const deleteAllRivals = async (data: { refid: string; version: string }, 
   for (let r of myRivals) {
     // If it was mutual, update the other person's mutual status
     if (r.mutual) {
-      DB.Upsert<Rival>(r.refid, {collection: "rival", sdvxID: r.sdvxID, refid: data.refid, version: ver}, {$set: {"mutual": false, dbver: DB_VER}});
+      await DB.Upsert<Rival>(r.refid, {collection: "rival", refid: data.refid, version: ver}, {$set: {mutual: false, dbver: DB_VER}});
     }
   }
 
@@ -967,8 +978,8 @@ export const addWeekly = async(data: { mid: number }) => {
     weekly.push({
       weekId: weekly[weekly.length - 1].weekId + 1,
       musicId: data.mid,
-      start: Number(BigInt(newStartDate)),
-      end: Number(BigInt(newEndDate))
+      start: newStartDate.getTime(),
+      end: newEndDate.getTime()
     })
   } else {
     let newEndDate = new Date(curWeekMonday)
@@ -977,8 +988,8 @@ export const addWeekly = async(data: { mid: number }) => {
     weekly.push({
       weekId: 1,
       musicId: data.mid,
-      start: Number(BigInt(curWeekMonday)),
-      end: Number(BigInt(newEndDate))
+      start: curWeekMonday.getTime(),
+      end: newEndDate.getTime()
     })
   }
 

@@ -1345,7 +1345,7 @@ export const load: EPR = async (info, data, send) => {
     let currentArena
     if(version === 6) currentArena = CURRENT_ARENA
     else if(version === 7) currentArena = CURRENT_ARENA7
-    let arenaOpen = ((pluginSettings?.nblArenaNoEnd !== undefined) ? pluginSettings.nblArenaNoEnd : false) || BigInt(date) < currentArena.time_end
+    let arenaOpen = ((pluginSettings?.nblArenaNoEnd !== undefined) ? pluginSettings.nblArenaNoEnd : false) || BigInt(date.getTime()) < currentArena.time_end
 
     const items = await DB.Find<Item>(refid, { collection: 'item', version: version });
     const courses = await DB.Find<CourseRecord>(refid, { collection: 'course', version: version });
