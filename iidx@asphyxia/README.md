@@ -1,10 +1,11 @@
 # beatmaniaIIDX
 
-Plugin Version: **STAGING [5ac062]**
+Plugin Version: **STAGING [ec0af6] (Sparkle Shower 2026072100 + 9th Style JAH merged, custom preserved)**
 
 ---
 
 Supported Versions
+  - beatmaniaIIDX 9th Style (JAH)
   - beatmaniaIIDX 10th Style (JAE)
   - beatmaniaIIDX 11 IIDXRED (JAB)
   - beatmaniaIIDX 12 HAPPY SKY (JAC)
@@ -28,7 +29,7 @@ Supported Versions
   - beatmaniaIIDX 30 RESIDENT (2023090500)
   - beatmaniaIIDX 31 EPOLIS (2024082600)
   - beatmaniaIIDX 32 Pinky Crush (2025082500)
-  - beatmaniaIIDX 33 Sparkle Shower (2026042200)
+  - beatmaniaIIDX 33 Sparkle Shower (2026072100)
 
 ---
 
@@ -186,19 +187,14 @@ Changelogs
   - Fixed where unable to complete registration or login (tricoro)
 
 **STAGING**
-  - Added Initial support for Sparkle Shower
-  - Added Initial support for DistorteD
-    - Existing card with no DistorteD data will treat as new card on registration but it will use existing profile data
-    - Migration from HAPPY SKY menu will not work
-  - Added Initial support for HAPPY SKY
-    - Requires forked version of asphyxia-core otherwise NETWORK will turn OK to WARNING after a while and MY BEST ghost data will go through the roof
-      - This will be submit to PR once theres no regression
-    - New card cannot be registered
-      - Need to invoke new card registration to core
-  - Added Initial support for IIDXRED
-    - (same as above)
-  - Added Initial support for 10th Style
-    - (same as above)
+  - Added Initial support for Sparkle Shower (2026072100) - synced from upstream staging [ce0bf1]
+  - Added Initial support for DistorteD, HAPPY SKY, IIDXRED, 10th Style, 9th Style (JAH)
+    - Requires updated version of asphyxia-core otherwise plugin won't register [v1.70b]
+    - Migration from (previous version) menu will not work
+      - Existing card with no current version user data will treat as new card on registration but it will use existing profile data
+    - New card cannot be registered (~ HAPPY SKY)
+      - Need to invoke new card registration to core.
+    - 9th Style will use seperate user data database as its using raw blob (custom preserved: discord/streaming/lobby still included)
   - Added ALL/STORE/RIVAL TOP pacemaker support
   - Added basic save support of STORY mode (Resort Anthem)
   - Fixed where tricoro does not work after Asphyxia Core update

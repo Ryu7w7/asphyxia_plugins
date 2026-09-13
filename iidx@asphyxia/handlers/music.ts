@@ -1,4 +1,4 @@
-import { IDtoRef, GetVersion, OldMidToNewMid, NewMidToOldMid, ReftoProfile, ReftoPcdata, ClidToPlaySide, ReftoQPRO, NumArrayToString, OldMidToVerMid, GetModel, GetCommand } from "../util";
+import { IDtoRef, GetVersion, OldMidToNewMid, NewMidToOldMid, ReftoProfile, ReftoPcdata, ClidToPlaySide, ReftoQPRO, NumArrayToString, OldMidToVerMid, GetModel, GetCommand, NumArrayToHex } from "../util";
 import { score, score_top } from "../models/score";
 import { profile } from "../models/profile";
 import { shop_data } from "../models/shop";
@@ -29,7 +29,7 @@ export const musicmethod: EPR = async (info, data, send) => {
       break;
   }
 
-  return send.deny();
+  return send.deny({ format: false, header: false });
 }
 
 export const musicgetrank: EPR = async (info, data, send) => {
@@ -90,13 +90,21 @@ export const musicgetrank: EPR = async (info, data, send) => {
       for (let a = 0; a < 3; a++) {
         if (res.esArray[indices[a]] == 0) continue;
         let rank_id = _.isNil(res.rArray) ? -1 : res.rArray[indices[a]];
-        if (version < 12) {
-          result.r.push(
-            K.ITEM("str", NumArrayToString(
-              version < 11 ? [11, 3, 2, 14] : [11, 3, 3, 13],
-              [temp_mid, res.cArray[indices[a]], rank_id, res.esArray[indices[a]]]
-            ), { cl: String(mapValue(indices[a])) })
-          );
+        if (version < 10) {
+          const data = NumArrayToHex([11, 3, 1, 1], [temp_mid, rank_id, res.cArray[indices[a]] > 1 ? 1 : 0, 0]);
+          if (mapValue(indices[a]) in musicData) {
+            musicData[mapValue(indices[a])] += data;
+          } else {
+            musicData[mapValue(indices[a])] = data;
+          }
+        }
+        else if (version < 12) {
+          const data = NumArrayToString(version < 11 ? [11, 3, 2, 14] : [11, 3, 3, 13], [temp_mid, res.cArray[indices[a]], rank_id, res.esArray[indices[a]]]);
+          if (mapValue(indices[a]) in musicData) {
+            musicData[mapValue(indices[a])] += data;
+          } else {
+            musicData[mapValue(indices[a])] = data;
+          }
         } else {
           const data = NumArrayToString([7, 4, 13, 3, 3], [verMid[1], a, res.esArray[indices[a]], rank_id, res.cArray[indices[a]]]);
           if (verMid[0] in musicData) {
@@ -107,20 +115,27 @@ export const musicgetrank: EPR = async (info, data, send) => {
         }
       }
 
-      if (version > 11) {
+      if (version < 12) {
+        result.r = Object.entries(musicData).map(([clid, packed]) =>
+          K.ITEM("str", packed, { cl: String(clid) }),
+        );
+      }
+      else {
         result.r = Object.entries(musicData).map(([version, packed]) =>
-          K.ITEM("str", packed, { v: version }),
+          K.ITEM("str", packed, { v: String(version) }),
         );
       }
 
       // BEGINNER //
-      if (res.cArray[0] == 0) return;
-      result.r.push(
-        K.ITEM("str", NumArrayToString(
-          [12, 6],
-          [temp_mid, res.cArray[0]]
-        ), { v: String("-1") })
-      );
+      if (version > 12) {
+        if (res.cArray[0] == 0) return;
+        result.r.push(
+          K.ITEM("str", NumArrayToString(
+            [12, 6],
+            [temp_mid, res.cArray[0]]
+          ), { v: String("-1") })
+        );
+      }
     });
 
     // TUTORIAL //
@@ -148,6 +163,8 @@ export const musicgetrank: EPR = async (info, data, send) => {
       sendOption = {
         rootName: GetModel(info),
         status: (version < 13 ? "SOK" : 0) as any,
+        format: false,
+        header: false,
       }
     }
 
@@ -302,13 +319,28 @@ export const musicgetranksub: EPR = async (info, data, send) => {
 
   let m = [];
   let score_data: number[];
+  let indices = cltype === 0 ? [0, 1, 2, 3, 4] : [5, 6, 7, 8, 9];
 
   for (let i = 0; i < rival_refids.length; i++) {
     if (_.isNaN(rival_refids[i][0])) continue;
 
-    // TODO:: [idx, ...] //
-    score_data = [i + 5, 10, 0, 0, 0, 0, 0];
-    m.push(K.ARRAY("s32", score_data));
+    for (let i = 0; i < 5; i++) {
+      if (_.isNaN(rival_refids[i][0]) || _.isNil(rival_refids[i][0])) continue;
+
+      const rival_score = await DB.Find<score>(String(rival_refids[i][1]),
+        { collection: "score" }
+      );
+
+      rival_score.forEach((res: score) => {
+        for (let a = 0; a < indices.length; a++) {
+          if (res.rArray[indices[a]] == -1) continue;
+
+          // [index?, rno?, ...] //
+          score_data = [i, i, res.mid, indices[a], res.cArray[indices[a]], res.esArray[indices[a]], res.mArray[indices[a]]];
+          m.push(K.ARRAY("s32", score_data));
+        }
+      });
+    }
   }
 
   return send.object({
@@ -435,6 +467,8 @@ export const musicgetralive: EPR = async (info, data, send) => {
     sendOption = {
       rootName: GetModel(info),
       status: (version < 13 ? "SOK" : 0) as any,
+      format: false,
+      header: false,
     }
   }
 
@@ -600,6 +634,8 @@ export const musicappoint: EPR = async (info, data, send) => {
       }, {
         rootName: GetModel(info),
         status: (version < 13 ? "ENODATA" : 0) as any,
+        format: false,
+        header: false,
       });
     }
 
@@ -673,6 +709,8 @@ export const musicappoint: EPR = async (info, data, send) => {
         }, {
           rootName: GetModel(info),
           status: (version < 13 ? "SOK" : 0) as any,
+          format: false,
+          header: false,
         });
       }
     }
@@ -685,6 +723,9 @@ export const musicappoint: EPR = async (info, data, send) => {
         name: sdata["@attr"]["name"],
         content: sdata["@content"],
       }
+    }, {
+      format: false,
+      header: false,
     });
   }
 
@@ -1224,6 +1265,8 @@ export const musicreg: EPR = async (info, data, send) => {
     sendOption = {
       rootName: GetModel(info),
       status: (version < 13 ? "SOK" : 0) as any,
+      format: false,
+      header: false,
     };
   }
 
@@ -1383,6 +1426,8 @@ export const musicbreg: EPR = async (info, data, send) => {
       }
     }, {
       rootName: GetModel(info),
+      format: false,
+      header: false,
     })
   }
 
@@ -1481,6 +1526,8 @@ export const musiccrate: EPR = async (info, data, send) => {
     sendOption = {
       rootName: GetModel(info),
       status: (version < 13 ? "SOK" : 0) as any,
+      format: false,
+      header: false,
     };
   }
 

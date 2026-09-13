@@ -6,13 +6,14 @@ import { gssysteminfo } from "./handlers/gamesystem";
 import { updateRivalSettings, updateCustomSettings, importScoreData, exportScoreData, extractQproAssets } from "./handlers/webui";
 import { GetVersion } from "./util";
 import { rankingentry, rankinggetranker, rankingmethod, rankingoentry } from "./handlers/ranking";
+import { userdataread, userdatawrite } from "./handlers/userdata";
 
 import { streamingcommon, streaminggetcm } from "./handlers/streaming";
 import { lobbyentry, lobbyupdate, lobbydelete, bplbattle_entry, bplbattle_update, bplbattle_delete } from "./handlers/lobby";
 
 export function register() {
-  if (CORE_VERSION_MAJOR <= 1 && CORE_VERSION_MINOR < 31) {
-    console.error("The current version of Asphyxia Core is not supported. Requires version '1.31' or later.");
+  if (CORE_VERSION_MAJOR <= 1 && CORE_VERSION_MINOR < 70) {
+    console.error("The current version of Asphyxia Core is not supported. Requires version '1.70' or later.");
     return;
   }
 
@@ -20,12 +21,15 @@ export function register() {
   R.Contributor("anzuwork");
   R.Contributor("COLV9");
 
-  const gameCodes = ["D01", "E11", "ECO", "FDD", "GLD", "HDD", "I00", "JDJ", "JDZ", "KDZ", "LDJ"];
+  const gameCodes = ["JAH", "C02", "D01", "E11", "ECO", "FDD", "GLD", "HDD", "I00", "JDJ", "JDZ", "KDZ", "LDJ"];
   gameCodes.forEach((res) => {
     R.GameCode(res);
   });
 
-  const oldVersion = ["D01", "E11", "ECO"];
+  R.Route("userdata.read", userdataread);
+  R.Route("userdata.write", userdatawrite);
+
+  const oldVersion = ["JAH", "C02", "D01", "E11", "ECO"];
   oldVersion.forEach((res) => {
     R.Route(`${res}.music`, musicmethod);
     R.Route(`${res}.pc`, pcmethod);
@@ -112,7 +116,7 @@ export function register() {
 
   R.Unhandled((req: EamuseInfo, data: any, send: EamuseSend) => {
     console.warn(`Unhandled Request : [${GetVersion(req)}], ${req.module}.${req.method}, ${JSON.stringify(data)}`);
-    return send.success();
+    return send.success({ format: false, header: false });
   });
 
   R.WebUIEvent("iidxGetProfile", async (data, send: WebUISend) => {
@@ -246,7 +250,7 @@ export function register() {
     name: "Movie Upload URL",
     type: "string",
     desc: "API address for play video uploading feature (JSON)",
-    default: "http://localhost/"
+    default: "http://localhost:4399/movie/"
   });
   R.Config("Eisei", {
     name: "Eisei Grade Courses",
