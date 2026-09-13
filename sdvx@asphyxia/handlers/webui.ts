@@ -810,17 +810,17 @@ export const addRival = async (data: { rivalId: string; refid: string; version: 
   let checkMutual = (await DB.Count<Rival>(data.rivalId, {collection: 'rival', refid: data.refid, version: ver}) > 0)
   if(await DB.Count<Rival>(data.refid, {collection: 'rival', refid: data.rivalId, version: ver}) === 0) {
     if(checkMutual) {
-      await DB.Upsert<Rival>(data.rivalId, {collection: "rival", refid: data.refid, version: ver}, {$set: {mutual: true, dbver: DB_VER}})
+      await DB.Upsert<Rival>(data.rivalId, {collection: "rival", sdvxID: you.id, refid: data.refid, name: you.name, version: ver}, {$set: {mutual: true, dbver: DB_VER}})
     }
     await DB.Insert<Rival>(data.refid, {collection: "rival", sdvxID: rival.id, refid: data.rivalId, name: rival.name, version: ver, mutual: checkMutual, dbver: DB_VER})
     send.json({
-      "msg": "Successfully added profile to rival. In order for your rivals to appear in-game, they need to add you as their rival as well."
+      "msg": "Successfully added rival."
     })
   } else {
     if(checkMutual) {
-      await DB.Upsert<Rival>(data.rivalId, {collection: "rival", refid: data.refid, version: ver}, {$set: {mutual: false, dbver: DB_VER}})
+      await DB.Upsert<Rival>(data.rivalId, {collection: "rival", sdvxID: you.id, refid: data.refid, name: you.name, version: ver}, {$set: {mutual: false, dbver: DB_VER}})
     }
-    await DB.Remove<Rival>(data.refid, {collection: "rival", refid: data.rivalId, version: ver})
+    await DB.Remove<Rival>(data.refid, {collection: "rival", sdvxID: rival.id, refid: data.rivalId, name: rival.name, version: ver})
     send.json({
       "msg": "Successfully removed rival."
     })
@@ -836,7 +836,7 @@ export const deleteAllRivals = async (data: { refid: string; version: string }, 
   for (let r of myRivals) {
     // If it was mutual, update the other person's mutual status
     if (r.mutual) {
-      await DB.Upsert<Rival>(r.refid, {collection: "rival", refid: data.refid, version: ver}, {$set: {mutual: false, dbver: DB_VER}});
+      await DB.Upsert<Rival>(r.refid, {collection: "rival", sdvxID: r.sdvxID, refid: data.refid, name: r.name, version: ver}, {$set: {mutual: false, dbver: DB_VER}});
     }
   }
 
