@@ -1251,6 +1251,7 @@ export const musicreg: EPR = async (info, data, send) => {
       crate: String(crate),
       frate: String(frate),
       rankside: String(style),
+      bestScore: String(update),
     },
     ranklist: {
       "@attr": { total_user_num: String(shop_rank_data.length) },

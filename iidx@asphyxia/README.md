@@ -1,6 +1,6 @@
 # beatmaniaIIDX
 
-Plugin Version: **STAGING [ec0af6] (Sparkle Shower 2026072100 + 9th Style JAH merged, custom preserved)**
+Plugin Version: **STAGING [e03abf] (Sparkle Shower 2026081900 + 9th Style JAH merged, custom preserved)**
 
 ---
 
@@ -29,7 +29,7 @@ Supported Versions
   - beatmaniaIIDX 30 RESIDENT (2023090500)
   - beatmaniaIIDX 31 EPOLIS (2024082600)
   - beatmaniaIIDX 32 Pinky Crush (2025082500)
-  - beatmaniaIIDX 33 Sparkle Shower (2026072100)
+  - beatmaniaIIDX 33 Sparkle Shower (2026081900)
 
 ---
 
@@ -187,7 +187,7 @@ Changelogs
   - Fixed where unable to complete registration or login (tricoro)
 
 **STAGING**
-  - Added Initial support for Sparkle Shower (2026072100) - synced from upstream staging [ce0bf1]
+  - Added Initial support for Sparkle Shower (2026081900) - synced from upstream staging [e03abf]
   - Added Initial support for DistorteD, HAPPY SKY, IIDXRED, 10th Style, 9th Style (JAH)
     - Requires updated version of asphyxia-core otherwise plugin won't register [v1.70b]
     - Migration from (previous version) menu will not work
@@ -200,4 +200,4 @@ Changelogs
   - Fixed where tricoro does not work after Asphyxia Core update
   - Fixed where unable to login after playing a while on old versions
   - Improved WebUI customization settings with descriptive dropdown menus (@COLV9)
-  - Improved WebUI score viewer with song title mapping and detailed difficulty breakdown (@COLV9)
+  - Improved WebUI score viewer with song title mapping, detailed difficulty breakdown and sorting (@COLV9)
