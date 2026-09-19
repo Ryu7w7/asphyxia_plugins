@@ -60,20 +60,43 @@ div
 script(src="static/asset/js/pluginsettings.js") 
 script.
   document.getElementById('fix-scores-btn').addEventListener('click', function() {
-    if (!confirm("This will scan ALL users on the server and fix corrupted PUCs. This might take a while on large databases. Proceed?")) return;
-    
     var btn = this;
     btn.classList.add('is-loading');
     btn.disabled = true;
     
-    emit('fixCorruptedScores', {}).then(function(res) {
-      btn.classList.remove('is-loading');
-      btn.disabled = false;
-      if (res.error) {
-        alert('Failed to fix scores: ' + res.error);
-      } else {
-        alert('Done! Successfully fixed ' + res.fixed + ' corrupted PUCs across ' + res.users + ' user profiles.');
+    // First, scan the database to see how many corrupted scores exist
+    emit('fixCorruptedScores', { scan: true }).then(function(resScan) {
+      if (resScan.error) {
+        btn.classList.remove('is-loading');
+        btn.disabled = false;
+        alert('Failed to scan scores: ' + resScan.error);
+        return;
       }
+      
+      if (resScan.fixed === 0) {
+        btn.classList.remove('is-loading');
+        btn.disabled = false;
+        alert('Good news! No corrupted scores were found on the server.');
+        return;
+      }
+      
+      var proceed = confirm("Found " + resScan.fixed + " Corrupted SDVX PUCs across " + resScan.users + " profiles.\n\nProceed to fix them now?");
+      if (!proceed) {
+        btn.classList.remove('is-loading');
+        btn.disabled = false;
+        return;
+      }
+      
+      // Proceed to fix the scores
+      emit('fixCorruptedScores', {}).then(function(resFix) {
+        btn.classList.remove('is-loading');
+        btn.disabled = false;
+        if (resFix.error) {
+          alert('Failed to fix scores: ' + resFix.error);
+        } else {
+          alert('Done! Successfully fixed ' + resFix.fixed + ' corrupted PUCs across ' + resFix.users + ' user profiles.');
+        }
+      });
     });
   });
 style(type='text/css').

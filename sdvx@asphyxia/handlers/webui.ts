@@ -1189,6 +1189,42 @@ export const clearAllScores = async (data: { refid?: string }, send: WebUISend) 
 
 export const fixCorruptedScores = async (data: any, send: WebUISend) => {
   try {
+    if (data.scan) {
+      const resultV6 = await DB.Find<any>(
+        null,
+        {
+          collection: 'music',
+          clear: 5,
+          score: { $lt: 10000000 },
+          $or: [
+            { version: { $lt: 7 } },
+            { version: { $exists: false } },
+            { version: null }
+          ]
+        }
+      );
+
+      const resultV7 = await DB.Find<any>(
+        null,
+        {
+          collection: 'music',
+          clear: 6,
+          score: { $lt: 10000000 },
+          version: { $gte: 7 }
+        }
+      );
+
+      const affectedUsers = new Set<string>();
+      if (resultV6) resultV6.forEach(d => affectedUsers.add(d.__refid));
+      if (resultV7) resultV7.forEach(d => affectedUsers.add(d.__refid));
+
+      const fixed = (resultV6 ? resultV6.length : 0) + (resultV7 ? resultV7.length : 0);
+      const users = affectedUsers.size;
+
+      send.json({ success: true, fixed, users });
+      return;
+    }
+
     // 1) Fix scores for SDVX v6 and below (clear mark 5 is PUC, 4 is UC)
     // We match any score with clear: 5 and score < 10000000, 
     // where version is < 7, or doesn't exist, or is null.
