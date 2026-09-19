@@ -71,17 +71,11 @@ div
     .card-content
       .content
         p If your scores are messed up (e.g. from a bad migration) and you want to start fresh or re-import, you can wipe all SDVX scores from this profile. This cannot be undone.
-      .field.is-grouped
-        .control
-          button.button.is-danger#clear-scores-btn
-            span.icon
-              i.mdi.mdi-delete-forever
-            span Clear All Scores
-        .control
-          button.button.is-warning#fix-scores-btn
-            span.icon
-              i.mdi.mdi-wrench
-            span Fix Corrupted PUCs
+      .field
+        button.button.is-danger#clear-scores-btn
+          span.icon
+            i.mdi.mdi-delete-forever
+          span Clear All Scores
 
 script.
   (function() {
@@ -332,32 +326,13 @@ script.
       btn.classList.add('is-loading');
       btn.disabled = true;
       
-      emit('clearAllScores', { refid: typeof refid !== 'undefined' ? refid : null }).then(function(res) {
+      emit('clearAllScores', { refid: refid }).then(function(res) {
         btn.classList.remove('is-loading');
         btn.disabled = false;
         if (res.error) {
           alert('Failed to clear scores: ' + res.error);
         } else {
           alert('Successfully deleted ' + res.removed + ' scores.');
-          location.reload();
-        }
-      });
-    });
-
-    document.getElementById('fix-scores-btn').addEventListener('click', function() {
-      if (!confirm("This will scan your scores and automatically convert any PUCs with < 10,000,000 score back into UCs. Proceed?")) return;
-      
-      var btn = this;
-      btn.classList.add('is-loading');
-      btn.disabled = true;
-      
-      emit('fixCorruptedScores', { refid: typeof refid !== 'undefined' ? refid : null }).then(function(res) {
-        btn.classList.remove('is-loading');
-        btn.disabled = false;
-        if (res.error) {
-          alert('Failed to fix scores: ' + res.error);
-        } else {
-          alert('Successfully fixed ' + res.fixed + ' corrupted PUCs!');
           location.reload();
         }
       });

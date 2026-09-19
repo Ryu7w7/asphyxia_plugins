@@ -38,8 +38,44 @@ div
         div.control.is-expanded
         div.control
             button.button.is-link(id="flags-submit") Apply
+    br
+    .card#fix-scores-section
+        .card-header
+            p.card-header-title.has-text-danger
+                span.icon
+                    i.mdi.mdi-alert
+                | Server Maintenance: Fix Corrupted SDVX PUCs
+        .card-content
+            .content
+                p This will safely scan all profiles in the entire server and fix the UC -> PUC corruption bug caused by bad migration data. PUCs with less than 10,000,000 score will be safely downgraded back to UC.
+                p Due to database limits, this process runs slowly to prevent saturating the server. Please do not close the page until it finishes.
+    div.field.is-grouped
+        div.control.is-expanded
+        div.control
+            button.button.is-warning(id="fix-scores-btn")
+                span.icon
+                    i.mdi.mdi-wrench
+                span Run Global Fix
 
 script(src="static/asset/js/pluginsettings.js") 
+script.
+  document.getElementById('fix-scores-btn').addEventListener('click', function() {
+    if (!confirm("This will scan ALL users on the server and fix corrupted PUCs. This might take a while on large databases. Proceed?")) return;
+    
+    var btn = this;
+    btn.classList.add('is-loading');
+    btn.disabled = true;
+    
+    emit('fixCorruptedScores', {}).then(function(res) {
+      btn.classList.remove('is-loading');
+      btn.disabled = false;
+      if (res.error) {
+        alert('Failed to fix scores: ' + res.error);
+      } else {
+        alert('Done! Successfully fixed ' + res.fixed + ' corrupted PUCs across ' + res.users + ' user profiles.');
+      }
+    });
+  });
 style(type='text/css').
   .log-field {
     width: 100%;
