@@ -1189,51 +1189,44 @@ export const clearAllScores = async (data: { refid?: string }, send: WebUISend) 
 
 export const fixCorruptedScores = async (data: any, send: WebUISend) => {
   try {
-    const profiles = await DB.Find<any>(null, { collection: 'profile' });
-    if (!profiles) { send.json({ success: true, fixed: 0, users: 0 }); return; }
+    // 1) Fix scores for SDVX v6 and below (clear mark 5 is PUC, 4 is UC)
+    // We match any score with clear: 5 and score < 10000000, 
+    // where version is < 7, or doesn't exist, or is null.
+    const resultV6 = await DB.Update<any>(
+      null,
+      {
+        collection: 'music',
+        clear: 5,
+        score: { $lt: 10000000 },
+        $or: [
+          { version: { $lt: 7 } },
+          { version: { $exists: false } },
+          { version: null }
+        ]
+      },
+      { $set: { clear: 4 } }
+    );
 
-    let fixed = 0;
-    let users = 0;
+    // 2) Fix scores for SDVX v7 and above (clear mark 6 is PUC, 5 is UC)
+    // We match any score with clear: 6, score < 10000000, and version >= 7.
+    const resultV7 = await DB.Update<any>(
+      null,
+      {
+        collection: 'music',
+        clear: 6,
+        score: { $lt: 10000000 },
+        version: { $gte: 7 }
+      },
+      { $set: { clear: 5 } }
+    );
 
-    for (const profile of profiles) {
-      const refid = profile.__refid;
-      if (!refid) continue;
+    // Count affected users by collecting unique __refid
+    const affectedUsers = new Set<string>();
+    for (const doc of resultV6.docs) affectedUsers.add(doc.__refid);
+    for (const doc of resultV7.docs) affectedUsers.add(doc.__refid);
 
-      const scores = await DB.Find<any>(refid, { collection: 'music' });
-      if (!scores) continue;
-      
-      let fixedForUser = false;
-
-      for (const score of scores) {
-        if (score.score === 10000000) continue; // Genuine PUC
-        
-        const v = score.version || 6;
-        let shouldFix = false;
-        let newClear = score.clear;
-
-        if (v < 7 && score.clear === 5) { // v6 PUC is 5, UC is 4
-          newClear = 4;
-          shouldFix = true;
-        } else if (v >= 7 && score.clear === 6) { // v7 PUC is 6, UC is 5
-          newClear = 5;
-          shouldFix = true;
-        }
-
-        if (shouldFix) {
-          await DB.Update<any>(
-            refid,
-            { collection: 'music', mid: score.mid, type: score.type, version: score.version },
-            { $set: { clear: newClear } }
-          );
-          fixed++;
-          fixedForUser = true;
-        }
-      }
-      if (fixedForUser) users++;
-
-      // Small delay to prevent saturating the event loop/DB
-      await new Promise(r => setTimeout(r, 50));
-    }
+    const fixed = resultV6.updated + resultV7.updated;
+    const users = affectedUsers.size;
 
     send.json({ success: true, fixed, users });
   } catch (err: any) {
