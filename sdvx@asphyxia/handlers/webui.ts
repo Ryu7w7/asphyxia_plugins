@@ -943,12 +943,14 @@ export const preGeneReward = async (data: { reward: [], refid: string }, send: W
   }
 }
 
-export const manageEvents = async (data: { eventConfig: {} }) => {
-  IO.WriteFile('webui/asset/config/events.json', JSON.stringify(data.eventConfig, null, 4));
+export const manageEvents = async (data: { eventConfig: {} }, send?: WebUISend) => {
+  await IO.WriteFile('webui/asset/config/events.json', JSON.stringify(data.eventConfig, null, 4));
+  if (send) send.json({ success: true });
 }
 
-export const manageStartupFlags = async (data: { flagConfig: {} }) => {
-  IO.WriteFile('webui/asset/config/flags.json', JSON.stringify(data.flagConfig, null, 4));
+export const manageStartupFlags = async (data: { flagConfig: {} }, send?: WebUISend) => {
+  await IO.WriteFile('webui/asset/config/flags.json', JSON.stringify(data.flagConfig, null, 4));
+  if (send) send.json({ success: true });
 }
 
 export const addWeekly = async(data: { mid: number }) => {
@@ -1046,7 +1048,7 @@ export const saveMorePluginSettings = async(data: { settings: {} }, send: WebUIS
   var success = true
   let settings = data.settings
   try {
-    await DB.Update<PluginSettings>({collection: 'settings'}, {$set: settings})
+    await DB.Upsert<PluginSettings>({collection: 'settings'}, {$set: settings})
   }
   catch {
     success = false
@@ -1163,5 +1165,24 @@ export const clearCustomChartScores = async (data: { refid?: string }, send: Web
     send.json({ success: true, removed, songs: customMids.length });
   } catch (err: any) {
     send.json({ error: err.message || 'Failed to clear custom chart scores' });
+  }
+};
+export const clearAllScores = async (data: { refid?: string }, send: WebUISend) => {
+  const refid = data.refid;
+  if (!refid) { send.json({ error: 'Missing refid' }); return; }
+
+  try {
+    const removed = await DB.Remove<MusicRecord>(refid, { collection: 'music' });
+    
+    // Also reset playCount on profile
+    await DB.Update(
+        refid,
+        { collection: 'profile' },
+        { $set: { playCount: 0 } }
+    );
+
+    send.json({ success: true, removed });
+  } catch (err: any) {
+    send.json({ error: err.message || 'Failed to clear all scores' });
   }
 };

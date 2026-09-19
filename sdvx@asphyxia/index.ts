@@ -19,7 +19,8 @@ import {
   importMix,
   updateMix,
   deleteMix,
-  clearCustomChartScores
+  clearCustomChartScores,
+  clearAllScores
 } from './handlers/webui';
 import {
   nauticaBrowse,
@@ -102,6 +103,7 @@ export function register() {
   R.WebUIEvent('updateMix', updateMix);
   R.WebUIEvent('deleteMix', deleteMix);
   R.WebUIEvent('clearCustomChartScores', clearCustomChartScores);
+  R.WebUIEvent('clearAllScores', clearAllScores);
   R.WebUIEvent('nauticaBrowse', nauticaBrowse);
   R.WebUIEvent('nauticaApprove', nauticaApprove);
   R.WebUIEvent('nauticaRemove', nauticaRemove);

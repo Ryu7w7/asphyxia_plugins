@@ -320,10 +320,10 @@ export const globalMatch: EPR = async (info, data, send) => {
 
     // delete room after sec
     setTimeout(function () {
-      console.log("[" + loglip + " | " + loggip + "] Deleting expired room: " + entryData.c_ver + " - " + entryData.filter +  -  + entryData.mid)
-      const search = (element) => element.players[0].lip.join('.') === entryData.lip.join('.')
+      console.log("[" + loglip + " | " + loggip + "] Deleting expired room: " + entryData.c_ver + " - " + entryData.filter + " - " + entryData.mid)
+      const search = (element) => element.players[0]?.lip.join('.') === entryData.lip.join('.')
       const index = matchRooms.findIndex(search)
-      matchRooms.splice(index, 1)
+      if (index !== -1) matchRooms.splice(index, 1)
     }, entryData.sec * 1000);
 
     // new room, waiting for opponents
@@ -338,7 +338,7 @@ export const globalMatch: EPR = async (info, data, send) => {
 
     // check if lip already in a room
     for(const [ind, room] of matchRooms.entries()) {
-      if(room.version === version && room.c_ver === entryData.c_ver && room.filter === entryData.filter && room.mid === entryData.mid) {
+      if(room.version === version && room.c_ver === entryData.c_ver && room.filter === entryData.filter) {
         let playInd = room.players.findIndex(p => p.lip.join('.') === entryData.lip.join('.'))
         if (playInd != -1) {
           inRoom = true
@@ -350,10 +350,11 @@ export const globalMatch: EPR = async (info, data, send) => {
     // if not in room, find room with slot, add ip to players arr, get otherplayer data
     let otherPlayers = []
     if(!inRoom) {
-      console.log("[" + loglip + " | " + loggip + "] Looking for match room.")
+      console.log("[" + loglip + " | " + loggip + "] Looking for match room: c_ver=" + entryData.c_ver + ", mode=" + entryData.filter + ", song=" + entryData.mid)
       let dataAdded = false
       for(const [ind, room] of matchRooms.entries()) {
-        if(room.version === version && room.c_ver === entryData.c_ver && room.filter === entryData.filter && room.mid === entryData.mid) {
+        // Match same version, client version, and game mode (filter), but ANY song (mid)
+        if(room.version === version && room.c_ver === entryData.c_ver && room.filter === entryData.filter) {
           if(room.players.length < room.p_rest + room.p_num) {
             matchRooms[ind].players.push({
               gip: entryData.gip,
@@ -381,7 +382,7 @@ export const globalMatch: EPR = async (info, data, send) => {
 
       // if no rooms with slot, create new
       if(!dataAdded) {
-        console.log("[" + loglip + " | " + loggip + "] No available rooms, creating new room.")
+        console.log("[" + loglip + " | " + loggip + "] No available rooms, creating new room: " + entryData.c_ver + " - " + entryData.filter + " - " + entryData.mid)
         matchRooms.push({
           version: version,
           c_ver: entryData.c_ver,
@@ -399,10 +400,12 @@ export const globalMatch: EPR = async (info, data, send) => {
         })
         // delete room after sec
         setTimeout(function () {
-          const search = (element) => element.players[0].lip.join('.') === entryData.lip.join('.')
+          const search = (element) => element.players[0]?.lip.join('.') === entryData.lip.join('.')
           const index = matchRooms.findIndex(search)
-          console.log("[" + loglip + " | " + loggip + "] Deleting expired room: " + entryData.c_ver + " - " + entryData.filter +  -  + entryData.mid)
-          matchRooms.splice(index, 1)
+          if (index !== -1) {
+            console.log("[" + loglip + " | " + loggip + "] Deleting expired room: " + entryData.c_ver + " - " + entryData.filter + " - " + entryData.mid)
+            matchRooms.splice(index, 1)
+          }
         }, entryData.sec * 1000);
         let opponents = {
           entry_id: K.ITEM('u32', entryData.entry_id),
