@@ -1186,3 +1186,43 @@ export const clearAllScores = async (data: { refid?: string }, send: WebUISend) 
     send.json({ error: err.message || 'Failed to clear all scores' });
   }
 };
+
+export const fixCorruptedScores = async (data: { refid?: string }, send: WebUISend) => {
+  const refid = data.refid;
+  if (!refid) { send.json({ error: 'Missing refid' }); return; }
+
+  try {
+    const scores = await DB.Find<any>(refid, { collection: 'music' });
+    if (!scores) { send.json({ success: true, fixed: 0 }); return; }
+
+    let fixed = 0;
+    for (const score of scores) {
+      if (score.score === 10000000) continue; // Genuine PUC
+      
+      const v = score.version || 6;
+      let shouldFix = false;
+      let newClear = score.clear;
+
+      if (v < 7 && score.clear === 5) { // v6 PUC is 5, UC is 4
+        newClear = 4;
+        shouldFix = true;
+      } else if (v >= 7 && score.clear === 6) { // v7 PUC is 6, UC is 5
+        newClear = 5;
+        shouldFix = true;
+      }
+
+      if (shouldFix) {
+        await DB.Update<any>(
+          refid,
+          { collection: 'music', mid: score.mid, type: score.type, version: score.version },
+          { $set: { clear: newClear } }
+        );
+        fixed++;
+      }
+    }
+
+    send.json({ success: true, fixed });
+  } catch (err: any) {
+    send.json({ error: err.message || 'Failed to fix scores' });
+  }
+};
