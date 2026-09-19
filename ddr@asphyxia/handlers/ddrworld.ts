@@ -1350,9 +1350,16 @@ export const playerdataload: EPR = async (info, data, send) => {
 export const musicdataload: EPR = async (info, data, send) => {
   // I personally use the last A3 db for this, will check for missing songs
   let musicList = []
+  
+  let blacklistStr = String(U.GetConfig('blacklisted_songs') || "");
+  let blacklist = blacklistStr.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n));
+
   if(IO.Exists('webui/uploads/mdb_limited.xml')) { 
     let mdb = U.parseXML(U.DecodeString(await IO.ReadFile('webui/uploads/mdb_limited.xml'), "shift_jis"), false)
     for(const music of mdb['mdb']['music']) {
+      let mcode = $(music).number('mcode');
+      if (blacklist.includes(mcode)) continue;
+
       let difficultyArr = $(music).numbers('diffLv')
       let limited = ($(music).number('limited')) ? $(music).number('limited') : 0
       let limitedCha = ($(music).number('limited_cha')) ? $(music).number('limited_cha') : 0
@@ -1363,7 +1370,7 @@ export const musicdataload: EPR = async (info, data, send) => {
         limitedCha = 0
       }
 
-      let overrideIndex = SONGS_OVERRIDE_WORLD.findIndex(s => s.mcode === $(music).number('mcode'))
+      let overrideIndex = SONGS_OVERRIDE_WORLD.findIndex(s => s.mcode === mcode)
       if(overrideIndex > -1) {
         limitedAry = (SONGS_OVERRIDE_WORLD[overrideIndex]['limited_ary'] && SONGS_OVERRIDE_WORLD[overrideIndex]['limited_ary'].length > 0 ? SONGS_OVERRIDE_WORLD[overrideIndex]['limited_ary'] : limitedAry)
         difficultyArr = SONGS_OVERRIDE_WORLD[overrideIndex]['diffLv']
@@ -1375,13 +1382,15 @@ export const musicdataload: EPR = async (info, data, send) => {
         limited = (limitedAry.length > 0) ? limitedAry[index] : limited
         
         musicList.push({
-          music_str: K.ITEM('str', $(music).number('mcode') + ',' + ((index > 4) ? '1,' : '0,') + (index % 5) + ',' + (U.GetConfig('song_unlock') && limited != -1 ? '0' : limited) + ',' + diff)
+          music_str: K.ITEM('str', mcode + ',' + ((index > 4) ? '1,' : '0,') + (index % 5) + ',' + (U.GetConfig('song_unlock') && limited != -1 ? '0' : limited) + ',' + diff)
         })
       }
     }
   }
 
   for(const music of SONGS_WORLD) {
+    if (blacklist.includes(music.mcode)) continue;
+
     let limArr = music.limited_ary
     if(music.mcode === LEAGUE_GOLD_BORDER_MCODE && BigInt(Date.now()) >= LEAGUE_WORLD.find(lg => lg.id === LEAGUE_SEASON)['summary']) {
       for(let i in limArr)
