@@ -1204,7 +1204,7 @@ export const fixCorruptedScores = async (data: any, send: WebUISend) => {
           { version: null }
         ]
       },
-      { $set: { clear: 4 } }
+      { $set: { clear: 4 } } as any
     );
 
     // 2) Fix scores for SDVX v7 and above (clear mark 6 is PUC, 5 is UC)
@@ -1217,7 +1217,7 @@ export const fixCorruptedScores = async (data: any, send: WebUISend) => {
         score: { $lt: 10000000 },
         version: { $gte: 7 }
       },
-      { $set: { clear: 5 } }
+      { $set: { clear: 5 } } as any
     );
 
     // Count affected users by collecting unique __refid
