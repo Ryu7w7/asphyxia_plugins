@@ -26,6 +26,14 @@ export function register(): void {
     });
   } catch {}
   try {
+    R.Config("VFG_DISCORD_WEBHOOK", {
+      name: "Discord Webhook URL",
+      desc: "If provided, announces new matchmaking lobbies to this Discord webhook.",
+      type: "string",
+      default: "",
+    });
+  } catch {}
+  try {
     R.Config("VFG_GACHA_ALL", {
       name: "Advertise All Gacha Series",
       desc: "If enabled, advertise every gacha series in catalog instead of curated set",

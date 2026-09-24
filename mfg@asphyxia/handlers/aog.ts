@@ -439,10 +439,68 @@ export async function handle_entry_game(form: Record<string, string>, ctx: any):
 
   const lobbyKey = passphrase ? `${gmode}_${passphrase}` : `${gmode}`;
 
+function sendDiscordWebhook(url: string, payload: any) {
+  try {
+    const https = require("https");
+    const data = JSON.stringify(payload);
+    const { URL } = require("url");
+    const parsedUrl = new URL(url);
+    const options = {
+      hostname: parsedUrl.hostname,
+      port: 443,
+      path: parsedUrl.pathname + parsedUrl.search,
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(data)
+      }
+    };
+    const req = https.request(options, (res: any) => {
+      res.on('data', () => {}); 
+    });
+    req.on('error', (e: any) => { console.error(`Discord Webhook error: ${e.message}`); });
+    req.write(data);
+    req.end();
+  } catch (e) {
+    console.error(`Failed to send Discord webhook: ${e}`);
+  }
+}
+
   let lobby = MATCH_LOBBY.get(lobbyKey);
   if (!lobby) {
-    lobby = { pcuids: [], tid: nextTid(), createdAt: nowUnix() };
+    const cTime = nowUnix();
+    lobby = { pcuids: [], tid: nextTid(), createdAt: cTime };
     MATCH_LOBBY.set(lobbyKey, lobby);
+
+    try {
+      // @ts-ignore
+      const webhookUrl = typeof U !== "undefined" && U.GetConfig("VFG_DISCORD_WEBHOOK");
+      if (webhookUrl && webhookUrl.startsWith("http")) {
+        let modeName = `Mode ${gmode}`;
+        let winds = "東";
+        if (gmode === 1) { modeName = "Tonpuusen"; winds = "東"; }
+        else if (gmode === 2) { modeName = "Hanchan"; winds = "東南"; }
+        else if (gmode === 3) { modeName = "Sanma"; winds = "東"; }
+        else if (gmode === 4) { modeName = "Nima"; winds = "東南"; }
+
+        sendDiscordWebhook(webhookUrl, {
+          embeds: [
+            {
+              title: "🀄 New Lobby Created!",
+              color: 14177041,
+              fields: [
+                { name: "Creator", value: name || "Player", inline: true },
+                { name: "Mode", value: modeName, inline: true },
+                { name: "Player capacity", value: `${seats} Players`, inline: true },
+                { name: "Wind rounds", value: winds, inline: false },
+                { name: "Time Since Creation", value: `<t:${cTime}:R>`, inline: false },
+                { name: "Lobby created on", value: `<t:${cTime}:f>`, inline: false }
+              ]
+            }
+          ]
+        });
+      }
+    } catch { }
   }
   
   if (!lobby.pcuids.includes(pcuid)) {
