@@ -418,6 +418,18 @@ declare namespace R {
   function ExtraModuleHandler(
     handler: (model: string) => Promise<string[] | string> | string[] | string
   ): void;
+
+  /**
+   * Register an AOG HTTP handler (for Mahjong Fight Girl).
+   * @param name  AOG endpoint name, e.g. "login", "gget", "appli_info"
+   * @param handler  async (form: Record<string,string>, ctx: {req,res}) => void
+   */
+  function AogRoute(name: string, handler: (form: any, ctx: any) => Promise<void>): void;
+
+  /**
+   * Register fallback for unhandled AOG routes.
+   */
+  function AogUnhandled(handler: (ctx: any) => Promise<void>): void;
 }
 
 /**

@@ -1,0 +1,3630 @@
+{
+ "_generated_by": "tools/extract_gacha_pools.py",
+ "_source": "VFG:J:A:A:2025122300 (decompiled-csharp + Addressables catalog)",
+ "chara_names": {
+  "Chara01": "Hiyori",
+  "Chara02": "Sen",
+  "Chara03": "Tsumire",
+  "Chara04": "Tenshi",
+  "Chara05": "Yao",
+  "Chara06": "Mitsuba",
+  "Chara07": "Toytoy",
+  "Chara08": "Musashi",
+  "Chara09": "Pain",
+  "Chara10": "Shiori",
+  "Chara11": "Chaos",
+  "Chara12": "Clear",
+  "Chara13": "Iyo",
+  "Chara14": "GrimAroe",
+  "Chara15": "Cocoa",
+  "Chara16": "Dia",
+  "Chara17": "Doubriel",
+  "Chara18": "Ippatsu",
+  "Chara19": "Shiroe"
+ },
+ "chara_unlock_items": {
+  "Chara12": "OID_12AgariSR01",
+  "Chara13": "OID_13AgariSR01",
+  "Chara14": "OID_14AgariSR01",
+  "Chara15": "OID_15AgariSR01",
+  "Chara16": "OID_16AgariSR01",
+  "Chara17": "OID_17AgariSR01",
+  "Chara18": "OID_18AgariSR01",
+  "Chara19": "OID_19AgariSR01"
+ },
+ "standard_pool": [
+  "OID_01AgariR01",
+  "OID_01AgariSR01",
+  "OID_01AgariSR02",
+  "OID_01AgariSR03",
+  "OID_01AgariUR01",
+  "OID_01NakiN01",
+  "OID_01NakiN02",
+  "OID_01NakiN03",
+  "OID_01ReachR01",
+  "OID_01ReachR02",
+  "OID_02AgariR01",
+  "OID_02AgariSR01",
+  "OID_02AgariSR02",
+  "OID_02AgariSR03",
+  "OID_02AgariSR04",
+  "OID_02AgariUR01",
+  "OID_02NakiN01",
+  "OID_02NakiN02",
+  "OID_02NakiN03",
+  "OID_02ReachR01",
+  "OID_02ReachR02",
+  "OID_03AgariR01",
+  "OID_03AgariSR01",
+  "OID_03AgariSR02",
+  "OID_03AgariSR03",
+  "OID_03AgariUR01",
+  "OID_03NakiN01",
+  "OID_03NakiN02",
+  "OID_03NakiN03",
+  "OID_03ReachR01",
+  "OID_03ReachR02",
+  "OID_04AgariR01",
+  "OID_04AgariSR01",
+  "OID_04AgariSR02",
+  "OID_04AgariSR03",
+  "OID_04AgariUR01",
+  "OID_04NakiN01",
+  "OID_04NakiN02",
+  "OID_04NakiN03",
+  "OID_04ReachR01",
+  "OID_04ReachR02",
+  "OID_05AgariR01",
+  "OID_05AgariSR01",
+  "OID_05AgariSR02",
+  "OID_05AgariSR03",
+  "OID_05AgariUR01",
+  "OID_05NakiN01",
+  "OID_05NakiN02",
+  "OID_05NakiN03",
+  "OID_05ReachR01",
+  "OID_05ReachR02",
+  "OID_06AgariR01",
+  "OID_06AgariSR01",
+  "OID_06AgariSR02",
+  "OID_06AgariSR03",
+  "OID_06AgariSR04",
+  "OID_06AgariUR01",
+  "OID_06NakiN01",
+  "OID_06NakiN02",
+  "OID_06NakiN03",
+  "OID_06ReachR01",
+  "OID_06ReachR02",
+  "OID_07AgariR01",
+  "OID_07AgariSR01",
+  "OID_07AgariSR02",
+  "OID_07AgariSR03",
+  "OID_07AgariUR01",
+  "OID_07NakiN01",
+  "OID_07NakiN02",
+  "OID_07NakiN03",
+  "OID_07ReachR01",
+  "OID_07ReachR02",
+  "OID_08AgariR01",
+  "OID_08AgariSR01",
+  "OID_08AgariSR02",
+  "OID_08AgariSR03",
+  "OID_08AgariUR01",
+  "OID_08NakiN01",
+  "OID_08NakiN02",
+  "OID_08NakiN03",
+  "OID_08ReachR01",
+  "OID_08ReachR02",
+  "OID_09AgariR01",
+  "OID_09AgariSR01",
+  "OID_09AgariSR02",
+  "OID_09AgariSR03",
+  "OID_09AgariUR01",
+  "OID_09NakiN01",
+  "OID_09NakiN02",
+  "OID_09NakiN03",
+  "OID_09ReachR01",
+  "OID_09ReachR02",
+  "OID_01AgariSR04",
+  "OID_08AgariSR04",
+  "OID_05AgariSR04",
+  "OID_09AgariSR04",
+  "OID_04AgariSR04",
+  "OID_05AgariSR05",
+  "OID_09AgariSR05",
+  "OID_10AgariR01",
+  "OID_10AgariSR01",
+  "OID_10AgariSR02",
+  "OID_10AgariSR03",
+  "OID_10AgariUR01",
+  "OID_10NakiN01",
+  "OID_10NakiN02",
+  "OID_10NakiN03",
+  "OID_10ReachR01",
+  "OID_10ReachR02",
+  "OID_03AgariSR04",
+  "OID_07AgariSR04",
+  "OID_07AgariSR05",
+  "OID_01AgariSR05",
+  "OID_02AgariSR05",
+  "OID_05AgariSR06",
+  "OID_04AgariSR05",
+  "OID_08AgariSR05",
+  "OID_09AgariSR06",
+  "OID_02AgariSR06",
+  "OID_05AgariSR07",
+  "OID_09AgariSR07",
+  "OID_03AgariSR05",
+  "OID_06AgariSR05",
+  "OID_07AgariSR06",
+  "OID_07AgariSR07",
+  "OID_08AgariSR06",
+  "OID_11AgariR01",
+  "OID_11AgariSR01",
+  "OID_11AgariSR02",
+  "OID_11AgariSR03",
+  "OID_11AgariSR04",
+  "OID_11AgariUR01",
+  "OID_11NakiN01",
+  "OID_11NakiN02",
+  "OID_11NakiN03",
+  "OID_11ReachR01",
+  "OID_11ReachR02",
+  "OID_06AgariSR06",
+  "OID_04AgariSR06",
+  "OID_03AgariSR06",
+  "OID_05AgariSR08",
+  "OID_07AgariSR08",
+  "OID_12AgariR01",
+  "OID_12AgariSR02",
+  "OID_12AgariSR03",
+  "OID_12AgariSR04",
+  "OID_12AgariSR05",
+  "OID_12AgariUR01",
+  "OID_12NakiN01",
+  "OID_12NakiN02",
+  "OID_12NakiN03",
+  "OID_12ReachR01",
+  "OID_12ReachR02",
+  "OID_04AgariSR07",
+  "OID_04AgariSR08",
+  "OID_03AgariSR07",
+  "OID_03AgariSR08",
+  "OID_01AgariSR06",
+  "OID_11AgariSR05",
+  "OID_12AgariSR06",
+  "OID_09AgariSR08",
+  "OID_09AgariSR09",
+  "OID_06AgariSR07",
+  "OID_06AgariSR08",
+  "OID_08AgariSR07",
+  "OID_02AgariSR07",
+  "OID_05AgariSR09",
+  "OID_07AgariSR09",
+  "OID_05AgariSR10",
+  "OID_13AgariR01",
+  "OID_13AgariSR02",
+  "OID_13AgariSR03",
+  "OID_13AgariSR04",
+  "OID_13AgariSR05",
+  "OID_13AgariSR06",
+  "OID_13NakiN01",
+  "OID_13NakiN02",
+  "OID_13NakiN03",
+  "OID_13ReachR01",
+  "OID_13ReachR02",
+  "OID_01AgariSR07",
+  "OID_04AgariSR09",
+  "OID_12AgariSR07",
+  "OID_02AgariSR08",
+  "OID_05AgariSR11",
+  "OID_06AgariSR09",
+  "OID_07AgariSR10",
+  "OID_09AgariSR10",
+  "OID_02AgariSR09",
+  "OID_02AgariSR10",
+  "OID_03AgariSR09",
+  "OID_03AgariSR10",
+  "OID_02AgariSR11",
+  "OID_09AgariSR11",
+  "OID_09AgariSR12",
+  "OID_14AgariR01",
+  "OID_14AgariSR02",
+  "OID_14AgariSR03",
+  "OID_14AgariSR04",
+  "OID_14AgariSR05",
+  "OID_14AgariSR06",
+  "OID_14NakiN01",
+  "OID_14NakiN02",
+  "OID_14NakiN03",
+  "OID_14ReachR01",
+  "OID_14ReachR02",
+  "OID_06AgariSR10",
+  "OID_06AgariSR11",
+  "OID_11AgariSR06",
+  "OID_11AgariSR07",
+  "OID_15AgariR01",
+  "OID_15AgariSR02",
+  "OID_15AgariSR03",
+  "OID_15AgariSR04",
+  "OID_15AgariSR05",
+  "OID_15AgariSR06",
+  "OID_15NakiN01",
+  "OID_15NakiN02",
+  "OID_15NakiN03",
+  "OID_15ReachR01",
+  "OID_15ReachR02",
+  "OID_13AgariSR07",
+  "OID_13AgariSR08",
+  "OID_04AgariSR10",
+  "OID_08AgariSR08",
+  "OID_08AgariSR09",
+  "OID_05AgariSR12",
+  "OID_05AgariSR13",
+  "OID_07AgariSR11",
+  "OID_04AgariSR11",
+  "OID_04AgariSR12",
+  "OID_07AgariSR12",
+  "OID_07AgariSR13",
+  "OID_16AgariR01",
+  "OID_16AgariSR02",
+  "OID_16AgariSR03",
+  "OID_16AgariSR04",
+  "OID_16AgariSR05",
+  "OID_16AgariSR06",
+  "OID_16NakiN01",
+  "OID_16NakiN02",
+  "OID_16NakiN03",
+  "OID_16ReachR01",
+  "OID_16ReachR02",
+  "OID_01AgariSR08",
+  "OID_01AgariSR09",
+  "OID_12AgariSR08",
+  "OID_12AgariSR09",
+  "OID_14AgariSR07",
+  "OID_14AgariSR08",
+  "OID_15AgariSR07",
+  "OID_15AgariSR08",
+  "OID_08AgariSR10",
+  "OID_08AgariSR11",
+  "OID_16AgariSR07",
+  "OID_16AgariSR08",
+  "OID_11AgariSR08",
+  "OID_11AgariSR09",
+  "OID_01AgariSR10",
+  "OID_03AgariSR11",
+  "OID_03AgariSR12",
+  "OID_01AgariSR11",
+  "OID_02AgariSR12",
+  "OID_17AgariR01",
+  "OID_17AgariSR02",
+  "OID_17AgariSR03",
+  "OID_17AgariSR04",
+  "OID_17AgariSR05",
+  "OID_17AgariSR06",
+  "OID_17NakiN01",
+  "OID_17NakiN02",
+  "OID_17NakiN03",
+  "OID_17ReachR01",
+  "OID_17ReachR02",
+  "OID_06AgariSR12",
+  "OID_06AgariSR13",
+  "OID_02AgariSR13",
+  "OID_02AgariSR14",
+  "OID_13AgariSR09",
+  "OID_13AgariSR10",
+  "OID_05AgariSR14",
+  "OID_07AgariSR14",
+  "OID_07AgariSR15",
+  "OID_09AgariSR13",
+  "OID_09AgariSR14",
+  "OID_09AgariSR15",
+  "OID_09AgariSR16",
+  "OID_05AgariSR15",
+  "OID_05AgariSR16",
+  "OID_04AgariSR13",
+  "OID_18AgariR01",
+  "OID_18AgariSR02",
+  "OID_18AgariSR03",
+  "OID_18AgariSR04",
+  "OID_18AgariSR05",
+  "OID_18AgariSR06",
+  "OID_18NakiN01",
+  "OID_18NakiN02",
+  "OID_18NakiN03",
+  "OID_18ReachR01",
+  "OID_18ReachR02",
+  "OID_04AgariSR14",
+  "OID_04AgariSR15",
+  "OID_16AgariSR09",
+  "OID_16AgariSR10",
+  "OID_07AgariSR16",
+  "OID_13AgariSR11",
+  "OID_07AgariSR17",
+  "OID_13AgariSR12",
+  "OID_17AgariSR07",
+  "OID_17AgariSR08",
+  "OID_08AgariSR12",
+  "OID_19AgariR01",
+  "OID_19AgariSR02",
+  "OID_19AgariSR03",
+  "OID_19AgariSR04",
+  "OID_19AgariSR05",
+  "OID_19AgariSR06",
+  "OID_19NakiN01",
+  "OID_19NakiN02",
+  "OID_19NakiN03",
+  "OID_19ReachR01",
+  "OID_19ReachR02",
+  "OID_14AgariSR09",
+  "OID_14AgariSR10",
+  "OID_01AgariSR12",
+  "OID_02AgariSR15",
+  "OID_05AgariSR17",
+  "OID_12AgariSR10",
+  "OID_12AgariSR11",
+  "OID_18AgariSR07",
+  "OID_18AgariSR08"
+ ],
+ "item_index": {
+  "OID_01AgariA01": [
+   "Chara01",
+   "Nothing"
+  ],
+  "OID_01AgariR01": [
+   "Chara01",
+   "R"
+  ],
+  "OID_01AgariSR01": [
+   "Chara01",
+   "SR"
+  ],
+  "OID_01AgariSR02": [
+   "Chara01",
+   "SR"
+  ],
+  "OID_01AgariSR03": [
+   "Chara01",
+   "SR"
+  ],
+  "OID_01AgariUR01": [
+   "Chara01",
+   "UR"
+  ],
+  "OID_01NakiA01": [
+   "Chara01",
+   "Nothing"
+  ],
+  "OID_01NakiN01": [
+   "Chara01",
+   "N"
+  ],
+  "OID_01NakiN02": [
+   "Chara01",
+   "N"
+  ],
+  "OID_01NakiN03": [
+   "Chara01",
+   "N"
+  ],
+  "OID_01ReachA01": [
+   "Chara01",
+   "Nothing"
+  ],
+  "OID_01ReachR01": [
+   "Chara01",
+   "R"
+  ],
+  "OID_01ReachR02": [
+   "Chara01",
+   "R"
+  ],
+  "OID_02AgariA01": [
+   "Chara02",
+   "Nothing"
+  ],
+  "OID_02AgariR01": [
+   "Chara02",
+   "R"
+  ],
+  "OID_02AgariSR01": [
+   "Chara02",
+   "SR"
+  ],
+  "OID_02AgariSR02": [
+   "Chara02",
+   "SR"
+  ],
+  "OID_02AgariSR03": [
+   "Chara02",
+   "SR"
+  ],
+  "OID_02AgariSR04": [
+   "Chara02",
+   "SR"
+  ],
+  "OID_02AgariUR01": [
+   "Chara02",
+   "UR"
+  ],
+  "OID_02NakiA01": [
+   "Chara02",
+   "Nothing"
+  ],
+  "OID_02NakiN01": [
+   "Chara02",
+   "N"
+  ],
+  "OID_02NakiN02": [
+   "Chara02",
+   "N"
+  ],
+  "OID_02NakiN03": [
+   "Chara02",
+   "N"
+  ],
+  "OID_02ReachA01": [
+   "Chara02",
+   "Nothing"
+  ],
+  "OID_02ReachR01": [
+   "Chara02",
+   "R"
+  ],
+  "OID_02ReachR02": [
+   "Chara02",
+   "R"
+  ],
+  "OID_03AgariA01": [
+   "Chara03",
+   "Nothing"
+  ],
+  "OID_03AgariR01": [
+   "Chara03",
+   "R"
+  ],
+  "OID_03AgariSR01": [
+   "Chara03",
+   "SR"
+  ],
+  "OID_03AgariSR02": [
+   "Chara03",
+   "SR"
+  ],
+  "OID_03AgariSR03": [
+   "Chara03",
+   "SR"
+  ],
+  "OID_03AgariUR01": [
+   "Chara03",
+   "UR"
+  ],
+  "OID_03NakiA01": [
+   "Chara03",
+   "Nothing"
+  ],
+  "OID_03NakiN01": [
+   "Chara03",
+   "N"
+  ],
+  "OID_03NakiN02": [
+   "Chara03",
+   "N"
+  ],
+  "OID_03NakiN03": [
+   "Chara03",
+   "N"
+  ],
+  "OID_03ReachA01": [
+   "Chara03",
+   "Nothing"
+  ],
+  "OID_03ReachR01": [
+   "Chara03",
+   "R"
+  ],
+  "OID_03ReachR02": [
+   "Chara03",
+   "R"
+  ],
+  "OID_04AgariA01": [
+   "Chara04",
+   "Nothing"
+  ],
+  "OID_04AgariR01": [
+   "Chara04",
+   "R"
+  ],
+  "OID_04AgariSR01": [
+   "Chara04",
+   "SR"
+  ],
+  "OID_04AgariSR02": [
+   "Chara04",
+   "SR"
+  ],
+  "OID_04AgariSR03": [
+   "Chara04",
+   "SR"
+  ],
+  "OID_04AgariUR01": [
+   "Chara04",
+   "UR"
+  ],
+  "OID_04NakiA01": [
+   "Chara04",
+   "Nothing"
+  ],
+  "OID_04NakiN01": [
+   "Chara04",
+   "N"
+  ],
+  "OID_04NakiN02": [
+   "Chara04",
+   "N"
+  ],
+  "OID_04NakiN03": [
+   "Chara04",
+   "N"
+  ],
+  "OID_04ReachA01": [
+   "Chara04",
+   "Nothing"
+  ],
+  "OID_04ReachR01": [
+   "Chara04",
+   "R"
+  ],
+  "OID_04ReachR02": [
+   "Chara04",
+   "R"
+  ],
+  "OID_05AgariA01": [
+   "Chara05",
+   "Nothing"
+  ],
+  "OID_05AgariR01": [
+   "Chara05",
+   "R"
+  ],
+  "OID_05AgariSR01": [
+   "Chara05",
+   "SR"
+  ],
+  "OID_05AgariSR02": [
+   "Chara05",
+   "SR"
+  ],
+  "OID_05AgariSR03": [
+   "Chara05",
+   "SR"
+  ],
+  "OID_05AgariUR01": [
+   "Chara05",
+   "UR"
+  ],
+  "OID_05NakiA01": [
+   "Chara05",
+   "Nothing"
+  ],
+  "OID_05NakiN01": [
+   "Chara05",
+   "N"
+  ],
+  "OID_05NakiN02": [
+   "Chara05",
+   "N"
+  ],
+  "OID_05NakiN03": [
+   "Chara05",
+   "N"
+  ],
+  "OID_05ReachA01": [
+   "Chara05",
+   "Nothing"
+  ],
+  "OID_05ReachR01": [
+   "Chara05",
+   "R"
+  ],
+  "OID_05ReachR02": [
+   "Chara05",
+   "R"
+  ],
+  "OID_06AgariA01": [
+   "Chara06",
+   "Nothing"
+  ],
+  "OID_06AgariR01": [
+   "Chara06",
+   "R"
+  ],
+  "OID_06AgariSR01": [
+   "Chara06",
+   "SR"
+  ],
+  "OID_06AgariSR02": [
+   "Chara06",
+   "SR"
+  ],
+  "OID_06AgariSR03": [
+   "Chara06",
+   "SR"
+  ],
+  "OID_06AgariSR04": [
+   "Chara06",
+   "SR"
+  ],
+  "OID_06AgariUR01": [
+   "Chara06",
+   "UR"
+  ],
+  "OID_06NakiA01": [
+   "Chara06",
+   "Nothing"
+  ],
+  "OID_06NakiN01": [
+   "Chara06",
+   "N"
+  ],
+  "OID_06NakiN02": [
+   "Chara06",
+   "N"
+  ],
+  "OID_06NakiN03": [
+   "Chara06",
+   "N"
+  ],
+  "OID_06ReachA01": [
+   "Chara06",
+   "Nothing"
+  ],
+  "OID_06ReachR01": [
+   "Chara06",
+   "R"
+  ],
+  "OID_06ReachR02": [
+   "Chara06",
+   "R"
+  ],
+  "OID_07AgariA01": [
+   "Chara07",
+   "Nothing"
+  ],
+  "OID_07AgariR01": [
+   "Chara07",
+   "R"
+  ],
+  "OID_07AgariSR01": [
+   "Chara07",
+   "SR"
+  ],
+  "OID_07AgariSR02": [
+   "Chara07",
+   "SR"
+  ],
+  "OID_07AgariSR03": [
+   "Chara07",
+   "SR"
+  ],
+  "OID_07AgariUR01": [
+   "Chara07",
+   "UR"
+  ],
+  "OID_07NakiA01": [
+   "Chara07",
+   "Nothing"
+  ],
+  "OID_07NakiN01": [
+   "Chara07",
+   "N"
+  ],
+  "OID_07NakiN02": [
+   "Chara07",
+   "N"
+  ],
+  "OID_07NakiN03": [
+   "Chara07",
+   "N"
+  ],
+  "OID_07ReachA01": [
+   "Chara07",
+   "Nothing"
+  ],
+  "OID_07ReachR01": [
+   "Chara07",
+   "R"
+  ],
+  "OID_07ReachR02": [
+   "Chara07",
+   "R"
+  ],
+  "OID_08AgariA01": [
+   "Chara08",
+   "Nothing"
+  ],
+  "OID_08AgariR01": [
+   "Chara08",
+   "R"
+  ],
+  "OID_08AgariSR01": [
+   "Chara08",
+   "SR"
+  ],
+  "OID_08AgariSR02": [
+   "Chara08",
+   "SR"
+  ],
+  "OID_08AgariSR03": [
+   "Chara08",
+   "SR"
+  ],
+  "OID_08AgariUR01": [
+   "Chara08",
+   "UR"
+  ],
+  "OID_08NakiA01": [
+   "Chara08",
+   "Nothing"
+  ],
+  "OID_08NakiN01": [
+   "Chara08",
+   "N"
+  ],
+  "OID_08NakiN02": [
+   "Chara08",
+   "N"
+  ],
+  "OID_08NakiN03": [
+   "Chara08",
+   "N"
+  ],
+  "OID_08ReachA01": [
+   "Chara08",
+   "Nothing"
+  ],
+  "OID_08ReachR01": [
+   "Chara08",
+   "R"
+  ],
+  "OID_08ReachR02": [
+   "Chara08",
+   "R"
+  ],
+  "OID_09AgariA01": [
+   "Chara09",
+   "Nothing"
+  ],
+  "OID_09AgariR01": [
+   "Chara09",
+   "R"
+  ],
+  "OID_09AgariSR01": [
+   "Chara09",
+   "SR"
+  ],
+  "OID_09AgariSR02": [
+   "Chara09",
+   "SR"
+  ],
+  "OID_09AgariSR03": [
+   "Chara09",
+   "SR"
+  ],
+  "OID_09AgariUR01": [
+   "Chara09",
+   "UR"
+  ],
+  "OID_09NakiA01": [
+   "Chara09",
+   "Nothing"
+  ],
+  "OID_09NakiN01": [
+   "Chara09",
+   "N"
+  ],
+  "OID_09NakiN02": [
+   "Chara09",
+   "N"
+  ],
+  "OID_09NakiN03": [
+   "Chara09",
+   "N"
+  ],
+  "OID_09ReachA01": [
+   "Chara09",
+   "Nothing"
+  ],
+  "OID_09ReachR01": [
+   "Chara09",
+   "R"
+  ],
+  "OID_09ReachR02": [
+   "Chara09",
+   "R"
+  ],
+  "OID_01AgariSR04": [
+   "Chara01",
+   "SR"
+  ],
+  "OID_08AgariSR04": [
+   "Chara08",
+   "SR"
+  ],
+  "OID_05AgariSR04": [
+   "Chara05",
+   "SR"
+  ],
+  "OID_09AgariSR04": [
+   "Chara09",
+   "SR"
+  ],
+  "OID_04AgariSR04": [
+   "Chara04",
+   "SR"
+  ],
+  "OID_05AgariSR05": [
+   "Chara05",
+   "SR"
+  ],
+  "OID_09AgariSR05": [
+   "Chara09",
+   "SR"
+  ],
+  "OID_10AgariA01": [
+   "Chara10",
+   "Nothing"
+  ],
+  "OID_10AgariR01": [
+   "Chara10",
+   "R"
+  ],
+  "OID_10AgariSR01": [
+   "Chara10",
+   "SR"
+  ],
+  "OID_10AgariSR02": [
+   "Chara10",
+   "SR"
+  ],
+  "OID_10AgariSR03": [
+   "Chara10",
+   "SR"
+  ],
+  "OID_10AgariUR01": [
+   "Chara10",
+   "UR"
+  ],
+  "OID_10NakiA01": [
+   "Chara10",
+   "Nothing"
+  ],
+  "OID_10NakiN01": [
+   "Chara10",
+   "N"
+  ],
+  "OID_10NakiN02": [
+   "Chara10",
+   "N"
+  ],
+  "OID_10NakiN03": [
+   "Chara10",
+   "N"
+  ],
+  "OID_10ReachA01": [
+   "Chara10",
+   "Nothing"
+  ],
+  "OID_10ReachR01": [
+   "Chara10",
+   "R"
+  ],
+  "OID_10ReachR02": [
+   "Chara10",
+   "R"
+  ],
+  "OID_03AgariSR04": [
+   "Chara03",
+   "SR"
+  ],
+  "OID_07AgariSR04": [
+   "Chara07",
+   "SR"
+  ],
+  "OID_07AgariSR05": [
+   "Chara07",
+   "SR"
+  ],
+  "OID_01AgariSR05": [
+   "Chara01",
+   "SR"
+  ],
+  "OID_02AgariSR05": [
+   "Chara02",
+   "SR"
+  ],
+  "OID_05AgariSR06": [
+   "Chara05",
+   "SR"
+  ],
+  "OID_04AgariSR05": [
+   "Chara04",
+   "SR"
+  ],
+  "OID_08AgariSR05": [
+   "Chara08",
+   "SR"
+  ],
+  "OID_09AgariSR06": [
+   "Chara09",
+   "SR"
+  ],
+  "OID_02AgariSR06": [
+   "Chara02",
+   "SR"
+  ],
+  "OID_05AgariSR07": [
+   "Chara05",
+   "SR"
+  ],
+  "OID_09AgariSR07": [
+   "Chara09",
+   "SR"
+  ],
+  "OID_03AgariSR05": [
+   "Chara03",
+   "SR"
+  ],
+  "OID_06AgariSR05": [
+   "Chara06",
+   "SR"
+  ],
+  "OID_07AgariSR06": [
+   "Chara07",
+   "SR"
+  ],
+  "OID_07AgariSR07": [
+   "Chara07",
+   "SR"
+  ],
+  "OID_08AgariSR06": [
+   "Chara08",
+   "SR"
+  ],
+  "OID_11AgariA01": [
+   "Chara11",
+   "Nothing"
+  ],
+  "OID_11AgariR01": [
+   "Chara11",
+   "R"
+  ],
+  "OID_11AgariSR01": [
+   "Chara11",
+   "SR"
+  ],
+  "OID_11AgariSR02": [
+   "Chara11",
+   "SR"
+  ],
+  "OID_11AgariSR03": [
+   "Chara11",
+   "SR"
+  ],
+  "OID_11AgariSR04": [
+   "Chara11",
+   "SR"
+  ],
+  "OID_11AgariUR01": [
+   "Chara11",
+   "UR"
+  ],
+  "OID_11NakiA01": [
+   "Chara11",
+   "Nothing"
+  ],
+  "OID_11NakiN01": [
+   "Chara11",
+   "N"
+  ],
+  "OID_11NakiN02": [
+   "Chara11",
+   "N"
+  ],
+  "OID_11NakiN03": [
+   "Chara11",
+   "N"
+  ],
+  "OID_11ReachA01": [
+   "Chara11",
+   "Nothing"
+  ],
+  "OID_11ReachR01": [
+   "Chara11",
+   "R"
+  ],
+  "OID_11ReachR02": [
+   "Chara11",
+   "R"
+  ],
+  "OID_06AgariSR06": [
+   "Chara06",
+   "SR"
+  ],
+  "OID_04AgariSR06": [
+   "Chara04",
+   "SR"
+  ],
+  "OID_03AgariSR06": [
+   "Chara03",
+   "SR"
+  ],
+  "OID_05AgariSR08": [
+   "Chara05",
+   "SR"
+  ],
+  "OID_07AgariSR08": [
+   "Chara07",
+   "SR"
+  ],
+  "OID_12AgariSR01": [
+   "Chara12",
+   "SR"
+  ],
+  "OID_12AgariR01": [
+   "Chara12",
+   "R"
+  ],
+  "OID_12AgariSR02": [
+   "Chara12",
+   "SR"
+  ],
+  "OID_12AgariSR03": [
+   "Chara12",
+   "SR"
+  ],
+  "OID_12AgariSR04": [
+   "Chara12",
+   "SR"
+  ],
+  "OID_12AgariSR05": [
+   "Chara12",
+   "SR"
+  ],
+  "OID_12AgariUR01": [
+   "Chara12",
+   "UR"
+  ],
+  "OID_12NakiA01": [
+   "Chara12",
+   "Nothing"
+  ],
+  "OID_12NakiN01": [
+   "Chara12",
+   "N"
+  ],
+  "OID_12NakiN02": [
+   "Chara12",
+   "N"
+  ],
+  "OID_12NakiN03": [
+   "Chara12",
+   "N"
+  ],
+  "OID_12ReachA01": [
+   "Chara12",
+   "Nothing"
+  ],
+  "OID_12ReachR01": [
+   "Chara12",
+   "R"
+  ],
+  "OID_12ReachR02": [
+   "Chara12",
+   "R"
+  ],
+  "OID_04AgariSR07": [
+   "Chara04",
+   "SR"
+  ],
+  "OID_04AgariSR08": [
+   "Chara04",
+   "SR"
+  ],
+  "OID_03AgariSR07": [
+   "Chara03",
+   "SR"
+  ],
+  "OID_03AgariSR08": [
+   "Chara03",
+   "SR"
+  ],
+  "OID_01AgariSR06": [
+   "Chara01",
+   "SR"
+  ],
+  "OID_11AgariSR05": [
+   "Chara11",
+   "SR"
+  ],
+  "OID_12AgariSR06": [
+   "Chara12",
+   "SR"
+  ],
+  "OID_09AgariSR08": [
+   "Chara09",
+   "SR"
+  ],
+  "OID_09AgariSR09": [
+   "Chara09",
+   "SR"
+  ],
+  "OID_06AgariSR07": [
+   "Chara06",
+   "SR"
+  ],
+  "OID_06AgariSR08": [
+   "Chara06",
+   "SR"
+  ],
+  "OID_08AgariSR07": [
+   "Chara08",
+   "SR"
+  ],
+  "OID_02AgariSR07": [
+   "Chara02",
+   "SR"
+  ],
+  "OID_05AgariSR09": [
+   "Chara05",
+   "SR"
+  ],
+  "OID_07AgariSR09": [
+   "Chara07",
+   "SR"
+  ],
+  "OID_05AgariSR10": [
+   "Chara05",
+   "SR"
+  ],
+  "OID_13AgariSR01": [
+   "Chara13",
+   "SR"
+  ],
+  "OID_13AgariR01": [
+   "Chara13",
+   "R"
+  ],
+  "OID_13AgariSR02": [
+   "Chara13",
+   "SR"
+  ],
+  "OID_13AgariSR03": [
+   "Chara13",
+   "SR"
+  ],
+  "OID_13AgariSR04": [
+   "Chara13",
+   "SR"
+  ],
+  "OID_13AgariSR05": [
+   "Chara13",
+   "SR"
+  ],
+  "OID_13AgariSR06": [
+   "Chara13",
+   "SR"
+  ],
+  "OID_13NakiA01": [
+   "Chara13",
+   "Nothing"
+  ],
+  "OID_13NakiN01": [
+   "Chara13",
+   "N"
+  ],
+  "OID_13NakiN02": [
+   "Chara13",
+   "N"
+  ],
+  "OID_13NakiN03": [
+   "Chara13",
+   "N"
+  ],
+  "OID_13ReachA01": [
+   "Chara13",
+   "Nothing"
+  ],
+  "OID_13ReachR01": [
+   "Chara13",
+   "R"
+  ],
+  "OID_13ReachR02": [
+   "Chara13",
+   "R"
+  ],
+  "OID_01AgariA02": [
+   "Chara01",
+   "Nothing"
+  ],
+  "OID_02AgariA02": [
+   "Chara02",
+   "Nothing"
+  ],
+  "OID_03AgariA02": [
+   "Chara03",
+   "Nothing"
+  ],
+  "OID_04AgariA02": [
+   "Chara04",
+   "Nothing"
+  ],
+  "OID_05AgariA02": [
+   "Chara05",
+   "Nothing"
+  ],
+  "OID_06AgariA02": [
+   "Chara06",
+   "Nothing"
+  ],
+  "OID_07AgariA02": [
+   "Chara07",
+   "Nothing"
+  ],
+  "OID_08AgariA02": [
+   "Chara08",
+   "Nothing"
+  ],
+  "OID_09AgariA02": [
+   "Chara09",
+   "Nothing"
+  ],
+  "OID_10AgariA02": [
+   "Chara10",
+   "Nothing"
+  ],
+  "OID_11AgariA02": [
+   "Chara11",
+   "Nothing"
+  ],
+  "OID_12AgariA01": [
+   "Chara12",
+   "Nothing"
+  ],
+  "OID_01AgariSR07": [
+   "Chara01",
+   "SR"
+  ],
+  "OID_04AgariSR09": [
+   "Chara04",
+   "SR"
+  ],
+  "OID_12AgariSR07": [
+   "Chara12",
+   "SR"
+  ],
+  "OID_02AgariSR08": [
+   "Chara02",
+   "SR"
+  ],
+  "OID_05AgariSR11": [
+   "Chara05",
+   "SR"
+  ],
+  "OID_06AgariSR09": [
+   "Chara06",
+   "SR"
+  ],
+  "OID_07AgariSR10": [
+   "Chara07",
+   "SR"
+  ],
+  "OID_09AgariSR10": [
+   "Chara09",
+   "SR"
+  ],
+  "OID_02AgariSR09": [
+   "Chara02",
+   "SR"
+  ],
+  "OID_02AgariSR10": [
+   "Chara02",
+   "SR"
+  ],
+  "OID_03AgariSR09": [
+   "Chara03",
+   "SR"
+  ],
+  "OID_03AgariSR10": [
+   "Chara03",
+   "SR"
+  ],
+  "OID_02AgariSR11": [
+   "Chara02",
+   "SR"
+  ],
+  "OID_09AgariSR11": [
+   "Chara09",
+   "SR"
+  ],
+  "OID_09AgariSR12": [
+   "Chara09",
+   "SR"
+  ],
+  "OID_14AgariSR01": [
+   "Chara14",
+   "SR"
+  ],
+  "OID_14AgariR01": [
+   "Chara14",
+   "R"
+  ],
+  "OID_14AgariSR02": [
+   "Chara14",
+   "SR"
+  ],
+  "OID_14AgariSR03": [
+   "Chara14",
+   "SR"
+  ],
+  "OID_14AgariSR04": [
+   "Chara14",
+   "SR"
+  ],
+  "OID_14AgariSR05": [
+   "Chara14",
+   "SR"
+  ],
+  "OID_14AgariSR06": [
+   "Chara14",
+   "SR"
+  ],
+  "OID_14NakiA01": [
+   "Chara14",
+   "Nothing"
+  ],
+  "OID_14NakiN01": [
+   "Chara14",
+   "N"
+  ],
+  "OID_14NakiN02": [
+   "Chara14",
+   "N"
+  ],
+  "OID_14NakiN03": [
+   "Chara14",
+   "N"
+  ],
+  "OID_14ReachA01": [
+   "Chara14",
+   "Nothing"
+  ],
+  "OID_14ReachR01": [
+   "Chara14",
+   "R"
+  ],
+  "OID_14ReachR02": [
+   "Chara14",
+   "R"
+  ],
+  "OID_06AgariSR10": [
+   "Chara06",
+   "SR"
+  ],
+  "OID_06AgariSR11": [
+   "Chara06",
+   "SR"
+  ],
+  "OID_11AgariSR06": [
+   "Chara11",
+   "SR"
+  ],
+  "OID_11AgariSR07": [
+   "Chara11",
+   "SR"
+  ],
+  "OID_01NakiA02": [
+   "Chara01",
+   "Nothing"
+  ],
+  "OID_02NakiA02": [
+   "Chara02",
+   "Nothing"
+  ],
+  "OID_03NakiA02": [
+   "Chara03",
+   "Nothing"
+  ],
+  "OID_04NakiA02": [
+   "Chara04",
+   "Nothing"
+  ],
+  "OID_05NakiA02": [
+   "Chara05",
+   "Nothing"
+  ],
+  "OID_06NakiA02": [
+   "Chara06",
+   "Nothing"
+  ],
+  "OID_07NakiA02": [
+   "Chara07",
+   "Nothing"
+  ],
+  "OID_08NakiA02": [
+   "Chara08",
+   "Nothing"
+  ],
+  "OID_09NakiA02": [
+   "Chara09",
+   "Nothing"
+  ],
+  "OID_10NakiA02": [
+   "Chara10",
+   "Nothing"
+  ],
+  "OID_11NakiA02": [
+   "Chara11",
+   "Nothing"
+  ],
+  "OID_12NakiA02": [
+   "Chara12",
+   "Nothing"
+  ],
+  "OID_13NakiA02": [
+   "Chara13",
+   "Nothing"
+  ],
+  "OID_14NakiA02": [
+   "Chara14",
+   "Nothing"
+  ],
+  "OID_15AgariSR01": [
+   "Chara15",
+   "SR"
+  ],
+  "OID_15AgariR01": [
+   "Chara15",
+   "R"
+  ],
+  "OID_15AgariSR02": [
+   "Chara15",
+   "SR"
+  ],
+  "OID_15AgariSR03": [
+   "Chara15",
+   "SR"
+  ],
+  "OID_15AgariSR04": [
+   "Chara15",
+   "SR"
+  ],
+  "OID_15AgariSR05": [
+   "Chara15",
+   "SR"
+  ],
+  "OID_15AgariSR06": [
+   "Chara15",
+   "SR"
+  ],
+  "OID_15NakiA01": [
+   "Chara15",
+   "Nothing"
+  ],
+  "OID_15NakiN01": [
+   "Chara15",
+   "N"
+  ],
+  "OID_15NakiN02": [
+   "Chara15",
+   "N"
+  ],
+  "OID_15NakiN03": [
+   "Chara15",
+   "N"
+  ],
+  "OID_15ReachA01": [
+   "Chara15",
+   "Nothing"
+  ],
+  "OID_15ReachR01": [
+   "Chara15",
+   "R"
+  ],
+  "OID_15ReachR02": [
+   "Chara15",
+   "R"
+  ],
+  "OID_13AgariSR07": [
+   "Chara13",
+   "SR"
+  ],
+  "OID_13AgariSR08": [
+   "Chara13",
+   "SR"
+  ],
+  "OID_04AgariSR10": [
+   "Chara04",
+   "SR"
+  ],
+  "OID_08AgariSR08": [
+   "Chara08",
+   "SR"
+  ],
+  "OID_08AgariSR09": [
+   "Chara08",
+   "SR"
+  ],
+  "OID_05AgariSR12": [
+   "Chara05",
+   "SR"
+  ],
+  "OID_05AgariSR13": [
+   "Chara05",
+   "SR"
+  ],
+  "OID_07AgariSR11": [
+   "Chara07",
+   "SR"
+  ],
+  "OID_04AgariSR11": [
+   "Chara04",
+   "SR"
+  ],
+  "OID_04AgariSR12": [
+   "Chara04",
+   "SR"
+  ],
+  "OID_07AgariSR12": [
+   "Chara07",
+   "SR"
+  ],
+  "OID_07AgariSR13": [
+   "Chara07",
+   "SR"
+  ],
+  "OID_16AgariSR01": [
+   "Chara16",
+   "SR"
+  ],
+  "OID_16AgariR01": [
+   "Chara16",
+   "R"
+  ],
+  "OID_16AgariSR02": [
+   "Chara16",
+   "SR"
+  ],
+  "OID_16AgariSR03": [
+   "Chara16",
+   "SR"
+  ],
+  "OID_16AgariSR04": [
+   "Chara16",
+   "SR"
+  ],
+  "OID_16AgariSR05": [
+   "Chara16",
+   "SR"
+  ],
+  "OID_16AgariSR06": [
+   "Chara16",
+   "SR"
+  ],
+  "OID_16NakiA01": [
+   "Chara16",
+   "Nothing"
+  ],
+  "OID_16NakiN01": [
+   "Chara16",
+   "N"
+  ],
+  "OID_16NakiN02": [
+   "Chara16",
+   "N"
+  ],
+  "OID_16NakiN03": [
+   "Chara16",
+   "N"
+  ],
+  "OID_16ReachA01": [
+   "Chara16",
+   "Nothing"
+  ],
+  "OID_16ReachR01": [
+   "Chara16",
+   "R"
+  ],
+  "OID_16ReachR02": [
+   "Chara16",
+   "R"
+  ],
+  "OID_01AgariSR08": [
+   "Chara01",
+   "SR"
+  ],
+  "OID_01AgariSR09": [
+   "Chara01",
+   "SR"
+  ],
+  "OID_12AgariSR08": [
+   "Chara12",
+   "SR"
+  ],
+  "OID_12AgariSR09": [
+   "Chara12",
+   "SR"
+  ],
+  "OID_14AgariSR07": [
+   "Chara14",
+   "SR"
+  ],
+  "OID_14AgariSR08": [
+   "Chara14",
+   "SR"
+  ],
+  "OID_15AgariSR07": [
+   "Chara15",
+   "SR"
+  ],
+  "OID_15AgariSR08": [
+   "Chara15",
+   "SR"
+  ],
+  "OID_08AgariSR10": [
+   "Chara08",
+   "SR"
+  ],
+  "OID_08AgariSR11": [
+   "Chara08",
+   "SR"
+  ],
+  "OID_16AgariSR07": [
+   "Chara16",
+   "SR"
+  ],
+  "OID_16AgariSR08": [
+   "Chara16",
+   "SR"
+  ],
+  "OID_11AgariSR08": [
+   "Chara11",
+   "SR"
+  ],
+  "OID_11AgariSR09": [
+   "Chara11",
+   "SR"
+  ],
+  "OID_01AgariSR10": [
+   "Chara01",
+   "SR"
+  ],
+  "OID_03AgariSR11": [
+   "Chara03",
+   "SR"
+  ],
+  "OID_03AgariSR12": [
+   "Chara03",
+   "SR"
+  ],
+  "OID_01AgariSR11": [
+   "Chara01",
+   "SR"
+  ],
+  "OID_02AgariSR12": [
+   "Chara02",
+   "SR"
+  ],
+  "OID_17AgariSR01": [
+   "Chara17",
+   "SR"
+  ],
+  "OID_17AgariR01": [
+   "Chara17",
+   "R"
+  ],
+  "OID_17AgariSR02": [
+   "Chara17",
+   "SR"
+  ],
+  "OID_17AgariSR03": [
+   "Chara17",
+   "SR"
+  ],
+  "OID_17AgariSR04": [
+   "Chara17",
+   "SR"
+  ],
+  "OID_17AgariSR05": [
+   "Chara17",
+   "SR"
+  ],
+  "OID_17AgariSR06": [
+   "Chara17",
+   "SR"
+  ],
+  "OID_17NakiA01": [
+   "Chara17",
+   "Nothing"
+  ],
+  "OID_17NakiN01": [
+   "Chara17",
+   "N"
+  ],
+  "OID_17NakiN02": [
+   "Chara17",
+   "N"
+  ],
+  "OID_17NakiN03": [
+   "Chara17",
+   "N"
+  ],
+  "OID_17ReachA01": [
+   "Chara17",
+   "Nothing"
+  ],
+  "OID_17ReachR01": [
+   "Chara17",
+   "R"
+  ],
+  "OID_17ReachR02": [
+   "Chara17",
+   "R"
+  ],
+  "OID_06AgariSR12": [
+   "Chara06",
+   "SR"
+  ],
+  "OID_06AgariSR13": [
+   "Chara06",
+   "SR"
+  ],
+  "OID_02AgariSR13": [
+   "Chara02",
+   "SR"
+  ],
+  "OID_02AgariSR14": [
+   "Chara02",
+   "SR"
+  ],
+  "OID_13AgariSR09": [
+   "Chara13",
+   "SR"
+  ],
+  "OID_13AgariSR10": [
+   "Chara13",
+   "SR"
+  ],
+  "OID_05AgariSR14": [
+   "Chara05",
+   "SR"
+  ],
+  "OID_04AgariA03": [
+   "Chara04",
+   "Nothing"
+  ],
+  "OID_01NakiA03": [
+   "Chara01",
+   "Nothing"
+  ],
+  "OID_02NakiA03": [
+   "Chara02",
+   "Nothing"
+  ],
+  "OID_03NakiA03": [
+   "Chara03",
+   "Nothing"
+  ],
+  "OID_04NakiA03": [
+   "Chara04",
+   "Nothing"
+  ],
+  "OID_05NakiA03": [
+   "Chara05",
+   "Nothing"
+  ],
+  "OID_06NakiA03": [
+   "Chara06",
+   "Nothing"
+  ],
+  "OID_07NakiA03": [
+   "Chara07",
+   "Nothing"
+  ],
+  "OID_08NakiA03": [
+   "Chara08",
+   "Nothing"
+  ],
+  "OID_09NakiA03": [
+   "Chara09",
+   "Nothing"
+  ],
+  "OID_10NakiA03": [
+   "Chara10",
+   "Nothing"
+  ],
+  "OID_11NakiA03": [
+   "Chara11",
+   "Nothing"
+  ],
+  "OID_12NakiA03": [
+   "Chara12",
+   "Nothing"
+  ],
+  "OID_13NakiA03": [
+   "Chara13",
+   "Nothing"
+  ],
+  "OID_14NakiA03": [
+   "Chara14",
+   "Nothing"
+  ],
+  "OID_15NakiA02": [
+   "Chara15",
+   "Nothing"
+  ],
+  "OID_16NakiA02": [
+   "Chara16",
+   "Nothing"
+  ],
+  "OID_17NakiA02": [
+   "Chara17",
+   "Nothing"
+  ],
+  "OID_07AgariSR14": [
+   "Chara07",
+   "SR"
+  ],
+  "OID_07AgariSR15": [
+   "Chara07",
+   "SR"
+  ],
+  "OID_09AgariSR13": [
+   "Chara09",
+   "SR"
+  ],
+  "OID_09AgariSR14": [
+   "Chara09",
+   "SR"
+  ],
+  "OID_09AgariSR15": [
+   "Chara09",
+   "SR"
+  ],
+  "OID_09AgariSR16": [
+   "Chara09",
+   "SR"
+  ],
+  "OID_05AgariSR15": [
+   "Chara05",
+   "SR"
+  ],
+  "OID_05AgariSR16": [
+   "Chara05",
+   "SR"
+  ],
+  "OID_04AgariSR13": [
+   "Chara04",
+   "SR"
+  ],
+  "OID_18AgariSR01": [
+   "Chara18",
+   "SR"
+  ],
+  "OID_18AgariR01": [
+   "Chara18",
+   "R"
+  ],
+  "OID_18AgariSR02": [
+   "Chara18",
+   "SR"
+  ],
+  "OID_18AgariSR03": [
+   "Chara18",
+   "SR"
+  ],
+  "OID_18AgariSR04": [
+   "Chara18",
+   "SR"
+  ],
+  "OID_18AgariSR05": [
+   "Chara18",
+   "SR"
+  ],
+  "OID_18AgariSR06": [
+   "Chara18",
+   "SR"
+  ],
+  "OID_18NakiA01": [
+   "Chara18",
+   "Nothing"
+  ],
+  "OID_18NakiN01": [
+   "Chara18",
+   "N"
+  ],
+  "OID_18NakiN02": [
+   "Chara18",
+   "N"
+  ],
+  "OID_18NakiN03": [
+   "Chara18",
+   "N"
+  ],
+  "OID_18ReachA01": [
+   "Chara18",
+   "Nothing"
+  ],
+  "OID_18ReachR01": [
+   "Chara18",
+   "R"
+  ],
+  "OID_18ReachR02": [
+   "Chara18",
+   "R"
+  ],
+  "OID_04AgariSR14": [
+   "Chara04",
+   "SR"
+  ],
+  "OID_04AgariSR15": [
+   "Chara04",
+   "SR"
+  ],
+  "OID_16AgariSR09": [
+   "Chara16",
+   "SR"
+  ],
+  "OID_16AgariSR10": [
+   "Chara16",
+   "SR"
+  ],
+  "OID_07AgariSR16": [
+   "Chara07",
+   "SR"
+  ],
+  "OID_13AgariSR11": [
+   "Chara13",
+   "SR"
+  ],
+  "OID_07AgariSR17": [
+   "Chara07",
+   "SR"
+  ],
+  "OID_13AgariSR12": [
+   "Chara13",
+   "SR"
+  ],
+  "OID_17AgariSR07": [
+   "Chara17",
+   "SR"
+  ],
+  "OID_17AgariSR08": [
+   "Chara17",
+   "SR"
+  ],
+  "OID_08AgariSR12": [
+   "Chara08",
+   "SR"
+  ],
+  "OID_19AgariSR01": [
+   "Chara19",
+   "SR"
+  ],
+  "OID_19AgariR01": [
+   "Chara19",
+   "R"
+  ],
+  "OID_19AgariSR02": [
+   "Chara19",
+   "SR"
+  ],
+  "OID_19AgariSR03": [
+   "Chara19",
+   "SR"
+  ],
+  "OID_19AgariSR04": [
+   "Chara19",
+   "SR"
+  ],
+  "OID_19AgariSR05": [
+   "Chara19",
+   "SR"
+  ],
+  "OID_19AgariSR06": [
+   "Chara19",
+   "SR"
+  ],
+  "OID_19NakiA01": [
+   "Chara19",
+   "Nothing"
+  ],
+  "OID_19NakiN01": [
+   "Chara19",
+   "N"
+  ],
+  "OID_19NakiN02": [
+   "Chara19",
+   "N"
+  ],
+  "OID_19NakiN03": [
+   "Chara19",
+   "N"
+  ],
+  "OID_19ReachA01": [
+   "Chara19",
+   "Nothing"
+  ],
+  "OID_19ReachR01": [
+   "Chara19",
+   "R"
+  ],
+  "OID_19ReachR02": [
+   "Chara19",
+   "R"
+  ],
+  "OID_14AgariSR09": [
+   "Chara14",
+   "SR"
+  ],
+  "OID_14AgariSR10": [
+   "Chara14",
+   "SR"
+  ],
+  "OID_01AgariSR12": [
+   "Chara01",
+   "SR"
+  ],
+  "OID_02AgariSR15": [
+   "Chara02",
+   "SR"
+  ],
+  "OID_05AgariSR17": [
+   "Chara05",
+   "SR"
+  ],
+  "OID_12AgariSR10": [
+   "Chara12",
+   "SR"
+  ],
+  "OID_12AgariSR11": [
+   "Chara12",
+   "SR"
+  ],
+  "OID_18AgariSR07": [
+   "Chara18",
+   "SR"
+  ],
+  "OID_18AgariSR08": [
+   "Chara18",
+   "SR"
+  ]
+ },
+ "series": {
+  "0": {
+   "name": "Normal",
+   "type": "Normal",
+   "pickup_kind": "None",
+   "pickup_charas": [],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "1": {
+   "name": "NormalTicket",
+   "type": "Normal",
+   "pickup_kind": "None",
+   "pickup_charas": [],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "2": {
+   "name": "PickupPine",
+   "type": "Pickup",
+   "pickup_kind": "NewGirl",
+   "pickup_charas": [
+    "Chara09"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "3": {
+   "name": "PickupMizugiSen",
+   "type": "Pickup",
+   "pickup_kind": "Mizugi",
+   "pickup_charas": [
+    "Chara02"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "4": {
+   "name": "PickupMizugiMitsuba",
+   "type": "Pickup",
+   "pickup_kind": "Mizugi",
+   "pickup_charas": [
+    "Chara06"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "5": {
+   "name": "PickupMizugiMusashi",
+   "type": "Pickup",
+   "pickup_kind": "Mizugi",
+   "pickup_charas": [
+    "Chara08"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "6": {
+   "name": "PickupMizugiHiyori",
+   "type": "Pickup",
+   "pickup_kind": "Mizugi",
+   "pickup_charas": [
+    "Chara01"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "7": {
+   "name": "PickupMizugiYao",
+   "type": "Pickup",
+   "pickup_kind": "Mizugi",
+   "pickup_charas": [
+    "Chara05"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "8": {
+   "name": "PickupMizugiPain",
+   "type": "Pickup",
+   "pickup_kind": "Mizugi",
+   "pickup_charas": [
+    "Chara09"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "9": {
+   "name": "PickupMizugiTenshi",
+   "type": "Pickup",
+   "pickup_kind": "Mizugi",
+   "pickup_charas": [
+    "Chara04"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "10": {
+   "name": "PickupShiori",
+   "type": "Pickup",
+   "pickup_kind": "NewGirl",
+   "pickup_charas": [
+    "Chara10"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "11": {
+   "name": "PickupMizugiTumire",
+   "type": "Pickup",
+   "pickup_kind": "Mizugi",
+   "pickup_charas": [
+    "Chara03"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "12": {
+   "name": "PickupMizugiToitoi",
+   "type": "Pickup",
+   "pickup_kind": "Mizugi",
+   "pickup_charas": [
+    "Chara07"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "13": {
+   "name": "PickupHalfAnniversary",
+   "type": "Pickup",
+   "pickup_kind": "HalfAnniversary",
+   "pickup_charas": [
+    "Chara02"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "14": {
+   "name": "PickupMizugiIchiko",
+   "type": "Pickup",
+   "pickup_kind": "Mizugi",
+   "pickup_charas": [
+    "Chara01",
+    "Chara02",
+    "Chara03",
+    "Chara04",
+    "Chara06",
+    "Chara08",
+    "Chara09"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "15": {
+   "name": "PickupMizugiTeiyaku",
+   "type": "Pickup",
+   "pickup_kind": "Mizugi",
+   "pickup_charas": [
+    "Chara01",
+    "Chara02",
+    "Chara03",
+    "Chara04",
+    "Chara06",
+    "Chara08",
+    "Chara09"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "16": {
+   "name": "PickupHalloweenMusashi",
+   "type": "Pickup",
+   "pickup_kind": "Halloween",
+   "pickup_charas": [
+    "Chara08"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "17": {
+   "name": "PickupMizugiNijo",
+   "type": "Pickup",
+   "pickup_kind": "Mizugi",
+   "pickup_charas": [
+    "Chara01",
+    "Chara02",
+    "Chara03",
+    "Chara04",
+    "Chara06",
+    "Chara08",
+    "Chara09"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "18": {
+   "name": "PickupChaos",
+   "type": "Pickup",
+   "pickup_kind": "NewGirl",
+   "pickup_charas": [
+    "Chara11"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "19": {
+   "name": "PickupCinderellaMitsuba",
+   "type": "Pickup",
+   "pickup_kind": "Cinderella",
+   "pickup_charas": [
+    "Chara06"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "20": {
+   "name": "PickupXmasTenshi",
+   "type": "Pickup",
+   "pickup_kind": "Xmas",
+   "pickup_charas": [
+    "Chara04"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "21": {
+   "name": "PickupNewYearTsumire",
+   "type": "Pickup",
+   "pickup_kind": "NewYear",
+   "pickup_charas": [
+    "Chara03"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "22": {
+   "name": "PickupNewYearYao",
+   "type": "Pickup",
+   "pickup_kind": "NewYear",
+   "pickup_charas": [
+    "Chara05"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "23": {
+   "name": "PickupValentineToytoy",
+   "type": "Pickup",
+   "pickup_kind": "Valentine",
+   "pickup_charas": [
+    "Chara07"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "24": {
+   "name": "PickupClear",
+   "type": "Pickup",
+   "pickup_kind": "NewGirl",
+   "pickup_charas": [
+    "Chara12"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "25": {
+   "name": "UnlockClear",
+   "type": "Unlock",
+   "pickup_kind": "Unlock",
+   "pickup_charas": [
+    "Chara12"
+   ],
+   "custom_pickup_items": [
+    "OID_12AgariSR01"
+   ],
+   "extra_items": [
+    "OID_12AgariSR01"
+   ]
+  },
+  "26": {
+   "name": "PickupSuccubusTenshi",
+   "type": "Pickup",
+   "pickup_kind": "Succubus",
+   "pickup_charas": [
+    "Chara04"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "27": {
+   "name": "PickupParodiusTsumire",
+   "type": "Pickup",
+   "pickup_kind": "Parodius",
+   "pickup_charas": [
+    "Chara03"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "28": {
+   "name": "PickupRaceQueenHiyori",
+   "type": "Pickup",
+   "pickup_kind": "RaceQueen",
+   "pickup_charas": [
+    "Chara01"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "29": {
+   "name": "PickupShiori2",
+   "type": "Pickup",
+   "pickup_kind": "NewGirl",
+   "pickup_charas": [
+    "Chara10"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "30": {
+   "name": "PickupMizugiChaos",
+   "type": "Pickup",
+   "pickup_kind": "Mizugi",
+   "pickup_charas": [
+    "Chara11"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "31": {
+   "name": "PickupHalfAnniversary2",
+   "type": "Pickup",
+   "pickup_kind": "HalfAnniversary",
+   "pickup_charas": [
+    "Chara02"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "32": {
+   "name": "PickupMizugiClear",
+   "type": "Pickup",
+   "pickup_kind": "Mizugi",
+   "pickup_charas": [
+    "Chara12"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "33": {
+   "name": "PickupAliceMaidPine",
+   "type": "Pickup",
+   "pickup_kind": "AliceMaid",
+   "pickup_charas": [
+    "Chara09"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "34": {
+   "name": "PickupMizugiReturns1",
+   "type": "Pickup",
+   "pickup_kind": "Mizugi",
+   "pickup_charas": [
+    "Chara01",
+    "Chara02",
+    "Chara03",
+    "Chara04",
+    "Chara06",
+    "Chara08",
+    "Chara09"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "35": {
+   "name": "PickupJerseyMitsuba",
+   "type": "Pickup",
+   "pickup_kind": "Jersey",
+   "pickup_charas": [
+    "Chara06"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "36": {
+   "name": "PickupUniformMusashi",
+   "type": "Pickup",
+   "pickup_kind": "Uniform",
+   "pickup_charas": [
+    "Chara08"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "37": {
+   "name": "PickupUniformSen",
+   "type": "Pickup",
+   "pickup_kind": "Uniform",
+   "pickup_charas": [
+    "Chara02"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "38": {
+   "name": "PickupChaos2",
+   "type": "Pickup",
+   "pickup_kind": "NewGirl",
+   "pickup_charas": [
+    "Chara11"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "39": {
+   "name": "PickupUniformYao",
+   "type": "Pickup",
+   "pickup_kind": "Uniform",
+   "pickup_charas": [
+    "Chara05"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "40": {
+   "name": "PickupYukataToytoy",
+   "type": "Pickup",
+   "pickup_kind": "Yukata",
+   "pickup_charas": [
+    "Chara07"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "41": {
+   "name": "PickupClear2",
+   "type": "Pickup",
+   "pickup_kind": "NewGirl",
+   "pickup_charas": [
+    "Chara12"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "42": {
+   "name": "PickupShiori3",
+   "type": "Pickup",
+   "pickup_kind": "NewGirl",
+   "pickup_charas": [
+    "Chara10"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "43": {
+   "name": "PickupIyo",
+   "type": "Pickup",
+   "pickup_kind": "NewGirl",
+   "pickup_charas": [
+    "Chara13"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "44": {
+   "name": "UnlockIyo",
+   "type": "Unlock",
+   "pickup_kind": "Unlock",
+   "pickup_charas": [
+    "Chara13"
+   ],
+   "custom_pickup_items": [
+    "OID_13AgariSR01"
+   ],
+   "extra_items": [
+    "OID_13AgariSR01"
+   ]
+  },
+  "45": {
+   "name": "PickupTohoHiyori",
+   "type": "Pickup",
+   "pickup_kind": "Toho",
+   "pickup_charas": [
+    "Chara01"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "46": {
+   "name": "PickupTohoTenshi",
+   "type": "Pickup",
+   "pickup_kind": "Toho",
+   "pickup_charas": [
+    "Chara04"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "47": {
+   "name": "PickupTohoClear",
+   "type": "Pickup",
+   "pickup_kind": "Toho",
+   "pickup_charas": [
+    "Chara12"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "48": {
+   "name": "PickupMizugiKomugi",
+   "type": "Pickup",
+   "pickup_kind": "Mizugi",
+   "pickup_charas": [
+    "Chara01",
+    "Chara02",
+    "Chara03",
+    "Chara04",
+    "Chara06",
+    "Chara08",
+    "Chara09"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "49": {
+   "name": "PickupMizugiReturns2",
+   "type": "Pickup",
+   "pickup_kind": "Mizugi",
+   "pickup_charas": [
+    "Chara01",
+    "Chara02",
+    "Chara03",
+    "Chara04",
+    "Chara06",
+    "Chara08",
+    "Chara09"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "50": {
+   "name": "PickupDateMizugiSen",
+   "type": "Pickup",
+   "pickup_kind": "DateMizugi",
+   "pickup_charas": [
+    "Chara02"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "51": {
+   "name": "PickupSisterTsumire",
+   "type": "Pickup",
+   "pickup_kind": "Sister",
+   "pickup_charas": [
+    "Chara03"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "52": {
+   "name": "PickupUniformSen2",
+   "type": "Pickup",
+   "pickup_kind": "Uniform2",
+   "pickup_charas": [
+    "Chara02"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "53": {
+   "name": "PickupHalloweenMusashi2",
+   "type": "Pickup",
+   "pickup_kind": "Halloween2",
+   "pickup_charas": [
+    "Chara08"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "54": {
+   "name": "PickupBomberPine",
+   "type": "Pickup",
+   "pickup_kind": "Bomber",
+   "pickup_charas": [
+    "Chara09"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "55": {
+   "name": "PickupGrimAroe",
+   "type": "Pickup",
+   "pickup_kind": "NewGirl",
+   "pickup_charas": [
+    "Chara14"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "56": {
+   "name": "UnlockGrimAroe",
+   "type": "Unlock",
+   "pickup_kind": "Unlock",
+   "pickup_charas": [
+    "Chara14"
+   ],
+   "custom_pickup_items": [
+    "OID_14AgariSR01"
+   ],
+   "extra_items": [
+    "OID_14AgariSR01"
+   ]
+  },
+  "57": {
+   "name": "PickupChaos3",
+   "type": "Pickup",
+   "pickup_kind": "NewGirl",
+   "pickup_charas": [
+    "Chara11"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "58": {
+   "name": "PickupClear3",
+   "type": "Pickup",
+   "pickup_kind": "NewGirl",
+   "pickup_charas": [
+    "Chara12"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "59": {
+   "name": "PickupIyo2",
+   "type": "Pickup",
+   "pickup_kind": "NewGirl",
+   "pickup_charas": [
+    "Chara13"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "60": {
+   "name": "PickupDarknessRobeMitsuba",
+   "type": "Pickup",
+   "pickup_kind": "DarknessRobe",
+   "pickup_charas": [
+    "Chara06"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "61": {
+   "name": "PickupNurseChaos",
+   "type": "Pickup",
+   "pickup_kind": "Nurse",
+   "pickup_charas": [
+    "Chara11"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "62": {
+   "name": "PickupCocoa",
+   "type": "Pickup",
+   "pickup_kind": "NewGirl",
+   "pickup_charas": [
+    "Chara15"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "63": {
+   "name": "UnlockCocoa",
+   "type": "Unlock",
+   "pickup_kind": "Unlock",
+   "pickup_charas": [
+    "Chara15"
+   ],
+   "custom_pickup_items": [
+    "OID_15AgariSR01"
+   ],
+   "extra_items": [
+    "OID_15AgariSR01"
+   ]
+  },
+  "64": {
+   "name": "PickupClear4",
+   "type": "Pickup",
+   "pickup_kind": "NewGirl",
+   "pickup_charas": [
+    "Chara12"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "65": {
+   "name": "PickupGrimAroe2",
+   "type": "Pickup",
+   "pickup_kind": "NewGirl",
+   "pickup_charas": [
+    "Chara14"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "66": {
+   "name": "PickupXmasTenshi2",
+   "type": "Pickup",
+   "pickup_kind": "Xmas",
+   "pickup_charas": [
+    "Chara04"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "67": {
+   "name": "PickupJiangshiIyo",
+   "type": "Pickup",
+   "pickup_kind": "Jiangshi",
+   "pickup_charas": [
+    "Chara13"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "68": {
+   "name": "PickupNewYearReturns1",
+   "type": "Pickup",
+   "pickup_kind": "NewYear",
+   "pickup_charas": [
+    "Chara03",
+    "Chara05"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "69": {
+   "name": "PickupFundoshiMusashi",
+   "type": "Pickup",
+   "pickup_kind": "Fundoshi",
+   "pickup_charas": [
+    "Chara08"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "70": {
+   "name": "PickupValentineToytoy2",
+   "type": "Pickup",
+   "pickup_kind": "Valentine",
+   "pickup_charas": [
+    "Chara07"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "71": {
+   "name": "PickupBellyDanceYao",
+   "type": "Pickup",
+   "pickup_kind": "BellyDance",
+   "pickup_charas": [
+    "Chara05"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "72": {
+   "name": "PickupAngelTenshi",
+   "type": "Pickup",
+   "pickup_kind": "Angel",
+   "pickup_charas": [
+    "Chara04"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "73": {
+   "name": "PickupDia",
+   "type": "Pickup",
+   "pickup_kind": "NewGirl",
+   "pickup_charas": [
+    "Chara16"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "74": {
+   "name": "UnlockDia",
+   "type": "Unlock",
+   "pickup_kind": "Unlock",
+   "pickup_charas": [
+    "Chara16"
+   ],
+   "custom_pickup_items": [
+    "OID_16AgariSR01"
+   ],
+   "extra_items": [
+    "OID_16AgariSR01"
+   ]
+  },
+  "75": {
+   "name": "PickupIyo3",
+   "type": "Pickup",
+   "pickup_kind": "NewGirl",
+   "pickup_charas": [
+    "Chara13"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "76": {
+   "name": "PickupGrimAroe3",
+   "type": "Pickup",
+   "pickup_kind": "NewGirl",
+   "pickup_charas": [
+    "Chara14"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "77": {
+   "name": "PickupCocoa2",
+   "type": "Pickup",
+   "pickup_kind": "NewGirl",
+   "pickup_charas": [
+    "Chara15"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "78": {
+   "name": "PickupLolitaToytoy",
+   "type": "Pickup",
+   "pickup_kind": "Lolita",
+   "pickup_charas": [
+    "Chara07"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "79": {
+   "name": "PickupGalHiyori",
+   "type": "Pickup",
+   "pickup_kind": "Gal",
+   "pickup_charas": [
+    "Chara01"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "80": {
+   "name": "PickupGalGrimAroe",
+   "type": "Pickup",
+   "pickup_kind": "Gal",
+   "pickup_charas": [
+    "Chara14"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "81": {
+   "name": "PickupGalClear",
+   "type": "Pickup",
+   "pickup_kind": "Gal",
+   "pickup_charas": [
+    "Chara12"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "82": {
+   "name": "PickupParodiusTsumire2",
+   "type": "Pickup",
+   "pickup_kind": "Parodius",
+   "pickup_charas": [
+    "Chara03"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "83": {
+   "name": "PickupAnimalMizugiCocoa",
+   "type": "Pickup",
+   "pickup_kind": "AnimalMizugi",
+   "pickup_charas": [
+    "Chara15"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "84": {
+   "name": "PickupMizugiReturns3",
+   "type": "Pickup",
+   "pickup_kind": "Mizugi",
+   "pickup_charas": [
+    "Chara01",
+    "Chara02",
+    "Chara03",
+    "Chara04",
+    "Chara06",
+    "Chara08",
+    "Chara09"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "85": {
+   "name": "PickupParkaMusashi",
+   "type": "Pickup",
+   "pickup_kind": "Parka",
+   "pickup_charas": [
+    "Chara08"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "86": {
+   "name": "PickupAnimalMizugiDia",
+   "type": "Pickup",
+   "pickup_kind": "AnimalMizugi",
+   "pickup_charas": [
+    "Chara16"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "87": {
+   "name": "PickupSuccubusTenshi2",
+   "type": "Pickup",
+   "pickup_kind": "Succubus",
+   "pickup_charas": [
+    "Chara04"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "88": {
+   "name": "PickupDressChaos",
+   "type": "Pickup",
+   "pickup_kind": "Dress",
+   "pickup_charas": [
+    "Chara11"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "89": {
+   "name": "PickupRaceQueenHiyori2",
+   "type": "Pickup",
+   "pickup_kind": "RaceQueen",
+   "pickup_charas": [
+    "Chara01"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "90": {
+   "name": "PickupMaidTsumire",
+   "type": "Pickup",
+   "pickup_kind": "Maid",
+   "pickup_charas": [
+    "Chara03"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "91": {
+   "name": "MusicHiyori",
+   "type": "Music",
+   "pickup_kind": "Music",
+   "pickup_charas": [
+    "Chara01"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": [],
+   "music_items": [
+    "OID_ReachBgm151",
+    "OID_ReachBgm150",
+    "OID_ReachBgm149",
+    "OID_ReachBgm148"
+   ]
+  },
+  "92": {
+   "name": "MusicSen",
+   "type": "Music",
+   "pickup_kind": "Music",
+   "pickup_charas": [
+    "Chara02"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": [],
+   "music_items": [
+    "OID_ReachBgm155",
+    "OID_ReachBgm154",
+    "OID_ReachBgm153",
+    "OID_ReachBgm152"
+   ]
+  },
+  "93": {
+   "name": "PickupShiori4",
+   "type": "Pickup",
+   "pickup_kind": "NewGirl",
+   "pickup_charas": [
+    "Chara10"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "94": {
+   "name": "PickupChaos4",
+   "type": "Pickup",
+   "pickup_kind": "NewGirl",
+   "pickup_charas": [
+    "Chara11"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "95": {
+   "name": "PickupClear5",
+   "type": "Pickup",
+   "pickup_kind": "NewGirl",
+   "pickup_charas": [
+    "Chara12"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "96": {
+   "name": "PickupIyo4",
+   "type": "Pickup",
+   "pickup_kind": "NewGirl",
+   "pickup_charas": [
+    "Chara13"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "97": {
+   "name": "PickupGrimAroe4",
+   "type": "Pickup",
+   "pickup_kind": "NewGirl",
+   "pickup_charas": [
+    "Chara14"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "98": {
+   "name": "PickupCocoa3",
+   "type": "Pickup",
+   "pickup_kind": "NewGirl",
+   "pickup_charas": [
+    "Chara15"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "99": {
+   "name": "PickupDia2",
+   "type": "Pickup",
+   "pickup_kind": "NewGirl",
+   "pickup_charas": [
+    "Chara16"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "100": {
+   "name": "PickupDoubriel",
+   "type": "Pickup",
+   "pickup_kind": "NewGirl",
+   "pickup_charas": [
+    "Chara17"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "101": {
+   "name": "UnlockDoubriel",
+   "type": "Unlock",
+   "pickup_kind": "Unlock",
+   "pickup_charas": [
+    "Chara17"
+   ],
+   "custom_pickup_items": [
+    "OID_17AgariSR01"
+   ],
+   "extra_items": [
+    "OID_17AgariSR01"
+   ]
+  },
+  "102": {
+   "name": "PickupPartTimerMitsuba",
+   "type": "Pickup",
+   "pickup_kind": "PartTimer",
+   "pickup_charas": [
+    "Chara06"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "103": {
+   "name": "PickupUniformYao2",
+   "type": "Pickup",
+   "pickup_kind": "Uniform",
+   "pickup_charas": [
+    "Chara05"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "104": {
+   "name": "PickupCinderellaMitsuba2",
+   "type": "Pickup",
+   "pickup_kind": "Cinderella",
+   "pickup_charas": [
+    "Chara06"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "105": {
+   "name": "PickupAliceMaidPine2",
+   "type": "Pickup",
+   "pickup_kind": "AliceMaid",
+   "pickup_charas": [
+    "Chara09"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "106": {
+   "name": "PickupSchoolMizugiSen",
+   "type": "Pickup",
+   "pickup_kind": "SchoolMizugi",
+   "pickup_charas": [
+    "Chara02"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "107": {
+   "name": "MusicYao",
+   "type": "Music",
+   "pickup_kind": "Music",
+   "pickup_charas": [
+    "Chara05"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": [],
+   "music_items": [
+    "OID_ReachBgm163",
+    "OID_ReachBgm162",
+    "OID_ReachBgm161",
+    "OID_ReachBgm160"
+   ]
+  },
+  "108": {
+   "name": "PickupUniformMusashi2",
+   "type": "Pickup",
+   "pickup_kind": "Uniform",
+   "pickup_charas": [
+    "Chara08"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "109": {
+   "name": "PickupSchoolMizugiIyo",
+   "type": "Pickup",
+   "pickup_kind": "SchoolMizugi",
+   "pickup_charas": [
+    "Chara13"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "110": {
+   "name": "PickupSchoolMizugiToytoy",
+   "type": "Pickup",
+   "pickup_kind": "SchoolMizugi",
+   "pickup_charas": [
+    "Chara07"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "111": {
+   "name": "PickupJerseyMitsuba2",
+   "type": "Pickup",
+   "pickup_kind": "Jersey",
+   "pickup_charas": [
+    "Chara06"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "112": {
+   "name": "PickupUniformSen3",
+   "type": "Pickup",
+   "pickup_kind": "Uniform2",
+   "pickup_charas": [
+    "Chara02"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "113": {
+   "name": "PickupBellyDancePine",
+   "type": "Pickup",
+   "pickup_kind": "BellyDance",
+   "pickup_charas": [
+    "Chara09"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "114": {
+   "name": "MusicTenshi",
+   "type": "Music",
+   "pickup_kind": "Music",
+   "pickup_charas": [
+    "Chara04"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": [],
+   "music_items": [
+    "OID_ReachBgm167",
+    "OID_ReachBgm166",
+    "OID_ReachBgm165",
+    "OID_ReachBgm164"
+   ]
+  },
+  "115": {
+   "name": "PickupYukataYao",
+   "type": "Pickup",
+   "pickup_kind": "Yukata",
+   "pickup_charas": [
+    "Chara05"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "116": {
+   "name": "PickupShiori5",
+   "type": "Pickup",
+   "pickup_kind": "NewGirl",
+   "pickup_charas": [
+    "Chara10"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "117": {
+   "name": "PickupChaos5",
+   "type": "Pickup",
+   "pickup_kind": "NewGirl",
+   "pickup_charas": [
+    "Chara11"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "118": {
+   "name": "PickupClear6",
+   "type": "Pickup",
+   "pickup_kind": "NewGirl",
+   "pickup_charas": [
+    "Chara12"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "119": {
+   "name": "PickupIyo5",
+   "type": "Pickup",
+   "pickup_kind": "NewGirl",
+   "pickup_charas": [
+    "Chara13"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "120": {
+   "name": "PickupGrimAroe5",
+   "type": "Pickup",
+   "pickup_kind": "NewGirl",
+   "pickup_charas": [
+    "Chara14"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "121": {
+   "name": "PickupCocoa4",
+   "type": "Pickup",
+   "pickup_kind": "NewGirl",
+   "pickup_charas": [
+    "Chara15"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "122": {
+   "name": "PickupDia3",
+   "type": "Pickup",
+   "pickup_kind": "NewGirl",
+   "pickup_charas": [
+    "Chara16"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "123": {
+   "name": "PickupDoubriel2",
+   "type": "Pickup",
+   "pickup_kind": "NewGirl",
+   "pickup_charas": [
+    "Chara17"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "124": {
+   "name": "PickupIppatsu",
+   "type": "Pickup",
+   "pickup_kind": "NewGirl",
+   "pickup_charas": [
+    "Chara18"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "125": {
+   "name": "UnlockIppatsu",
+   "type": "Unlock",
+   "pickup_kind": "Unlock",
+   "pickup_charas": [
+    "Chara18"
+   ],
+   "custom_pickup_items": [
+    "OID_18AgariSR01"
+   ],
+   "extra_items": [
+    "OID_18AgariSR01"
+   ]
+  },
+  "126": {
+   "name": "PickupUniformTenshi",
+   "type": "Pickup",
+   "pickup_kind": "Uniform",
+   "pickup_charas": [
+    "Chara04"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "127": {
+   "name": "PickupMaidToytoyIyo",
+   "type": "Pickup",
+   "pickup_kind": "Maid",
+   "pickup_charas": [
+    "Chara07"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "128": {
+   "name": "PickupMizugiReturns4",
+   "type": "Pickup",
+   "pickup_kind": "Mizugi",
+   "pickup_charas": [
+    "Chara01",
+    "Chara02",
+    "Chara03",
+    "Chara04",
+    "Chara06",
+    "Chara08",
+    "Chara09"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "129": {
+   "name": "PickupUniformDia",
+   "type": "Pickup",
+   "pickup_kind": "Uniform",
+   "pickup_charas": [
+    "Chara16"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "130": {
+   "name": "PickupYukataToytoy2",
+   "type": "Pickup",
+   "pickup_kind": "Yukata",
+   "pickup_charas": [
+    "Chara07"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "131": {
+   "name": "PickupUniformDoubriel",
+   "type": "Pickup",
+   "pickup_kind": "Uniform",
+   "pickup_charas": [
+    "Chara17"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "132": {
+   "name": "MusicMusashi",
+   "type": "Music",
+   "pickup_kind": "Music",
+   "pickup_charas": [
+    "Chara08"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": [],
+   "music_items": [
+    "OID_ReachBgm175",
+    "OID_ReachBgm174",
+    "OID_ReachBgm173",
+    "OID_ReachBgm172"
+   ]
+  },
+  "133": {
+   "name": "LimitedCharaReturns",
+   "type": "Limited",
+   "pickup_kind": "LimitedReturns",
+   "pickup_charas": [],
+   "custom_pickup_items": [],
+   "extra_items": [
+    "OID_12AgariSR01",
+    "OID_13AgariSR01",
+    "OID_14AgariSR01",
+    "OID_15AgariSR01",
+    "OID_16AgariSR01",
+    "OID_17AgariSR01",
+    "OID_18AgariSR01"
+   ]
+  },
+  "134": {
+   "name": "PickupShiroe",
+   "type": "Pickup",
+   "pickup_kind": "NewGirl",
+   "pickup_charas": [
+    "Chara19"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "135": {
+   "name": "UnlockShiroe",
+   "type": "Unlock",
+   "pickup_kind": "Unlock",
+   "pickup_charas": [
+    "Chara19"
+   ],
+   "custom_pickup_items": [
+    "OID_19AgariSR01"
+   ],
+   "extra_items": [
+    "OID_19AgariSR01"
+   ]
+  },
+  "136": {
+   "name": "PickupXmasGrimAroe",
+   "type": "Pickup",
+   "pickup_kind": "Xmas",
+   "pickup_charas": [
+    "Chara14"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "137": {
+   "name": "PickupMarchingIchiko",
+   "type": "Pickup",
+   "pickup_kind": "Marching",
+   "pickup_charas": [
+    "Chara01",
+    "Chara02",
+    "Chara05"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "138": {
+   "name": "PickupKimonoClear",
+   "type": "Pickup",
+   "pickup_kind": "Kimono",
+   "pickup_charas": [
+    "Chara12"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "139": {
+   "name": "PickupBomberPine2",
+   "type": "Pickup",
+   "pickup_kind": "Bomber",
+   "pickup_charas": [
+    "Chara09"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "140": {
+   "name": "PickupLillyIppatsu",
+   "type": "Pickup",
+   "pickup_kind": "Lilly",
+   "pickup_charas": [
+    "Chara18"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  }
+ }
+}

@@ -1,0 +1,642 @@
+// @ts-ignore
+declare const K: any;
+// @ts-ignore
+declare const DB: any;
+// @ts-ignore
+declare const U: any;
+// @ts-ignore
+declare const R: any;
+// @ts-ignore
+declare const IO: any;
+// @ts-ignore
+declare const CONFIG: any;
+// @ts-ignore
+declare const console: any;
+
+import {
+  LOCATION_ID,
+  FACILITY_NAME,
+  COUNTRY,
+  REGION,
+  HOST,
+  PORT,
+  CARDMNG_SHADOW_MODULE,
+  DEFAULT_CARDID,
+  PASELI_BALANCE,
+  PASELI_SESSIONS,
+  CARD_STORE,
+  CARD_STORE_BY_REFID,
+  nowUnix,
+  newRefid,
+  sanitizePin,
+  playerIdFromRefid,
+  gameBaseUrl,
+  ensureProfile,
+} from "./utils";
+
+// helpers for cardmng
+const CARDID_RE = /^[0-9A-Fa-f]{16}$/;
+
+function isCanonicalCardId(raw: string): boolean {
+  if (!raw) return false;
+  const s = String(raw).trim().replace(/\s+/g, "");
+  return CARDID_RE.test(s);
+}
+
+function normalizeCardId(raw: string): string {
+  const s = (raw || "").trim().replace(/\s+/g, "").toUpperCase();
+  if (CARDID_RE.test(s)) return s;
+  try {
+    const b = (raw || "").split("").map(c => c.charCodeAt(0));
+    // try latin1 8-byte => hex
+    // @ts-ignore
+    const buf = Buffer.from(raw || "", "latin1");
+    if (buf.length === 8) {
+      const hx = buf.toString("hex").toUpperCase();
+      if (CARDID_RE.test(hx)) return hx;
+    }
+  } catch { }
+  return DEFAULT_CARDID;
+}
+
+function extractCardId(sanitized: string): string {
+  if (!sanitized) return "";
+  if (sanitized.includes("|")) {
+    const parts = sanitized.split("|");
+    return parts[parts.length - 1] || sanitized;
+  }
+  return sanitized;
+}
+function extractRefId(sanitized: string): string {
+  if (!sanitized) return "";
+  if (sanitized.includes("|")) {
+    return sanitized.split("|")[0] || sanitized;
+  }
+  return sanitized;
+}
+
+function cardAttr(data: any, key: string): string {
+  try {
+    // data is KDataReader converted object, but EamusePlugin passes raw data object with @attr
+    // Use lodash get-like fallback
+    if (!data) return "";
+    if (data["@attr"] && data["@attr"][key] != null) return String(data["@attr"][key]);
+    // also check nested 0.@attr
+    if (data["0"] && data["0"]["@attr"] && data["0"]["@attr"][key] != null) return String(data["0"]["@attr"][key]);
+    // try direct
+    if (data[key] != null) {
+      const v = data[key];
+      if (typeof v === "string") return v;
+      if (v && typeof v === "object" && v["@content"] != null) return String(v["@content"]);
+      if (v && typeof v === "object" && v["@content"] && Array.isArray(v["@content"])) return String(v["@content"][0]);
+    }
+    return "";
+  } catch { return ""; }
+}
+
+// in-memory fallback for cards if DB not used
+function getCardById(cardid: string): any | null {
+  return CARD_STORE.get(cardid) || null;
+}
+function setCard(cardid: string, rec: any): void {
+  CARD_STORE.set(cardid, rec);
+  // Keep secondary refid index in sync
+  if (rec && rec.refid) CARD_STORE_BY_REFID.set(String(rec.refid).toUpperCase(), rec);
+}
+
+// XRPC handlers
+async function handlePcbtracker(info: any, data: any, send: any): Promise<void> {
+  await send.object({
+    "@attr": {
+      expire: 1200,
+      status: 0,
+      ecenable: 1,
+      eclimit: 0,
+      limit: 0,
+      time: nowUnix(),
+    },
+  });
+}
+
+async function handleMessageGet(info: any, data: any, send: any): Promise<void> {
+  await send.object({
+    "@attr": {
+      expire: 300,
+      status: 0,
+    },
+  });
+}
+
+async function handleFacilityGet(info: any, data: any, send: any): Promise<void> {
+  const ip = (info as any).ip || HOST;
+  const port = (() => {
+    try { const v = U.GetConfig('matching_port'); if (v) return Number(v); } catch { }
+    try { const v = U.GetConfig('port'); if (v) return Number(v); } catch { }
+    try { if (typeof CONFIG !== 'undefined' && (CONFIG as any).matching_port) return Number((CONFIG as any).matching_port); } catch { }
+    try { if (typeof CONFIG !== 'undefined' && (CONFIG as any).port) return Number((CONFIG as any).port); } catch { }
+    return PORT;
+  })();
+  // facility response similar to core but using VFG constants
+  await send.object({
+    location: {
+      id: K.ITEM("str", LOCATION_ID),
+      country: K.ITEM("str", COUNTRY),
+      region: K.ITEM("str", REGION),
+      name: K.ITEM("str", FACILITY_NAME),
+      type: K.ITEM("u8", 0),
+      countryname: K.ITEM("str", "Japan"),
+      countryjname: K.ITEM("str", "日本"),
+      regionname: K.ITEM("str", "Tokyo"),
+      regionjname: K.ITEM("str", "東京都"),
+      customercode: K.ITEM("str", "VFG"),
+      companycode: K.ITEM("str", "00"),
+      latitude: K.ITEM("s32", 0),
+      longitude: K.ITEM("s32", 0),
+      accuracy: K.ITEM("u8", 0),
+    },
+    line: {
+      id: K.ITEM("str", "0"),
+      class: K.ITEM("u8", 1),
+    },
+    portfw: {
+      globalip: K.ITEM("ip4", ip),
+      globalport: K.ITEM("u16", port),
+      privateport: K.ITEM("u16", port),
+    },
+    public: {
+      flag: K.ITEM("u8", 1),
+      name: K.ITEM("str", FACILITY_NAME),
+      latitude: K.ITEM("s32", 0),
+      longitude: K.ITEM("s32", 0),
+    },
+    share: {
+      eacoin: {
+        notchamount: K.ITEM("s32", 0),
+        notchcount: K.ITEM("s32", 0),
+        supplylimit: K.ITEM("s32", 100000),
+      },
+      url: {
+        eapass: K.ITEM("str", `http://${HOST}:${port}`),
+        arcadefan: K.ITEM("str", `http://${HOST}:${port}`),
+        konaminetdx: K.ITEM("str", `http://${HOST}:${port}`),
+        konamiid: K.ITEM("str", `http://${HOST}:${port}`),
+        eagate: K.ITEM("str", `http://${HOST}:${port}`),
+      },
+    },
+  });
+}
+
+async function handlePackageList(info: any, data: any, send: any): Promise<void> {
+  await send.object({
+    "@attr": {
+      expire: 600,
+      status: 0,
+    },
+  });
+}
+
+async function handlePcbeventPut(info: any, data: any, send: any): Promise<void> {
+  await send.success();
+}
+
+async function handleEventlogWrite(info: any, data: any, send: any): Promise<void> {
+  await send.object({
+    gamesession: K.ITEM("s64", BigInt(1)),
+    logsendflg: K.ITEM("s32", 0),
+    logerrlevel: K.ITEM("s32", 0),
+    evtidnosendflg: K.ITEM("s32", 0),
+  });
+}
+
+// cardmng (with vfgcard shadow)
+async function handleCardmng(info: any, data: any, send: any): Promise<void> {
+  // data may contain cardid/refid in @attr
+  // Extract raw values (handle sanitized "|" form)
+  let rawCardId = cardAttr(data, "cardid") || cardAttr(data, "card_id") || "";
+  let reqRefid = cardAttr(data, "refid") || "";
+  // Handle sanitized form where cardid is "refid|cardid"
+  if (rawCardId.includes("|")) {
+    const cid = extractCardId(rawCardId);
+    const ref = extractRefId(rawCardId);
+    // If rawCardId was sanitized, the original cardid is after "|"
+    rawCardId = cid;
+    if (!reqRefid) reqRefid = ref;
+  }
+  if (reqRefid.includes("|")) reqRefid = extractRefId(reqRefid);
+  reqRefid = (reqRefid || "").trim().toUpperCase();
+
+  // Detect method from info.method (e.g., "inquire")
+  const method: string = (info.method || "").toLowerCase();
+  const model: string = info.model || "";
+
+  // For decode failure empty <call/> case: cardid missing
+  if (!rawCardId && (method === "inquire" || method === "getrefid")) {
+    // @ts-ignore
+    if (typeof console !== "undefined" && console.warn) console.warn(`[cardmng] ${method} rejected: missing cardid`);
+    if (method === "inquire") return send.status(112);
+    return send.status(110);
+  }
+  if ((method === "bindmodel" || method === "bindcard") && !reqRefid) {
+    return send.status(110);
+  }
+
+  const canonical = isCanonicalCardId(rawCardId);
+  // strict mode check via U.GetConfig
+  let strict = false;
+  try {
+    const m = U.GetConfig("VFG_CARDMNG_MODE");
+    if (String(m).toLowerCase() === "strict") strict = true;
+    // @ts-ignore
+    if (process && process.env && process.env.VFG_CARDMNG_MODE === "strict") strict = true;
+  } catch { }
+  if (!canonical && (method === "inquire" || method === "getrefid")) {
+    if (strict) {
+      const st = method === "inquire" ? 112 : 110;
+      return send.status(st);
+    }
+    // compat: map malformed to default cardid but log
+  }
+
+  const cardid = normalizeCardId(rawCardId);
+
+  // Use in-memory store + also try to persist via DB (plugin DB)
+  // For persistence, we also try to load from DB collection "cards"
+  let rec: any = null;
+  let recByCard: any = null;
+  let recByRefid: any = null;
+
+  // Try in-memory first
+  recByCard = getCardById(cardid) || null;
+  if (reqRefid) {
+    // O(1) lookup via secondary index
+    recByRefid = CARD_STORE_BY_REFID.get(reqRefid) || null;
+  }
+  rec = reqRefid ? recByRefid : recByCard;
+
+  // Also try DB if not found in memory (best effort)
+  if (!recByCard) {
+    try {
+      // @ts-ignore
+      const dbRec = await DB.FindOne(null, { collection: "cards", card_id: cardid });
+      if (dbRec) {
+        recByCard = dbRec;
+        CARD_STORE.set(cardid, dbRec);
+        if (!reqRefid) rec = dbRec;
+      }
+    } catch { }
+  }
+  if (reqRefid && !recByRefid) {
+    try {
+      // @ts-ignore
+      const dbRec2 = await DB.FindOne(null, { collection: "cards", refid: reqRefid });
+      if (dbRec2) {
+        recByRefid = dbRec2;
+        CARD_STORE.set(dbRec2.card_id, dbRec2);
+        rec = dbRec2;
+      }
+    } catch { }
+  }
+
+  if (method === "inquire") {
+    // check inquire mode
+    let inquireMode = "auto";
+    try {
+      const v = U.GetConfig("VFG_CARDMNG_INQUIRE_MODE");
+      if (v) inquireMode = String(v).toLowerCase();
+      // @ts-ignore
+      if (process && process.env && process.env.VFG_CARDMNG_INQUIRE_MODE) inquireMode = String(process.env.VFG_CARDMNG_INQUIRE_MODE).toLowerCase();
+    } catch { }
+    if (inquireMode === "new") {
+      return send.status(112);
+    }
+    if (!recByCard || !recByCard.issued) {
+      return send.status(112);
+    }
+    const refid = recByCard.refid;
+    const bound = !!recByCard.bound;
+    const lastupdate = Math.floor((recByCard.updated_at || recByCard.created_at || nowUnix()));
+    // success without status, attrs on element
+    await send.object({
+      "@attr": {
+        binded: bound ? 1 : 0,
+        dataid: refid,
+        refid: refid,
+        newflag: bound ? 0 : 1,
+        expired: 0,
+        exflag: 0,
+        ecflag: 1,
+        ...(bound ? { lastupdate } : {}),
+      },
+    });
+    return;
+  }
+
+  if (method === "getrefid") {
+    // create or update card profile
+    let existing = getCardById(cardid);
+    if (!existing) {
+      try {
+        // @ts-ignore
+        const dbExisting = await DB.FindOne(null, { collection: "cards", card_id: cardid });
+        if (dbExisting) existing = dbExisting;
+      } catch { }
+    }
+    let refid: string;
+    let issued = true;
+    if (existing && existing.refid) {
+      refid = existing.refid;
+      existing.issued = true;
+      existing.bound = false;
+      const passwd = cardAttr(data, "passwd") || "";
+      existing.pin = sanitizePin(passwd, existing.pin || "0000");
+      existing.updated_at = nowUnix();
+      setCard(cardid, existing);
+      try {
+        // @ts-ignore
+        await DB.Upsert(null, { collection: "cards", card_id: cardid }, existing);
+      } catch { }
+    } else {
+      refid = newRefid();
+      const passwd = cardAttr(data, "passwd") || "";
+      const recNew: any = {
+        collection: "cards",
+        card_id: cardid,
+        refid,
+        issued: true,
+        bound: false,
+        pin: sanitizePin(passwd, "0000"),
+        created_at: nowUnix(),
+        updated_at: nowUnix(),
+      };
+      setCard(cardid, recNew);
+      try {
+        // @ts-ignore
+        await DB.Upsert(null, { collection: "cards", card_id: cardid }, recNew);
+      } catch { }
+      // also ensure profile exists
+      try {
+        const { ensureProfile } = await import("./utils");
+        await ensureProfile(refid, "GUEST");
+      } catch { }
+    }
+    await send.object({
+      "@attr": {
+        refid,
+        dataid: refid,
+      },
+    });
+    return;
+  }
+
+  if (method === "authpass") {
+    // permissive
+    await send.object({ "@attr": { status: 0 } });
+    // alternative: send.success();
+    return;
+  }
+
+  if (method === "bindmodel" || method === "bindcard") {
+    if (!rec) {
+      return send.status(110);
+    }
+    rec.issued = true;
+    rec.bound = true;
+    rec.updated_at = nowUnix();
+    setCard(rec.card_id || cardid, rec);
+    try {
+      // @ts-ignore
+      await DB.Upsert(null, { collection: "cards", card_id: rec.card_id }, rec);
+    } catch { }
+    // bind profile to gamecode
+    try {
+      await ensureProfile(rec.refid, "GUEST");
+    } catch { }
+    await send.object({
+      "@attr": {
+        dataid: rec.refid,
+      },
+    });
+    return;
+  }
+
+  if (method === "getdatalist") {
+    await send.object({ "@attr": {} });
+    return;
+  }
+
+  await send.success();
+}
+
+// vfgac / vfglog / eacoin
+async function handleVfgac(info: any, data: any, send: any): Promise<void> {
+  const method = (info.method || "").toLowerCase();
+  if (method === "service_list") {
+    // Allow custom override like old plugin (mfg_service_url)
+    let customUrl: string | null = null;
+    try { customUrl = U.GetConfig('mfg_service_url'); } catch { }
+    let url: string;
+    if (customUrl && String(customUrl).trim() !== '') {
+      url = String(customUrl).trim();
+      if (!url.endsWith('/')) url += '/';
+    } else {
+      // For local testing and VPS: use requesting host + separate AOG port 22421 (proven to work)
+      // Fallback to integrated /aog on same port if you set mfg_service_url to http://host:port/aog
+      const host = (info as any).host || (info as any).ip || '127.0.0.1';
+      // Use separate port 22421 by default (old plugin behaviour) - client expects http://host:22421/
+      // If you want integrated same-port, set mfg_service_url to http://host:${(info as any).port || CONFIG.port}/aog
+      const separatePort = (() => {
+        try {
+          const p = U.GetConfig('mfg_http_port');
+          if (p) return Number(p);
+        } catch { }
+        return 22421;
+      })();
+      // If host is the VPS public IP, this will be reachable; for localhost testing it's 127.0.0.1
+      url = `http://${host}:${separatePort}/`;
+    }
+    // @ts-ignore
+    let cfgPort: any = 'n/a';
+    try { cfgPort = (typeof CONFIG !== 'undefined' ? (CONFIG as any).port : U.GetConfig('port')); } catch { }
+    console.log(`[VFG] vfgac.service_list host=${(info as any).host} port=${(info as any).port} cfgPort=${cfgPort} -> url=${url} model=${info.model} ip=${info.ip}`);
+    await send.object({
+      service_url: K.ITEM("str", url),
+      services: {
+        item: [
+          { "@attr": { service: "front", mode: "operation" }, "@content": url },
+          { "@attr": { service: "game", mode: "operation" }, "@content": url },
+        ],
+      },
+    });
+    return;
+  }
+  if (method === "update_refer" || method === "ext_campaign" || method === "send_paylog") {
+    await send.success();
+    return;
+  }
+  await send.success();
+}
+
+async function handleVfglog(info: any, data: any, send: any): Promise<void> {
+  const method = (info.method || "").toLowerCase();
+  if (method === "put_msg") {
+    try {
+      // data may contain msg elements: could be array or single
+      const msgs: any[] = [];
+      if (data && data.msg) {
+        if (Array.isArray(data.msg)) msgs.push(...data.msg);
+        else msgs.push(data.msg);
+      } else if (data && (data as any)["0"] && (data as any)["0"].msg) {
+        const m = (data as any)["0"].msg;
+        if (Array.isArray(m)) msgs.push(...m);
+        else msgs.push(m);
+      }
+      for (const m of msgs) {
+        let label = "";
+        let value = "";
+        if (m && m["@attr"] && m["@attr"].label) label = String(m["@attr"].label);
+        else if (m && (m as any).label) label = String((m as any).label);
+        if (m && m["@content"] != null) {
+          const c = m["@content"];
+          if (typeof c === "string") value = c;
+          else if (Array.isArray(c)) value = String(c[0] || "");
+          else value = String(c);
+        } else if (typeof m === "string") value = m;
+        else if (m && typeof m === "object" && m["@content"] == null && typeof m["label"] === "undefined") {
+          // try get text
+          value = JSON.stringify(m).slice(0, 500);
+        }
+        if (label === "network_error") {
+          // @ts-ignore
+          console.error(`[client] network_error: ${value}`);
+        } else if (value || label !== "?") {
+          // @ts-ignore
+          console.log(`[client] ${label}: ${String(value).slice(0, 500)}`);
+        }
+      }
+    } catch { }
+  }
+  await send.success();
+}
+
+async function handleEacoin(info: any, data: any, send: any): Promise<void> {
+  const method = (info.method || "").toLowerCase();
+  const getChild = (key: string): string => {
+    return cardAttr(data, key) || "";
+  };
+  if (method === "checkin" || method === "opcheckin") {
+    // generate sessid
+    const sess = Array.from({ length: 16 }, () => Math.floor(Math.random() * 16).toString(16)).join("");
+    PASELI_SESSIONS.set(sess, PASELI_BALANCE);
+    if (method === "opcheckin") {
+      await send.object({ sessid: K.ITEM("str", sess) });
+      return;
+    }
+    await send.object({
+      sequence: K.ITEM("s16", 0),
+      acstatus: K.ITEM("u8", 0),
+      acid: K.ITEM("str", "LOCAL"),
+      acname: K.ITEM("str", FACILITY_NAME),
+      balance: K.ITEM("s32", PASELI_BALANCE),
+      sessid: K.ITEM("str", sess),
+    });
+    return;
+  }
+  if (method === "consume") {
+    const sess = getChild("sessid");
+    let payment = 0;
+    try {
+      payment = parseInt(getChild("payment") || "0", 10) || 0;
+    } catch { payment = 0; }
+    let balance = PASELI_SESSIONS.get(sess);
+    if (balance == null) balance = PASELI_BALANCE;
+    balance = balance - payment;
+    if (balance < 0) balance = 0;
+    PASELI_SESSIONS.set(sess, balance);
+    await send.object({
+      acstatus: K.ITEM("u8", 0),
+      autocharge: K.ITEM("u8", 0),
+      balance: K.ITEM("s32", balance),
+    });
+    return;
+  }
+  if (method === "getbalance") {
+    const sess = getChild("sessid");
+    let balance = PASELI_SESSIONS.get(sess);
+    if (balance == null) balance = PASELI_BALANCE;
+    await send.object({
+      acstatus: K.ITEM("u8", 0),
+      balance: K.ITEM("s32", balance),
+    });
+    return;
+  }
+  if (method === "checkout") {
+    const sess = getChild("sessid");
+    PASELI_SESSIONS.delete(sess);
+    await send.success();
+    return;
+  }
+  if (method === "getlog" || method === "getoplog" || method === "getcampaign") {
+    // need <topic><sumdate __type="str">0</sumdate></topic>
+    await send.object({
+      topic: {
+        sumdate: K.ITEM("str", "0"),
+      },
+    });
+    return;
+  }
+  await send.success();
+}
+
+// register
+export function registerEamuseRoutes(): void {
+  // pcbtracker
+  R.Route("pcbtracker.alive", handlePcbtracker);
+  R.Route("pcbtracker.keepalive", handlePcbtracker);
+
+  // message
+  R.Route("message.get", handleMessageGet);
+
+  // facility
+  R.Route("facility.get", handleFacilityGet);
+
+  // package
+  R.Route("package.list", handlePackageList);
+
+  // pcbevent
+  R.Route("pcbevent.put", handlePcbeventPut);
+
+  // eventlog
+  R.Route("eventlog.write", handleEventlogWrite);
+
+  // cardmng + shadow
+  const cardMethods = ["inquire", "getrefid", "authpass", "bindmodel", "bindcard", "getdatalist"];
+  for (const m of cardMethods) {
+    R.Route(`cardmng.${m}`, handleCardmng);
+    R.Route(`${CARDMNG_SHADOW_MODULE}.${m}`, handleCardmng);
+  }
+
+  // vfgac
+  R.Route("vfgac.service_list", handleVfgac);
+  R.Route("vfgac.update_refer", handleVfgac);
+  R.Route("vfgac.ext_campaign", handleVfgac);
+  R.Route("vfgac.send_paylog", handleVfgac);
+
+  // vfglog
+  R.Route("vfglog.put_msg", handleVfglog);
+  // also generic vfglog handler for any method
+  R.Route("vfglog.put", handleVfglog);
+
+  // eacoin
+  const eacoinMethods = ["checkin", "opcheckin", "consume", "getbalance", "checkout", "getlog", "getoplog", "getcampaign"];
+  for (const m of eacoinMethods) {
+    R.Route(`eacoin.${m}`, handleEacoin);
+  }
+
+  // generic fallbacks for other modules (posevent, pkglist, userdata, userid, sidmgr, netlog, etc.)
+  const genericModules = ["posevent", "pkglist", "userdata", "userid", "sidmgr", "netlog", "local", "local2"];
+  for (const mod of genericModules) {
+    R.Route(`${mod}.get`, async (info: any, data: any, send: any) => send.success());
+    R.Route(`${mod}.put`, async (info: any, data: any, send: any) => send.success());
+    R.Route(`${mod}.write`, async (info: any, data: any, send: any) => send.success());
+  }
+}
