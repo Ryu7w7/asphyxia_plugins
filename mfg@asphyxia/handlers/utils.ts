@@ -32,6 +32,7 @@ export const PASELI_BALANCE = 57300;
 export function xml_escape(text: any): string {
   const s = text == null ? "" : String(text);
   return s
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, "") // Strip invalid XML 1.0 control characters
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")

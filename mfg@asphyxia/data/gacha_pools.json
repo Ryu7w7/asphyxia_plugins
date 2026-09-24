@@ -21,8 +21,8 @@
   "Chara17": "Doubriel",
   "Chara18": "Ippatsu",
   "Chara19": "Shiroe",
-  "Chara20": "Noel",
-  "Chara21": "Lisha"
+  "Chara20": "Jun",
+  "Chara21": "Touka"
  },
  "chara_unlock_items": {
   "Chara12": "OID_12AgariSR01",
@@ -3695,18 +3695,8 @@
    "custom_pickup_items": [],
    "extra_items": []
   },
-  "141": {
-   "name": "PickupNoel",
-   "type": "Pickup",
-   "pickup_kind": "NewGirl",
-   "pickup_charas": [
-    "Chara20"
-   ],
-   "custom_pickup_items": [],
-   "extra_items": []
-  },
-  "142": {
-   "name": "UnlockNoel",
+  "148": {
+   "name": "UnlockJun",
    "type": "Unlock",
    "pickup_kind": "Unlock",
    "pickup_charas": [
@@ -3719,18 +3709,8 @@
     "OID_20AgariSR01"
    ]
   },
-  "143": {
-   "name": "PickupLisha",
-   "type": "Pickup",
-   "pickup_kind": "NewGirl",
-   "pickup_charas": [
-    "Chara21"
-   ],
-   "custom_pickup_items": [],
-   "extra_items": []
-  },
-  "144": {
-   "name": "UnlockLisha",
+  "164": {
+   "name": "UnlockTouka",
    "type": "Unlock",
    "pickup_kind": "Unlock",
    "pickup_charas": [
@@ -3742,6 +3722,26 @@
    "extra_items": [
     "OID_21AgariSR01"
    ]
+  },
+  "147": {
+   "name": "PickupJun",
+   "type": "Pickup",
+   "pickup_kind": "NewGirl",
+   "pickup_charas": [
+    "Chara20"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "163": {
+   "name": "PickupTouka",
+   "type": "Pickup",
+   "pickup_kind": "NewGirl",
+   "pickup_charas": [
+    "Chara21"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
   }
  }
 }

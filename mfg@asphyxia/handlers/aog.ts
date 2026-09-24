@@ -993,12 +993,14 @@ export const AOG_HANDLER_MAP: Record<string, (f: any, c: any) => Promise<void>> 
   competition_entry: handle_competition_entry,
   item_gain_log: handle_log_only,
   item_consume_log: handle_log_only,
+  janpon_log: handle_log_only,
   notice_done: async (f: any, c: any) => sendXml(c, xml_response()),
   important_notice_done: async (f: any, c: any) => sendXml(c, xml_response()),
   set_favorite_character: async (f: any, c: any) => sendXml(c, xml_response()),
   odekake_done: async (f: any, c: any) => sendXml(c, xml_response()),
   coop_done: async (f: any, c: any) => sendXml(c, xml_response()),
   eashop_done: async (f: any, c: any) => sendXml(c, xml_response()),
+  chara_enabled: async (f: any, c: any) => sendXml(c, xml_response(`<chara_enabled><is_gacha_enabled>1</is_gacha_enabled><end_date>2099-12-31T23:59:59+09:00</end_date></chara_enabled>`)),
 };
 
 
