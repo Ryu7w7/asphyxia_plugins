@@ -448,7 +448,7 @@ export async function handle_entry_game(form: Record<string, string>, ctx: any):
   }
   
   const pindex = lobby.pcuids.indexOf(pcuid);
-  PLAYER_SEAT.set(pcuid, { tid: lobby.tid, pindex, name, mid, profile });
+  PLAYER_SEAT.set(pcuid, { tid: lobby.tid, pindex, name, mid, profile, lobbyKey, gmode });
   
   if (lobby.pcuids.length >= seats) {
     const taku = GMODE_TAKU[gmode] ?? 0;
@@ -495,16 +495,14 @@ export async function handle_gget(form: Record<string, string>, ctx: any): Promi
   const tid = mustInt(parts, 2, 1);
   const nextSno = mustInt(parts, 5, 0);
   
-  const seatInfo = PLAYER_SEAT.get(pcuid) || { tid: 1, pindex: 0, name: "ゲスト", mid: 1, profile: null };
-  const gmode = Number(formGet(form, "gmode") || 1) || 1;
-  const passphrase = formGet(form, "passphrase");
+  const seatInfo = PLAYER_SEAT.get(pcuid) || { tid: 1, pindex: 0, name: "ゲスト", mid: 1, profile: null, lobbyKey: "1", gmode: 1 };
+  const gmode = seatInfo.gmode || 1;
   const seats = GMODE_SEATS[gmode] || 4;
-
-  const lobbyKey = passphrase ? `${gmode}_${passphrase}` : `${gmode}`;
+  const lobbyKey = seatInfo.lobbyKey || "1";
 
   let lobby = MATCH_LOBBY.get(lobbyKey);
   if (lobby && lobby.tid === seatInfo.tid) {
-    if (nowUnix() - lobby.createdAt > 15) {
+    if (nowUnix() - lobby.createdAt > 60) {
       const taku = GMODE_TAKU[gmode] ?? 0;
       ensureSharedTable(lobby.tid, taku);
       MATCH_LOBBY.delete(lobbyKey);

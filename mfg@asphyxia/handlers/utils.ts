@@ -257,8 +257,8 @@ export async function saveState(mid: number, kind: string, payload: string): Pro
 export const MATCHES: Map<string, any> = new Map();
 // MATCH_LOBBY: lobbyKey -> { pcuids: string[], tid: number, createdAt: number }
 export const MATCH_LOBBY: Map<string, { pcuids: string[]; tid: number; createdAt: number }> = new Map();
-// PLAYER_SEAT: pcuid -> { tid: number, pindex: number, name: string, mid: number, profile: any }
-export const PLAYER_SEAT: Map<string, { tid: number; pindex: number; name: string; mid: number; profile: any }> = new Map();
+// PLAYER_SEAT: pcuid -> { tid: number, pindex: number, name: string, mid: number, profile: any, lobbyKey?: string, gmode?: number }
+export const PLAYER_SEAT: Map<string, { tid: number; pindex: number; name: string; mid: number; profile: any, lobbyKey?: string, gmode?: number }> = new Map();
 export const TABLES: Map<string, any> = new Map();
 export const SHARED_TABLES: Map<number, any> = new Map();
 export const STAMPS: Map<number, any[]> = new Map();
