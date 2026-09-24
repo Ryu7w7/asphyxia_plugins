@@ -404,8 +404,18 @@ export async function handle_client_state_read(form: Record<string, string>, ctx
   const states = (profile || {}).states || {};
   const items: Array<[string, string]> = one ? (states[one] ? [[one, states[one]]] : []) : Object.entries(states) as any;
   for (const [kind, payload] of items) {
+    let sanitized = String(payload);
+    // Strip invalid JSON control characters (0x00-0x08, 0x0B, 0x0C, 0x0E-0x1F)
+    sanitized = sanitized.replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g, "");
+    // Validate JSON - if broken, skip this state so the client won't crash
+    try {
+      JSON.parse(sanitized);
+    } catch {
+      console.log(`[VFG] Skipping corrupt state '${kind}' for mid=${mid || "?"}`);
+      continue;
+    }
     let b64 = "";
-    try { b64 = Buffer.from(String(payload), "utf-8").toString("base64"); } catch { b64 = ""; }
+    try { b64 = Buffer.from(sanitized, "utf-8").toString("base64"); } catch { b64 = ""; }
     chunks.push(`<state kind="${xml_escape(kind)}"><data>${b64}</data></state>`);
   }
   sendXml(ctx, xml_response(...chunks));
