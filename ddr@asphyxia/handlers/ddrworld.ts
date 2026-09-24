@@ -1418,7 +1418,7 @@ export const rivaldataload: EPR = async (info, data, send) => {
     for(const hsi of (hiscore || [])) {
       const prf = profiles.find(p => p['__refid'] === hsi['__refid'])
       record.push({
-        record_str: K.ITEM('str', `${hsi.songId},${hsi.style},${hsi.difficulty},${prf?.ddrCode ?? 0},${prf?.dancerName ?? ''},${prf?.area ?? 0},${hsi?.rank ?? 0},${hsi?.clearKind ?? 0},${hsi?.score ?? 0},${hsi?.ghostId ?? 0}`)
+        record_str: K.ITEM('str', `${hsi.songId},${hsi.style},${hsi.difficulty},${prf?.ddrCode ?? 0},${hsi.dancerName ?? prf?.dancerName ?? 'NONE'},${prf?.area ?? 0},${hsi?.rank ?? 0},${hsi?.clearKind || 1},${hsi?.score ?? 0},${hsi?.ghostId ?? 0}`)
       })
     }
   }
@@ -1428,7 +1428,7 @@ export const rivaldataload: EPR = async (info, data, send) => {
       hiscore = await DB.Find<ScoreWorld>(rival['__refid'], {collection: 'score3'})
       for(const hsi of (hiscore || [])) {
         record.push({
-          record_str: K.ITEM('str', `${hsi.songId},${hsi.style},${hsi.difficulty},${ddrCode},${rival.dancerName ?? ''},0,${hsi?.rank ?? 0},${hsi?.clearKind ?? 0},${hsi?.score ?? 0},${hsi?.ghostId ?? 0}`)
+          record_str: K.ITEM('str', `${hsi.songId},${hsi.style},${hsi.difficulty},${ddrCode},${rival.dancerName ?? 'NONE'},0,${hsi?.rank ?? 0},${hsi?.clearKind || 1},${hsi?.score ?? 0},${hsi?.ghostId ?? 0}`)
         })
       }
     }
