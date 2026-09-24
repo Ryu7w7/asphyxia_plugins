@@ -135,7 +135,7 @@ function mgresultXml(table: Table | null | undefined, match: any): string {
   return "<mgresult>" + parts.join("") + "</mgresult>";
 }
 
-function matchingXml(seats: number, myPindex: number, players: Array<{ pcuid: string; mid: number; name: string; profile: any }>, isMatched: boolean): string {
+function matchingXml(tid: number, seats: number, myPindex: number, players: Array<{ pcuid: string; mid: number; name: string; profile: any }>, isMatched: boolean): string {
   const pnum = players.length;
   const cpu_n = Math.max(0, seats - pnum);
   let used = 1;
@@ -144,6 +144,16 @@ function matchingXml(seats: number, myPindex: number, players: Array<{ pcuid: st
     const pg = JSON.parse(myProfile.states?.player_game || "{}");
     used = Number(pg.SelectChara || 0) + 1;
   } catch { used = 1; }
+  
+  const usedChars = new Set<number>();
+  for (const p of players) {
+    if (p && p.profile) {
+      try {
+        const pg = JSON.parse(p.profile.states?.player_game || "{}");
+        usedChars.add(Number(pg.SelectChara || 0) + 1);
+      } catch {}
+    }
+  }
   
   const playersXml: string[] = [];
   const epdataXml: string[] = [];
@@ -154,9 +164,11 @@ function matchingXml(seats: number, myPindex: number, players: Array<{ pcuid: st
       playersXml.push(matchingPlayerHuman(i, i, p.profile, p.name));
       epdataXml.push(`<epdata_${i}><name>${xml_escape(p.name)}</name><mid>${p.mid}</mid></epdata_${i}>`);
     } else if (isMatched) {
-      let cpuChara = used + i + 1;
-      if (cpuChara > 19) cpuChara = (cpuChara % 19) || 1;
-      if (cpuChara === used) cpuChara = (cpuChara % 19) + 1;
+      let cpuChara = (tid + i * 7) % 19 + 1;
+      while (usedChars.has(cpuChara) || cpuChara === used) {
+        cpuChara = (cpuChara % 19) + 1;
+      }
+      usedChars.add(cpuChara);
       playersXml.push(matchingPlayerCpu(i, i, cpuChara, 1));
     }
   }
@@ -435,7 +447,11 @@ export async function handle_entry_game(form: Record<string, string>, ctx: any):
   const seats = GMODE_SEATS[gmode];
   const profile = await getProfileBySession(pcuid);
   const mid = Number((profile as any)?.player_id || 1);
-  const name = (profile as any)?.name || "ゲスト";
+  let name = (profile as any)?.name || "ゲスト";
+  try {
+    const pg = JSON.parse((profile as any)?.states?.player_game || "{}");
+    if (pg.PlayerName) name = pg.PlayerName;
+  } catch {}
 
   const lobbyKey = passphrase ? `${gmode}_${passphrase}` : `${gmode}`;
 
@@ -598,7 +614,7 @@ export async function handle_gget(form: Record<string, string>, ctx: any): Promi
     players.push({ pcuid, mid: seatInfo.mid, name: seatInfo.name, profile: seatInfo.profile });
   }
 
-  const mwait = matchingXml(seats, seatInfo.pindex, players as any, isMatched);
+  const mwait = matchingXml(seatInfo.tid, seats, seatInfo.pindex, players as any, isMatched);
 
   let tai = "";
   let allReady = 0;
