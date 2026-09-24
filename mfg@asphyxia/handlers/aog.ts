@@ -162,7 +162,7 @@ function matchingXml(seats: number, myPindex: number, players: Array<{ pcuid: st
   }
   
   const playersStr = playersXml.join("");
-  const mendTag = isMatched ? `<mend>${playersStr}</mend>` : playersStr;
+  const mendTag = `<mend>${playersStr}</mend>`;
   const epdata = epdataXml.join("");
   return (
     "<mwait>" +
