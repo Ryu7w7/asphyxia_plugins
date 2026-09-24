@@ -431,10 +431,21 @@ export async function handle_client_state_write(form: Record<string, string>, ct
     } catch {
       try { decoded = Buffer.from(data, "base64").toString("utf-8"); } catch { decoded = data; }
     }
+    // Sanitize: strip invalid control characters that crash JSON parsers
+    decoded = decoded.replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g, "");
+    // Validate JSON before saving to prevent corrupt states
+    try {
+      JSON.parse(decoded);
+    } catch {
+      console.log(`[VFG] Discarding invalid JSON for state '${kind}' (mid=${mid})`);
+      sendXml(ctx, xml_response());
+      return;
+    }
     await saveState(mid, kind, decoded);
   }
   sendXml(ctx, xml_response());
 }
+
 
 // ---------------------------------------------------------------------------
 // match
