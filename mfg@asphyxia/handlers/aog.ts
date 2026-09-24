@@ -890,7 +890,32 @@ export async function handle_music_gacha_play(form: Record<string, string>, ctx:
   MUSIC_GACHA_RESERVES.delete(req);
   let pool: string[] | undefined = MUSIC_GACHA_POOL.get(series);
   if (!pool || !pool.length) pool = MUSIC_GACHA_POOL.get(91) || ["OID_ReachBgm148"];
-  const oid = pool[Math.floor(Math.random() * pool.length)];
+  
+  let owned = new Set<string>();
+  try {
+    const pcuid = formGet(form, "pcuid");
+    const profile = await getProfileBySession(pcuid);
+    if (profile && profile.states && profile.states.item) {
+      let itemState: any = profile.states.item;
+      if (typeof itemState === "string") itemState = JSON.parse(itemState);
+      if (itemState && Array.isArray(itemState.list)) {
+        for (const it of itemState.list) {
+          if (it.oid) owned.add(it.oid);
+        }
+      }
+    }
+  } catch (e) {
+    console.log("[Music Gacha] Failed to read owned items");
+  }
+
+  const unowned = pool.filter(oid => !owned.has(oid));
+  let oid: string;
+  if (unowned.length > 0) {
+    oid = unowned[Math.floor(Math.random() * unowned.length)];
+  } else {
+    oid = pool[Math.floor(Math.random() * pool.length)];
+  }
+
   sendXml(ctx, xml_response(`<gacha_result><is_success>1</is_success><gain_items><item>${xml_escape(oid)}</item></gain_items><gift>2</gift><fight_spirits></fight_spirits></gacha_result>`));
 }
 

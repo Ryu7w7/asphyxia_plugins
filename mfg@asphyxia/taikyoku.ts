@@ -919,10 +919,48 @@ export class Table {
       const sh = mahjong.shanten(c as any, opened, this.taku);
       const uk = sh <= 3 ? mahjong.ukeire(c as any, opened, this.taku, seen as any) : 0;
       const danger = this._danger(seat, t);
+      
+      // Hand value consideration for advanced AI
+      let valPoints = 0;
+      if (sh <= 1) {
+        // Evaluate theoretical value by checking waits
+        const waits = mahjong.waits_of(c as any, opened, this.taku) as number[];
+        let totalVal = 0;
+        for (const w of waits) {
+          const testHand = [...rest, w];
+          const ctx = new (mahjong as any).WinContext({
+            hand: testHand,
+            melds: this.melds[seat],
+            win_tile: w,
+            is_tsumo: false,
+            seat_wind: this.seat_wind(seat),
+            round_wind: this.ba,
+            riichi: this.riichi[seat],
+            double_riichi: this.double_riichi[seat],
+            ippatsu: false,
+            haitei: false,
+            houtei: false,
+            rinshan: false,
+            chankan: false,
+            tenho: false,
+            chiho: false,
+            dora_indicators: this.dora_ind.slice(0, this.dora_open),
+            ura_indicators: [],
+            taku: this.taku
+          });
+          const agariRes = mahjong.score_hand(ctx as any);
+          if (agariRes) {
+            const pay = mahjong.payments(this.taku, agariRes.rank, agariRes.fu, seat === this.oya, false);
+            totalVal += pay[0]; // base points
+          }
+        }
+        if (waits.length > 0) valPoints = totalVal / waits.length / 1000;
+      }
+      
       let keep = 0;
       if (yakuhai.has(t) && (mahjong.counts_of(this.hands[seat]) as number[])[t] >= 2) keep += 3;
       if (doraSet.has(t)) keep += 3;
-      let score = sh * 120.0 - uk * 1.5 + keep * 6.0;
+      let score = sh * 120.0 - uk * 1.5 - valPoints * 5.0 + keep * 6.0;
       if (threat) {
         const weight = sh >= 2 ? 3.0 : 1.2;
         score += danger * weight;
