@@ -123,7 +123,7 @@ const DUMMY_NAKI: string = (() => {
 export class Table {
   taku: number;
   seats: number;
-  human: number;
+  humans: number[];
   rng: RNG;
   total_kyoku: number;
   scores: number[];
@@ -137,6 +137,10 @@ export class Table {
   finished: boolean;
   advance_kyoku: boolean;
   nokori_start: number;
+
+  sute_choices: Record<number, any>;
+  sute_replies: Record<number, any>;
+  next_kyoku_ready: Set<number>;
 
   hands: number[][];
   melds: mahjong.Meld[][];
@@ -161,10 +165,13 @@ export class Table {
   discard_count: number;
   any_call: boolean;
 
-  constructor(taku: number, human_seat: number = 0, seed?: number | null) {
+  constructor(taku: number, human_seats: number[] = [0], seed?: number | null) {
     this.taku = taku;
     this.seats = (mahjong as any).SEATS_OF[taku] as number;
-    this.human = human_seat % this.seats;
+    this.humans = human_seats.map(s => s % this.seats);
+    this.sute_choices = {};
+    this.sute_replies = {};
+    this.next_kyoku_ready = new Set();
     this.rng = new RNG(seed ?? null);
     this.total_kyoku = (mahjong as any).KYOKU_COUNT[taku] as number;
     this.scores = new Array(4).fill((mahjong as any).START_SCORE[taku] as number);
@@ -230,6 +237,7 @@ export class Table {
   }
 
   private _new_kyoku_state(): void {
+    this.next_kyoku_ready.clear();
     this.hands = [[], [], [], []];
     this.melds = [[], [], [], []];
     this.discards = [[], [], [], []];
@@ -397,7 +405,7 @@ export class Table {
     this.turn = seat;
     this._cell(K_TSUMO, `<pindex>${seat}</pindex><pai>${mahjong.idx_to_pai(tile)}</pai>`);
     this.temp_furiten[seat] = false;
-    if (seat === this.human) {
+    if (this.humans.includes(seat)) {
       this._offer_tsumo_choices(seat);
     } else {
       this._cpu_turn(seat);
@@ -641,21 +649,32 @@ export class Table {
   }
 
   private _after_discard(discarder: number, tile: number): void {
-    const human = this.human;
-    if (human !== discarder) {
+    this.sute_choices = {};
+    this.sute_replies = {};
+
+    let anyHumanCanCall = false;
+
+    // Check all humans
+    for (const human of this.humans) {
+      if (human === discarder) continue;
       const ron = this._win_result(human, tile, false) !== null;
       const pon = !this.riichi[human] && !!this._pon_options(human, tile).length;
       const chi = !this.riichi[human] && human === this._next_seat(discarder) && !!this._chi_options(human, tile).length;
       const kan = !this.riichi[human] && this._minkan_ok(human, tile);
       if (ron || pon || chi || kan) {
-        this._offer_sute_choices(discarder, tile, ron, pon, chi, kan);
-        return;
+        this._offer_sute_choices(human, discarder, tile, ron, pon, chi, kan);
+        anyHumanCanCall = true;
       }
     }
+
+    if (anyHumanCanCall) {
+      return; // wait for humans to reply
+    }
+
     this._cpu_calls(discarder, tile);
   }
 
-  private _offer_sute_choices(discarder: number, tile: number, ron: boolean, pon: boolean, chi: boolean, kan: boolean, chankan: boolean = false): void {
+  private _offer_sute_choices(target_seat: number, discarder: number, tile: number, ron: boolean, pon: boolean, chi: boolean, kan: boolean, chankan: boolean = false): void {
     let flags = 0;
     let naki = 0;
     if (ron) flags |= F_RON;
@@ -678,7 +697,7 @@ export class Table {
       `<sute_pai>${mahjong.idx_to_pai(tile)}</sute_pai>`;
     if (chi) {
       const flat: number[] = [];
-      for (const o of this._chi_options(this.human, tile).slice(0, 6)) {
+      for (const o of this._chi_options(target_seat, tile).slice(0, 6)) {
         for (const t of o) flat.push(mahjong.idx_to_pai(t));
       }
       inner += _ints("chi_pai", flat);
@@ -690,11 +709,14 @@ export class Table {
       inner += _ints("kan_pai", [mahjong.idx_to_pai(tile)]);
       inner += _ints("kan_type", [2]);
     }
-    this._cell(K_SUTECHOICES, inner, [this.human]);
-    this.call_ctx = {
+    this._cell(K_SUTECHOICES, inner, [target_seat]);
+    this.sute_choices[target_seat] = {
       discarder,
       tile,
       ron,
+      pon,
+      chi,
+      kan,
       chankan,
     };
     this.state = "call";
@@ -703,7 +725,7 @@ export class Table {
   private _cpu_calls(discarder: number, tile: number): void {
     const order = Array.from({ length: this.seats - 1 }, (_, i) => (discarder + 1 + i) % this.seats);
     for (const s of order) {
-      if (s === this.human) continue;
+      if (this.humans.includes(s)) continue;
       const res = this._win_result(s, tile, false);
       if (res !== null) {
         const m: Record<number, any> = {};
@@ -713,7 +735,7 @@ export class Table {
       }
     }
     for (const s of order) {
-      if (s === this.human || this.riichi[s]) continue;
+      if (this.humans.includes(s) || this.riichi[s]) continue;
       if (this._minkan_ok(s, tile) && this._cpu_wants_pon(s, tile)) {
         this._apply_minkan(s, discarder, tile);
         return;
@@ -724,7 +746,7 @@ export class Table {
       }
     }
     const nxt = this._next_seat(discarder);
-    if (nxt !== this.human && !this.riichi[nxt]) {
+    if (!this.humans.includes(nxt) && !this.riichi[nxt]) {
       const pick = this._cpu_pick_chi(nxt, tile, this._chi_options(nxt, tile));
       if (pick !== null) {
         this._apply_chi(nxt, discarder, tile, pick);
@@ -755,7 +777,7 @@ export class Table {
     this._cell(K_PON, `<pindex>${seat}</pindex><sute_pindex>${from_seat}</sute_pindex><pai>${mahjong.idx_to_pai(tile)}</pai>${_ints("pon_pai", own.map((t) => mahjong.idx_to_pai(t)))}`);
     this.turn = seat;
     this.drawn[seat] = null;
-    if (seat === this.human) {
+    if (this.humans.includes(seat)) {
       this._offer_tsumo_choices(seat);
     } else {
       this._cpu_discard_after_call(seat);
@@ -773,7 +795,7 @@ export class Table {
     this._cell(K_CHI, `<pindex>${seat}</pindex><sute_pindex>${from_seat}</sute_pindex><pai>${mahjong.idx_to_pai(tile)}</pai>${_ints("chi_pai", own.map((t) => mahjong.idx_to_pai(t)))}`);
     this.turn = seat;
     this.drawn[seat] = null;
-    if (seat === this.human) {
+    if (this.humans.includes(seat)) {
       this._offer_tsumo_choices(seat);
     } else {
       this._cpu_discard_after_call(seat);
@@ -820,19 +842,35 @@ export class Table {
     this.dora_open = Math.min(5, this.dora_open + 1);
     this.any_call = true;
     this._cell(K_KAKAN, `<pindex>${seat}</pindex><pai>${mahjong.idx_to_pai(tile)}</pai>`);
-    for (let i = 1; i < this.seats; i++) {
-      const s = (seat + i) % this.seats;
+    this.sute_choices = {};
+    this.sute_replies = {};
+    let anyHumanCanCall = false;
+
+    for (const s of this.humans) {
+      if (s === seat) continue;
       const res = this._win_result(s, tile, false, true);
-      if (res === null) continue;
-      if (s === this.human) {
-        this._offer_sute_choices(seat, tile, true, false, false, false, true);
+      if (res !== null) {
+        this._offer_sute_choices(s, seat, tile, true, false, false, false, true);
+        anyHumanCanCall = true;
+      }
+    }
+
+    if (anyHumanCanCall) {
+      return; // wait for humans to reply
+    }
+
+    const order = Array.from({ length: this.seats - 1 }, (_, i) => (seat + 1 + i) % this.seats);
+    for (const s of order) {
+      if (this.humans.includes(s)) continue;
+      const res = this._win_result(s, tile, false, true);
+      if (res !== null) {
+        const m: Record<number, any> = {};
+        m[s] = res;
+        this._apply_ron([s], seat, tile, m);
         return;
       }
-      const m: Record<number, any> = {};
-      m[s] = res;
-      this._apply_ron([s], seat, tile, m);
-      return;
     }
+
     this._begin_turn(seat, true);
   }
 
@@ -1224,53 +1262,13 @@ export class Table {
       }
       this._apply_tsumo(seat, drawn as number, res);
     } else if (kind === S_RON_AGARI) {
-      const ctx = this.call_ctx;
-      if (!ctx) return;
-      this.call_ctx = null;
-      const tile: number = ctx.tile;
-      const res = this._win_result(seat, tile, false, !!ctx.chankan);
-      if (res === null) {
-        this._decline_call(ctx);
-        return;
-      }
-      const m: Record<number, any> = {};
-      m[seat] = res;
-      this._apply_ron([seat], ctx.discarder, tile, m);
+      this._handle_sute_reply(seat, kind, pai, tepai_id, tepai_id2);
     } else if (kind === S_PON) {
-      const ctx = this.call_ctx;
-      if (!ctx) return;
-      this.call_ctx = null;
-      let own = [mahjong.pai_to_idx(tepai_id), mahjong.pai_to_idx(tepai_id2)];
-      if (own.some((o) => o < 0)) own = [ctx.tile, ctx.tile];
-      this._apply_pon(seat, ctx.discarder, ctx.tile, own);
+      this._handle_sute_reply(seat, kind, pai, tepai_id, tepai_id2);
     } else if (kind === S_CHI) {
-      const ctx = this.call_ctx;
-      if (!ctx) return;
-      this.call_ctx = null;
-      const own = [mahjong.pai_to_idx(tepai_id), mahjong.pai_to_idx(tepai_id2)];
-      const opts = this._chi_options(seat, ctx.tile);
-      const sortedOwn = [...own].sort((a, b) => a - b);
-      const isValid = opts.some((o) => [...o].sort((a, b) => a - b).join(",") === sortedOwn.join(","));
-      let finalOwn: number[];
-      if (!isValid) {
-        finalOwn = opts.length ? opts[0] : [];
-      } else {
-        finalOwn = own;
-      }
-      if (!finalOwn.length) {
-        this._decline_call(ctx);
-        return;
-      }
-      this._apply_chi(seat, ctx.discarder, ctx.tile, finalOwn);
+      this._handle_sute_reply(seat, kind, pai, tepai_id, tepai_id2);
     } else if (kind === S_MINKAN) {
-      const ctx = this.call_ctx;
-      if (!ctx) return;
-      this.call_ctx = null;
-      if (this._minkan_ok(seat, ctx.tile)) {
-        this._apply_minkan(seat, ctx.discarder, ctx.tile);
-      } else {
-        this._decline_call(ctx);
-      }
+      this._handle_sute_reply(seat, kind, pai, tepai_id, tepai_id2);
     } else if (kind === S_ANKAN) {
       this.pending_tsumo_choices = null;
       const tile = mahjong.pai_to_idx(pai);
@@ -1291,27 +1289,28 @@ export class Table {
       this.pending_tsumo_choices = null;
       this._ryuukyoku(true);
     } else if (kind === S_NAKINASHI) {
-      const ctx = this.call_ctx;
-      if (!ctx) return;
-      this.call_ctx = null;
-      this._decline_call(ctx);
+      this._handle_sute_reply(seat, kind, pai, tepai_id, tepai_id2);
     } else if (kind === S_CYOUKOU) {
       this._cell(K_TYOKO, `<pindex>${pindex}</pindex>`);
     } else if (kind === S_NEXT_KYOKU_READY) {
-      this.next_kyoku();
+      this.next_kyoku_ready.add(seat);
+      if (this.next_kyoku_ready.size === this.humans.length) {
+        this.next_kyoku();
+      }
     } else if (kind === S_KIKEN) {
       this.state = "game_end";
       this.finished = true;
     }
   }
 
-  private _decline_call(ctx: any): void {
-    const seat = this.human;
-    if (ctx.ron) {
-      this.temp_furiten[seat] = true;
-      const c = mahjong.counts_of(this.hands[seat]) as number[];
-      if (c.reduce((a, b) => a + b, 0) % 3 === 1 && (mahjong.waits_of(c as any, this.melds[seat].length, this.taku) as number[]).includes(ctx.tile)) {
-        if (this.riichi[seat]) this.furiten[seat] = true;
+  private _decline_call(ctx: any, seats: number[]): void {
+    for (const seat of seats) {
+      if (ctx.ron) {
+        this.temp_furiten[seat] = true;
+        const c = mahjong.counts_of(this.hands[seat]) as number[];
+        if (c.reduce((a, b) => a + b, 0) % 3 === 1 && (mahjong.waits_of(c as any, this.melds[seat].length, this.taku) as number[]).includes(ctx.tile)) {
+          if (this.riichi[seat]) this.furiten[seat] = true;
+        }
       }
     }
     this.state = "discard";
@@ -1320,6 +1319,98 @@ export class Table {
     } else {
       this._cpu_calls(ctx.discarder, ctx.tile);
     }
+  }
+
+  private _handle_sute_reply(seat: number, kind: number, pai: number, tepai_id: number, tepai_id2: number): void {
+    if (!this.sute_choices[seat]) return;
+
+    this.sute_replies[seat] = { kind, pai, tepai_id, tepai_id2 };
+
+    if (Object.keys(this.sute_replies).length === Object.keys(this.sute_choices).length) {
+      this._resolve_sute_choices();
+    }
+  }
+
+  private _resolve_sute_choices(): void {
+    const choices = this.sute_choices;
+    const replies = this.sute_replies;
+    this.sute_choices = {};
+    this.sute_replies = {};
+
+    let discarder = -1;
+    let tile = -1;
+    let chankan = false;
+    let hasRon = false;
+
+    for (const key in choices) {
+      discarder = choices[key].discarder;
+      tile = choices[key].tile;
+      chankan = choices[key].chankan;
+      if (choices[key].ron) hasRon = true;
+      break;
+    }
+
+    if (discarder === -1) return;
+
+    // 1. Check for RON
+    const ron_seats: number[] = [];
+    const ron_results: Record<number, any> = {};
+    for (const key in replies) {
+      const seat = Number(key);
+      if (replies[seat].kind === S_RON_AGARI) {
+        const res = this._win_result(seat, tile, false, chankan);
+        if (res !== null) {
+          ron_seats.push(seat);
+          ron_results[seat] = res;
+        }
+      }
+    }
+    if (ron_seats.length > 0) {
+      this._apply_ron(ron_seats, discarder, tile, ron_results);
+      return;
+    }
+
+    // 2. Check for PON / KAN
+    for (const key in replies) {
+      const seat = Number(key);
+      const reply = replies[seat];
+      if (reply.kind === S_PON) {
+        let own = [mahjong.pai_to_idx(reply.tepai_id!), mahjong.pai_to_idx(reply.tepai_id2!)];
+        if (own.some((o) => o < 0)) own = [tile, tile];
+        this._apply_pon(seat, discarder, tile, own);
+        return;
+      } else if (reply.kind === S_MINKAN) {
+        if (this._minkan_ok(seat, tile)) {
+          this._apply_minkan(seat, discarder, tile);
+          return;
+        }
+      }
+    }
+
+    // 3. Check for CHI
+    for (const key in replies) {
+      const seat = Number(key);
+      const reply = replies[seat];
+      if (reply.kind === S_CHI) {
+        const own = [mahjong.pai_to_idx(reply.tepai_id!), mahjong.pai_to_idx(reply.tepai_id2!)];
+        const opts = this._chi_options(seat, tile);
+        const sortedOwn = [...own].sort((a, b) => a - b);
+        const isValid = opts.some((o) => [...o].sort((a, b) => a - b).join(",") === sortedOwn.join(","));
+        let finalOwn: number[];
+        if (!isValid) {
+          finalOwn = opts.length ? opts[0] : [];
+        } else {
+          finalOwn = own;
+        }
+        if (finalOwn.length) {
+          this._apply_chi(seat, discarder, tile, finalOwn);
+          return;
+        }
+      }
+    }
+
+    // 4. Decline
+    this._decline_call({ discarder, tile, chankan, ron: hasRon }, Object.keys(replies).map(Number));
   }
 
   // result for /end_game

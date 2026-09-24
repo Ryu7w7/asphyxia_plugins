@@ -96,13 +96,13 @@ export const GAME_MODES = Object.keys(GMODE_TAKU).map(n => Number(n)).sort((a, b
 // ---------------------------------------------------------------------------
 // helpers for matching
 // ---------------------------------------------------------------------------
-function matchingPlayerHuman(index: number, zaseki: number, profile: any): string {
+function matchingPlayerHuman(index: number, zaseki: number, profile: any, name: string): string {
   const states: string[] = [];
   for (const kind of ["player_game", "customize_item"]) {
     const b64 = stateB64(profile, kind);
     if (b64) states.push(`<state kind="${xml_escape(kind)}"><data>${xml_escape(b64)}</data></state>`);
   }
-  let inner = `<zaseki>${zaseki}</zaseki><cpu_level>0</cpu_level>`;
+  let inner = `<name>${xml_escape(name)}</name><zaseki>${zaseki}</zaseki><cpu_level>0</cpu_level>`;
   if (states.length) inner += "<client_states>" + states.join("") + "</client_states>";
   return `<player_${index} ptype="1">${inner}</player_${index}>`;
 }
@@ -151,7 +151,7 @@ function matchingXml(seats: number, myPindex: number, players: Array<{ pcuid: st
   for (let i = 0; i < (isMatched ? seats : pnum); i++) {
     const p = players[i];
     if (p) {
-      if (isMatched) playersXml.push(matchingPlayerHuman(i, i, p.profile));
+      playersXml.push(matchingPlayerHuman(i, i, p.profile, p.name));
       epdataXml.push(`<epdata_${i}><name>${xml_escape(p.name)}</name><mid>${p.mid}</mid></epdata_${i}>`);
     } else if (isMatched) {
       let cpuChara = used + i + 1;
@@ -161,7 +161,8 @@ function matchingXml(seats: number, myPindex: number, players: Array<{ pcuid: st
     }
   }
   
-  const mendTag = isMatched ? `<mend>${playersXml.join("")}</mend>` : "";
+  const playersStr = playersXml.join("");
+  const mendTag = isMatched ? `<mend>${playersStr}</mend>` : playersStr;
   const epdata = epdataXml.join("");
   return (
     "<mwait>" +
@@ -175,10 +176,11 @@ function matchingXml(seats: number, myPindex: number, players: Array<{ pcuid: st
   );
 }
 
-function ensureSharedTable(tid: number, taku: number): Table {
+function ensureSharedTable(tid: number, taku: number, human_seats?: number[]): Table {
   let table = SHARED_TABLES.get(tid) as Table | undefined;
   if (!table) {
-    table = new Table(taku, 0); // 0 is just for local masking, our modified taikyoku ignores it for on_command
+    const seats = human_seats && human_seats.length > 0 ? human_seats : [0];
+    table = new Table(taku, seats); // pass array of human seats
     (table as any).start_kyoku();
     SHARED_TABLES.set(tid, table);
   }
@@ -452,7 +454,8 @@ export async function handle_entry_game(form: Record<string, string>, ctx: any):
   
   if (lobby.pcuids.length >= seats) {
     const taku = GMODE_TAKU[gmode] ?? 0;
-    ensureSharedTable(lobby.tid, taku);
+    const human_seats = lobby.pcuids.map((id, i) => i);
+    ensureSharedTable(lobby.tid, taku, human_seats);
     MATCH_LOBBY.delete(lobbyKey);
   }
 
@@ -504,7 +507,8 @@ export async function handle_gget(form: Record<string, string>, ctx: any): Promi
   if (lobby && lobby.tid === seatInfo.tid) {
     if (nowUnix() - lobby.createdAt > 60) {
       const taku = GMODE_TAKU[gmode] ?? 0;
-      ensureSharedTable(lobby.tid, taku);
+      const human_seats = lobby.pcuids.map((id, i) => i);
+      ensureSharedTable(lobby.tid, taku, human_seats);
       MATCH_LOBBY.delete(lobbyKey);
     }
   }
