@@ -1,0 +1,45 @@
+//DATA//
+  profiles: DB.Find(null, { collection: 'profile' })
+
+-
+  let players = [];
+  for (const p of profiles) {
+    if (p.states && p.states.player_game) {
+      try {
+        const pg = JSON.parse(p.states.player_game);
+        players.push({
+          name: pg.PlayerName || "Guest",
+          mid: p.player_id,
+          rating: Number(pg.Rating || 0),
+          grade: Number(pg.Grade || 0),
+          chara: Number(pg.SelectChara || 0)
+        });
+      } catch (e) {}
+    }
+  }
+  players.sort((a, b) => b.rating - a.rating);
+
+div
+  .card
+    .card-header
+      p.card-header-title
+        span.icon
+          i.mdi.mdi-trophy
+        | Global Leaderboard
+    .card-content
+      table.table.is-fullwidth.is-striped.is-hoverable
+        thead
+          tr
+            th Rank
+            th Name
+            th Rating
+            th Grade
+            th MID
+        tbody
+          each p, index in players
+            tr
+              td= index + 1
+              td= p.name
+              td= p.rating
+              td= p.grade
+              td= p.mid

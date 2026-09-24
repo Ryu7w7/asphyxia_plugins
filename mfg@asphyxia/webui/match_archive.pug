@@ -1,0 +1,46 @@
+//DATA//
+  archives: DB.Find(null, { collection: 'match_archive' })
+
+-
+  let matches = archives || [];
+  matches.sort((a, b) => b.timestamp - a.timestamp);
+
+  const MODE_NAMES = {
+    1: "Tonpuusen (4-player)",
+    2: "Hanchan (4-player)",
+    3: "Sanma (3-player)",
+    4: "Nima (2-player)"
+  };
+
+  function formatDate(ts) {
+    if (!ts) return "-";
+    const d = new Date(ts);
+    return d.toLocaleString();
+  }
+
+div
+  .card
+    .card-header
+      p.card-header-title
+        span.icon
+          i.mdi.mdi-history
+        | Global Match Archive
+    .card-content
+      table.table.is-fullwidth.is-striped.is-hoverable
+        thead
+          tr
+            th Date
+            th Mode
+            th Players & Scores
+        tbody
+          each m in matches
+            tr
+              td= formatDate(m.timestamp)
+              td= MODE_NAMES[m.gmode] || ("Mode " + m.gmode)
+              td
+                ul
+                  if m.players
+                    each p in m.players
+                      li 
+                        strong= p.name 
+                        |  - Score: #{p.score} (Uma: #{p.uma}, Rank: #{p.rank})

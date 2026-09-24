@@ -596,11 +596,12 @@ export function buildGachaInfoXml(): string {
       `<label>${xml_escape(label)}</label>` +
       `<ticket_nr>${ticket}</ticket_nr>` +
       "<now_active>1</now_active>" +
+      "<force_active>0</force_active>" +
       `<series_type>${stype}</series_type>` +
       `<items>${items}</items>` +
       `<pickup_charas>${charas}</pickup_charas>` +
       `<custom_pickup_items>${custom}</custom_pickup_items>` +
-      "<exchange_items></exchange_items>" +
+      `<exchange_items>${stype === "Music" ? items : custom}</exchange_items>` +
       `<start_date>${EVENT_BEGIN}</start_date>` +
       `<end_date>${EVENT_END}</end_date>` +
       "</info>"
@@ -695,6 +696,9 @@ export function eventTakuFlags(): string[] {
 }
 
 export const BASE_EVENTS: Array<[string, string]> = [
+  ["PrivateMatchingDisplay", ""],
+  ["PrivateMatchingEnable", ""],
+  ["PrivateMatchingNotice", ""],
   ["SpiritGymBonusEvent", "OID=OID_DOJO_BONUS_3X"],
   ["ConstancyFireReach", ""],
   ["ConstancyFireReachAppearance", ""],

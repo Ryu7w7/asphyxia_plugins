@@ -666,15 +666,39 @@ export async function handle_end_or_kiken(form: Record<string, string>, ctx: any
   const pcuid = formGet(form, "pcuid");
   const seatInfo = PLAYER_SEAT.get(pcuid);
   const table = seatInfo ? SHARED_TABLES.get(seatInfo.tid) : null;
+  const gmode = Number(formGet(form, "gmode") || 1);
   
   if (table) {
+    if (!(table as any).archiveSaved) {
+      (table as any).archiveSaved = true;
+      const rows = (table as any).result_rows() as Array<[number, number, number]>;
+      const playersInfo = rows.map((r, i) => {
+        const s = Array.from(PLAYER_SEAT.values()).find(x => x.tid === seatInfo!.tid && x.pindex === i);
+        return {
+          pindex: i,
+          name: s ? s.name : "CPU",
+          mid: s ? s.mid : 0,
+          rank: r[0],
+          score: r[1],
+          uma: r[2]
+        };
+      });
+      // @ts-ignore
+      DB.Insert({
+        collection: 'match_archive',
+        tid: seatInfo!.tid,
+        gmode,
+        timestamp: Date.now(),
+        players: playersInfo
+      }).catch((e: any) => console.error(e));
+    }
     table.state = "game_end";
     table.finished = true;
   }
-  // Optional: Clean up PLAYER_SEAT to detect when all players have left
+  
   PLAYER_SEAT.delete(pcuid);
   
-  const body = mgresultXml(table, { gmode: Number(formGet(form, "gmode") || 1) });
+  const body = mgresultXml(table, { gmode });
   sendXml(ctx, xml_response(body));
 }
 
@@ -793,6 +817,32 @@ export async function handle_get_gacha_result(form: Record<string, string>, ctx:
   sendXml(ctx, xml_response(`<lottery_result>${rows}</lottery_result><gift><acquired>0</acquired><prev>0</prev><after>0</after></gift>`));
 }
 
+export async function handle_cutin_gacha_play_draw(form: Record<string, string>, ctx: any): Promise<void> {
+  const playCount = Number(formGet(form, "play_count") || 1);
+  const gachaId = Number(formGet(form, "gacha_id") || 140);
+  const pool = _gachaPool(gachaId, "Pickup"); // Assume Pickup or fallback
+  let items = pool.items;
+  if (!items || items.length === 0) {
+    items = ["OID_CHIP_DEFAULT"];
+  }
+
+  let gainItems = "";
+  for (let i = 0; i < Math.max(1, playCount); i++) {
+    const randomOid = items[Math.floor(Math.random() * items.length)];
+    gainItems += `<item><oid>${randomOid}</oid><gift_type>0</gift_type></item>`;
+  }
+  
+  const reqId = Math.floor(Math.random() * 1000000000).toString();
+  const xml = `<gacha_draw><is_success>1</is_success><request_id>${reqId}</request_id><gain_items>${gainItems}</gain_items><gift>0</gift></gacha_draw>`;
+  sendXml(ctx, xml_response(xml));
+}
+
+export async function handle_cutin_gacha_play_apply(form: Record<string, string>, ctx: any): Promise<void> {
+  const reqId = formGet(form, "request_id") || "123456789";
+  const xml = `<gacha_apply><is_success>1</is_success><request_id>${reqId}</request_id></gacha_apply>`;
+  sendXml(ctx, xml_response(xml));
+}
+
 export async function handle_gacha_log(form: Record<string, string>, ctx: any): Promise<void> {
   const raw = formGet(form, "log");
   if (raw) {
@@ -905,6 +955,8 @@ export const AOG_HANDLER_MAP: Record<string, (f: any, c: any) => Promise<void>> 
   gacha_log: handle_gacha_log,
   req_draw_gacha: handle_req_draw_gacha,
   get_gacha_result: handle_get_gacha_result,
+  cutin_gacha_play_draw: handle_cutin_gacha_play_draw,
+  cutin_gacha_play_apply: handle_cutin_gacha_play_apply,
   music_gacha_play: handle_music_gacha_play,
   music_gacha_play_reserve: handle_music_gacha_play_reserve,
   gchat: handle_gchat,
