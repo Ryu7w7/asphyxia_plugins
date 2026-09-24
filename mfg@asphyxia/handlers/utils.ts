@@ -409,6 +409,10 @@ export const GACHA_SERIES_CURATED: Array<[number, string, number, string]> = [
   [138, "PickupKimonoClear", 0, "Pickup"],
   [139, "PickupBomberPine2", 0, "Pickup"],
   [140, "PickupLillyIppatsu", 0, "Pickup"],
+  [141, "PickupNoel", 0, "Pickup"],
+  [142, "UnlockNoel", 0, "Unlock"],
+  [143, "PickupLisha", 0, "Pickup"],
+  [144, "UnlockLisha", 0, "Unlock"],
 ];
 
 export const GACHA_SERIES_ALL: Array<[number, string, number, string]> = [
@@ -546,9 +550,14 @@ export const GACHA_SERIES_ALL: Array<[number, string, number, string]> = [
   [138, "PickupKimonoClear", 0, "Pickup"],
   [139, "PickupBomberPine2", 0, "Pickup"],
   [140, "PickupLillyIppatsu", 0, "Pickup"],
+  [141, "PickupNoel", 0, "Pickup"],
+  [142, "UnlockNoel", 0, "Unlock"],
+  [143, "PickupLisha", 0, "Pickup"],
+  [144, "UnlockLisha", 0, "Unlock"],
 ];
 
 export function gachaSeries(): Array<[number, string, number, string]> {
+  let baseSeries = GACHA_SERIES_CURATED;
   try {
     // @ts-ignore
     const v = U.GetConfig("VFG_GACHA_ALL");
@@ -562,7 +571,7 @@ export function gachaSeries(): Array<[number, string, number, string]> {
     const ev = process.env.VFG_GACHA_ALL;
     if (ev && ["1", "true", "yes", "on"].includes(ev.trim().toLowerCase())) return GACHA_SERIES_ALL;
   } catch { }
-  return GACHA_SERIES_CURATED;
+  return baseSeries;
 }
 
 export function _gachaPool(sid: number, stype: string): { items: string[]; charas: string[]; custom: string[] } {

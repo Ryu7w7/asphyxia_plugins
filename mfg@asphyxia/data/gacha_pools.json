@@ -1,6 +1,6 @@
 {
  "_generated_by": "tools/extract_gacha_pools.py",
- "_source": "VFG:J:A:A:2025122300 (decompiled-csharp + Addressables catalog)",
+ "_source": "VFG:J:A:A:2026060900 (decompiled-csharp + Addressables catalog)",
  "chara_names": {
   "Chara01": "Hiyori",
   "Chara02": "Sen",
@@ -20,7 +20,9 @@
   "Chara16": "Dia",
   "Chara17": "Doubriel",
   "Chara18": "Ippatsu",
-  "Chara19": "Shiroe"
+  "Chara19": "Shiroe",
+  "Chara20": "Noel",
+  "Chara21": "Lisha"
  },
  "chara_unlock_items": {
   "Chara12": "OID_12AgariSR01",
@@ -30,7 +32,9 @@
   "Chara16": "OID_16AgariSR01",
   "Chara17": "OID_17AgariSR01",
   "Chara18": "OID_18AgariSR01",
-  "Chara19": "OID_19AgariSR01"
+  "Chara19": "OID_19AgariSR01",
+  "Chara20": "OID_20AgariSR01",
+  "Chara21": "OID_21AgariSR01"
  },
  "standard_pool": [
   "OID_01AgariR01",
@@ -364,7 +368,72 @@
   "OID_12AgariSR10",
   "OID_12AgariSR11",
   "OID_18AgariSR07",
-  "OID_18AgariSR08"
+  "OID_18AgariSR08",
+  "OID_20AgariSR01",
+  "OID_20AgariR01",
+  "OID_20AgariSR02",
+  "OID_20AgariSR03",
+  "OID_20AgariSR04",
+  "OID_20AgariSR05",
+  "OID_20AgariSR06",
+  "OID_20ReachA01",
+  "OID_20ReachR01",
+  "OID_20ReachR02",
+  "OID_20NakiA01",
+  "OID_20NakiN01",
+  "OID_20NakiN02",
+  "OID_20NakiN03",
+  "OID_20NakiA02",
+  "OID_20AgariSR07",
+  "OID_20AgariSR08",
+  "OID_21AgariSR01",
+  "OID_21AgariR01",
+  "OID_21AgariSR02",
+  "OID_21AgariSR03",
+  "OID_21AgariSR04",
+  "OID_21AgariSR05",
+  "OID_21AgariSR06",
+  "OID_21ReachA01",
+  "OID_21ReachR01",
+  "OID_21ReachR02",
+  "OID_21NakiA01",
+  "OID_21NakiN01",
+  "OID_21NakiN02",
+  "OID_21NakiN03",
+  "OID_21NakiA02",
+  "OID_12AgariSR01",
+  "OID_13AgariSR01",
+  "OID_14AgariSR01",
+  "OID_15AgariSR01",
+  "OID_16AgariSR01",
+  "OID_17AgariSR01",
+  "OID_18AgariSR01",
+  "OID_19AgariSR01",
+  "OID_14AgariSR11",
+  "OID_14AgariSR12",
+  "OID_01AgariSR13",
+  "OID_01AgariSR14",
+  "OID_06AgariSR14",
+  "OID_02AgariSR16",
+  "OID_02AgariSR17",
+  "OID_15AgariSR09",
+  "OID_15AgariSR10",
+  "OID_16AgariSR11",
+  "OID_16AgariSR12",
+  "OID_01AgariSR15",
+  "OID_12AgariSR12",
+  "OID_14AgariSR13",
+  "OID_11AgariSR10",
+  "OID_11AgariSR11",
+  "OID_19AgariSR07",
+  "OID_19AgariSR08",
+  "OID_08AgariSR13",
+  "OID_08AgariSR14",
+  "OID_03AgariSR13",
+  "OID_03AgariSR14",
+  "OID_07AgariSR18",
+  "OID_16AgariSR13",
+  "OID_16AgariSR14"
  ],
  "item_index": {
   "OID_01AgariA01": [
@@ -3625,6 +3694,54 @@
    ],
    "custom_pickup_items": [],
    "extra_items": []
+  },
+  "141": {
+   "name": "PickupNoel",
+   "type": "Pickup",
+   "pickup_kind": "NewGirl",
+   "pickup_charas": [
+    "Chara20"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "142": {
+   "name": "UnlockNoel",
+   "type": "Unlock",
+   "pickup_kind": "Unlock",
+   "pickup_charas": [
+    "Chara20"
+   ],
+   "custom_pickup_items": [
+    "OID_20AgariSR01"
+   ],
+   "extra_items": [
+    "OID_20AgariSR01"
+   ]
+  },
+  "143": {
+   "name": "PickupLisha",
+   "type": "Pickup",
+   "pickup_kind": "NewGirl",
+   "pickup_charas": [
+    "Chara21"
+   ],
+   "custom_pickup_items": [],
+   "extra_items": []
+  },
+  "144": {
+   "name": "UnlockLisha",
+   "type": "Unlock",
+   "pickup_kind": "Unlock",
+   "pickup_charas": [
+    "Chara21"
+   ],
+   "custom_pickup_items": [
+    "OID_21AgariSR01"
+   ],
+   "extra_items": [
+    "OID_21AgariSR01"
+   ]
   }
  }
 }
