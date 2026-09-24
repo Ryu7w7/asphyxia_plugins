@@ -1,6 +1,6 @@
 SOUND VOLTEX
 ===
-**Plugin Version:** fork-7.2.1
+**Plugin Version:** fork-7.2.2
 - Check for newer plugin versions [here](https://github.com/22vv0/asphyxia_plugins/releases?q=kfc&expanded=true).
 
 **Supported game versions:**
@@ -10,7 +10,7 @@ SOUND VOLTEX
 - HEAVENLY HAVEN (2019020600)
 - VIVID WAVE (2020122200)
 - EXCEED GEAR (2025120900)
-- ∇ (2026090100)
+- ∇ (2026091500)
 
 **Required Asphyxia Core version** [1.50d](https://github.com/asphyxia-core/asphyxia-core.github.io/releases/tag/v1.50d) or above
 
@@ -47,6 +47,11 @@ SOUND VOLTEX
 - Added 47 new songs to MEGAMIX BATTLE
 - Added 3 new options for appeal card frames
 - Updated login info popups list
+
+#### 2026091500
+
+- Added `Valkyrie Generator hololive Dreams x BEMANI`
+- Updated game over filter and appeal sticker IDs
 
 ---
 ## Todo:
