@@ -1,0 +1,48 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.ClearKind = exports.Rank = exports.Difficulty = void 0;
+var Difficulty;
+(function (Difficulty) {
+    Difficulty[Difficulty["SINGLE_BEGINNER"] = 0] = "SINGLE_BEGINNER";
+    Difficulty[Difficulty["SINGLE_BASIC"] = 1] = "SINGLE_BASIC";
+    Difficulty[Difficulty["SINGLE_DIFFICULT"] = 2] = "SINGLE_DIFFICULT";
+    Difficulty[Difficulty["SINGLE_EXPERT"] = 3] = "SINGLE_EXPERT";
+    Difficulty[Difficulty["SINGLE_CHALLENGE"] = 4] = "SINGLE_CHALLENGE";
+    Difficulty[Difficulty["DOUBLE_BASIC"] = 5] = "DOUBLE_BASIC";
+    Difficulty[Difficulty["DOUBLE_DIFFICULT"] = 6] = "DOUBLE_DIFFICULT";
+    Difficulty[Difficulty["DOUBLE_EXPERT"] = 7] = "DOUBLE_EXPERT";
+    Difficulty[Difficulty["DOUBLE_CHALLENGE"] = 8] = "DOUBLE_CHALLENGE";
+})(Difficulty || (exports.Difficulty = Difficulty = {}));
+var Rank;
+(function (Rank) {
+    Rank[Rank["AAA"] = 0] = "AAA";
+    Rank[Rank["AA_PLUS"] = 1] = "AA_PLUS";
+    Rank[Rank["AA"] = 2] = "AA";
+    Rank[Rank["AA_MINUS"] = 3] = "AA_MINUS";
+    Rank[Rank["A_PLUS"] = 4] = "A_PLUS";
+    Rank[Rank["A"] = 5] = "A";
+    Rank[Rank["A_MINUS"] = 6] = "A_MINUS";
+    Rank[Rank["B_PLUS"] = 7] = "B_PLUS";
+    Rank[Rank["B"] = 8] = "B";
+    Rank[Rank["B_MINUS"] = 9] = "B_MINUS";
+    Rank[Rank["C_PLUS"] = 10] = "C_PLUS";
+    Rank[Rank["C"] = 11] = "C";
+    Rank[Rank["C_MINUS"] = 12] = "C_MINUS";
+    Rank[Rank["D_PLUS"] = 13] = "D_PLUS";
+    Rank[Rank["D"] = 14] = "D";
+    Rank[Rank["E"] = 15] = "E";
+})(Rank || (exports.Rank = Rank = {}));
+var ClearKind;
+(function (ClearKind) {
+    ClearKind[ClearKind["NONE"] = 0] = "NONE";
+    ClearKind[ClearKind["FAILED"] = 1] = "FAILED";
+    ClearKind[ClearKind["ASSIST_CLEAR"] = 2] = "ASSIST_CLEAR";
+    ClearKind[ClearKind["CLEAR"] = 3] = "CLEAR";
+    ClearKind[ClearKind["LIFE4_1"] = 4] = "LIFE4_1";
+    ClearKind[ClearKind["LIFE4_2"] = 5] = "LIFE4_2";
+    ClearKind[ClearKind["LIFE4"] = 6] = "LIFE4";
+    ClearKind[ClearKind["GOOD_COMBO"] = 7] = "GOOD_COMBO";
+    ClearKind[ClearKind["GREAT_COMBO"] = 8] = "GREAT_COMBO";
+    ClearKind[ClearKind["PERFECT_COMBO"] = 9] = "PERFECT_COMBO";
+    ClearKind[ClearKind["MARVELOUS_COMBO"] = 10] = "MARVELOUS_COMBO";
+})(ClearKind || (exports.ClearKind = ClearKind = {}));

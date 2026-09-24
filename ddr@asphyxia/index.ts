@@ -6,7 +6,7 @@ import { musicdataload, playerdatanew, playerdatasave, playerdataload,
           rivaldataload, ghostdataload, mergeddataload, taboowordcheck, minidump
 } from "./handlers/ddrworld";
 import { CommonOffset, OptionOffset, Profile } from "./models/profile";
-import { ProfileWorld, CustomizeWorld, LeagueWorld, LeagueResultWorld } from "./models/ddrworld";
+import { ProfileWorld, CustomizeWorld, LeagueWorld, LeagueResultWorld, RivalWorld } from "./models/ddrworld";
 import { SONGS_WORLD, SONGS_OVERRIDE_WORLD, LEAGUE_WORLD } from "./data/world"
 
 export function register() {
@@ -243,10 +243,51 @@ export function register() {
       await DB.Upsert<CustomizeWorld>(refid, { collection: "customize3", category: sel[0], pattern: sel[2] }, { 
         $set: { 
           key: sel[1],
+          ...(sel[1] === 9999 && {
+            random: sel[3]
+          })
         }
       });
     }
   });
+
+  R.WebUIEvent("addRival", async (data: any, send: WebUISend) => {
+    const ddrCode = parseInt(data?.ddrCode) ?? ''
+    if(!ddrCode) return send.json({success: false, alert: "Enter a DDR code."})
+    if(await DB.Count<RivalWorld>(data.refid, {collection: "rival3"}) >= 10) return send.json({success: false, alert: "Rival list is full."})
+    if(await DB.Count<RivalWorld>(data.refid, {collection: "rival3", ddrCode}) > 0) return send.json({success: false, alert: "Profile already registered as rival."})
+    const search = await DB.FindOne<ProfileWorld>(null, {collection: "profile3", ddrCode})
+    if(!search) return send.json({success: false, alert: "Dancer not found."})
+    else if(search['__refid'] === data.refid) return send.json({success: false, alert: "You can't add yourself as rival."})
+    await DB.Insert<RivalWorld>(data.refid, {collection: "rival3", slot: 0, rivalCode: ddrCode})
+    send.json({
+      success: true,
+      alert: 'Success',
+      search
+    })
+  })
+
+  R.WebUIEvent("deleteRival", async (data: any, send: WebUISend) => {
+    const ddrCode = parseInt(data?.ddrCode) ?? ''
+    if(!ddrCode) return send.json({success: false, alert: "No DDR code."})
+    await DB.Remove<RivalWorld>(data.refid, {collection: "rival3", rivalCode: ddrCode})
+    send.json({
+      success: true,
+      alert: 'Rival removed.'
+    })
+  })
+
+  R.WebUIEvent("updateRivalSlot", async (data: any, send: WebUISend) => {
+    const ddrCode = parseInt(data.ddrCode)
+    if(ddrCode === 0) {
+      await DB.Update<RivalWorld>(data.refid, {collection: "rival3", slot: data.slot}, {$set: {slot: 0}})
+    } else {
+      await DB.Update<RivalWorld>(data.refid, {collection: "rival3", rivalCode: ddrCode}, {$set: {slot: data.slot}})
+    }
+    send.json({
+      success: true
+    })
+  })
 
   R.WebUIEvent("getMDB", async (data: {}, send: WebUISend) => {
     let mdbData = []
@@ -350,11 +391,6 @@ async function updateWorldLeague() {
   }
 }
 
-if(U.GetConfig('world_league')) {
-  updateWorldLeague()
-  setInterval(updateWorldLeague, 60000)
-}
-
 // List missing songs in SONGS_WORLD/SONGS_OVERRIDE_WORLD
 async function checkMissingSongs() {
   const excl = [38269, 38440]
@@ -380,5 +416,9 @@ async function checkMissingSongs() {
     if($(a3info).numbers('diffLv')[4] === 0 && $(m).numbers('limited_ary')[4] != -1 && !worldOverrides.includes(mcode)) console.log(mcode + " - " + $(m).str('title'))
   }
 }
+
+updateWorldLeague()
+setInterval(updateWorldLeague, 60000)
+
 // checkMissingSongs()
 
