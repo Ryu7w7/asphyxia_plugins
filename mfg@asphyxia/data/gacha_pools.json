@@ -3696,38 +3696,6 @@
    "extra_items": []
   },
   "141": {
-   "name": "PickupNoel",
-   "type": "Pickup",
-   "pickup_kind": "NewGirl",
-   "pickup_charas": [],
-   "custom_pickup_items": [],
-   "extra_items": []
-  },
-  "142": {
-   "name": "UnlockNoel",
-   "type": "Unlock",
-   "pickup_kind": "Unlock",
-   "pickup_charas": [],
-   "custom_pickup_items": [],
-   "extra_items": []
-  },
-  "143": {
-   "name": "PickupLisha",
-   "type": "Pickup",
-   "pickup_kind": "NewGirl",
-   "pickup_charas": [],
-   "custom_pickup_items": [],
-   "extra_items": []
-  },
-  "144": {
-   "name": "UnlockLisha",
-   "type": "Unlock",
-   "pickup_kind": "Unlock",
-   "pickup_charas": [],
-   "custom_pickup_items": [],
-   "extra_items": []
-  },
-  "145": {
    "name": "PickupSisterTsumire2",
    "type": "Pickup",
    "pickup_kind": "Sister",
@@ -3737,7 +3705,7 @@
    "custom_pickup_items": [],
    "extra_items": []
   },
-  "146": {
+  "142": {
    "name": "PickupAlotGrimAroe",
    "type": "Pickup",
    "pickup_kind": "Alot",
@@ -3747,7 +3715,7 @@
    "custom_pickup_items": [],
    "extra_items": []
   },
-  "147": {
+  "143": {
    "name": "PickupDarknessRobeMitsuba2",
    "type": "Pickup",
    "pickup_kind": "DarknessRobe",
@@ -3757,7 +3725,7 @@
    "custom_pickup_items": [],
    "extra_items": []
   },
-  "148": {
+  "144": {
    "name": "PickupValentineHiyori",
    "type": "Pickup",
    "pickup_kind": "Valentine",
@@ -3767,7 +3735,7 @@
    "custom_pickup_items": [],
    "extra_items": []
   },
-  "149": {
+  "145": {
    "name": "PickupNurseChaos2",
    "type": "Pickup",
    "pickup_kind": "Nurse",
@@ -3777,7 +3745,7 @@
    "custom_pickup_items": [],
    "extra_items": []
   },
-  "150": {
+  "146": {
    "name": "MusicMitsuba",
    "type": "Music",
    "pickup_kind": "Music",
@@ -3793,7 +3761,7 @@
     "OID_ReachBgm180"
    ]
   },
-  "152": {
+  "148": {
    "name": "UnlockJun",
    "type": "Unlock",
    "pickup_kind": "Unlock",
@@ -3807,7 +3775,7 @@
     "OID_20AgariSR01"
    ]
   },
-  "168": {
+  "164": {
    "name": "UnlockTouka",
    "type": "Unlock",
    "pickup_kind": "Unlock",
@@ -3821,7 +3789,7 @@
     "OID_21AgariSR01"
    ]
   },
-  "151": {
+  "147": {
    "name": "PickupJun",
    "type": "Pickup",
    "pickup_kind": "NewGirl",
@@ -3831,7 +3799,7 @@
    "custom_pickup_items": [],
    "extra_items": []
   },
-  "167": {
+  "163": {
    "name": "PickupTouka",
    "type": "Pickup",
    "pickup_kind": "NewGirl",
@@ -3841,7 +3809,7 @@
    "custom_pickup_items": [],
    "extra_items": []
   },
-  "153": {
+  "149": {
    "name": "LimitedCharaReturns2",
    "type": "Limited",
    "pickup_kind": "LimitedReturns",
@@ -3858,7 +3826,7 @@
     "OID_19AgariSR01"
    ]
   },
-  "154": {
+  "150": {
    "name": "PickupGalSen",
    "type": "Pickup",
    "pickup_kind": "Gal",
@@ -3868,7 +3836,7 @@
    "custom_pickup_items": [],
    "extra_items": []
   },
-  "155": {
+  "151": {
    "name": "PickupGalCocoa",
    "type": "Pickup",
    "pickup_kind": "Gal",
@@ -3878,7 +3846,7 @@
    "custom_pickup_items": [],
    "extra_items": []
   },
-  "156": {
+  "152": {
    "name": "PickupGalDia",
    "type": "Pickup",
    "pickup_kind": "Gal",
@@ -3888,7 +3856,7 @@
    "custom_pickup_items": [],
    "extra_items": []
   },
-  "157": {
+  "153": {
    "name": "PickupGalReturns",
    "type": "Pickup",
    "pickup_kind": "Gal",
@@ -3900,7 +3868,7 @@
    "custom_pickup_items": [],
    "extra_items": []
   },
-  "158": {
+  "154": {
    "name": "PickupSuitChaos",
    "type": "Pickup",
    "pickup_kind": "Suit",
@@ -3910,7 +3878,7 @@
    "custom_pickup_items": [],
    "extra_items": []
   },
-  "159": {
+  "155": {
    "name": "PickupJiangshiIyo2",
    "type": "Pickup",
    "pickup_kind": "Jiangshi",
@@ -3920,7 +3888,7 @@
    "custom_pickup_items": [],
    "extra_items": []
   },
-  "160": {
+  "156": {
    "name": "PickupUniformShiroe",
    "type": "Pickup",
    "pickup_kind": "Uniform",
@@ -3930,7 +3898,7 @@
    "custom_pickup_items": [],
    "extra_items": []
   },
-  "161": {
+  "157": {
    "name": "PickupMaidMusashi",
    "type": "Pickup",
    "pickup_kind": "Maid",
@@ -3940,7 +3908,7 @@
    "custom_pickup_items": [],
    "extra_items": []
   },
-  "162": {
+  "158": {
    "name": "PickupSchoolMizugiTsumire",
    "type": "Pickup",
    "pickup_kind": "SchoolMizugi",
@@ -3950,7 +3918,7 @@
    "custom_pickup_items": [],
    "extra_items": []
   },
-  "163": {
+  "159": {
    "name": "PickupFundoshiMusashi2",
    "type": "Pickup",
    "pickup_kind": "Fundoshi",
@@ -3960,7 +3928,7 @@
    "custom_pickup_items": [],
    "extra_items": []
   },
-  "164": {
+  "160": {
    "name": "PickupBellyDanceYao2",
    "type": "Pickup",
    "pickup_kind": "BellyDance",
@@ -3970,7 +3938,7 @@
    "custom_pickup_items": [],
    "extra_items": []
   },
-  "165": {
+  "161": {
    "name": "MusicToytoy",
    "type": "Music",
    "pickup_kind": "Music",
@@ -3986,7 +3954,7 @@
     "OID_ReachBgm228"
    ]
   },
-  "166": {
+  "162": {
    "name": "PickupTrainDia",
    "type": "Pickup",
    "pickup_kind": "Train",
@@ -3996,7 +3964,7 @@
    "custom_pickup_items": [],
    "extra_items": []
   },
-  "169": {
+  "165": {
    "name": "PickupMaidJun",
    "type": "Pickup",
    "pickup_kind": "Maid",
@@ -4006,7 +3974,7 @@
    "custom_pickup_items": [],
    "extra_items": []
   },
-  "170": {
+  "166": {
    "name": "LimitedCharaReturns3",
    "type": "Limited",
    "pickup_kind": "LimitedReturns",
