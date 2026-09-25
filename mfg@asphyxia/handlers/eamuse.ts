@@ -32,6 +32,7 @@ import {
   playerIdFromRefid,
   gameBaseUrl,
   ensureProfile,
+  vlog,
 } from "./utils";
 
 // helpers for cardmng
@@ -94,7 +95,7 @@ function cardAttr(data: any, key: string): string {
   } catch { return ""; }
 }
 
-// in-memory fallback for cards if DB not used
+// in-memory fallback for cards
 function getCardById(cardid: string): any | null {
   return CARD_STORE.get(cardid) || null;
 }
@@ -102,6 +103,53 @@ function setCard(cardid: string, rec: any): void {
   CARD_STORE.set(cardid, rec);
   // Keep secondary refid index in sync
   if (rec && rec.refid) CARD_STORE_BY_REFID.set(String(rec.refid).toUpperCase(), rec);
+}
+
+// Persist card data inside the profile document (the only collection that reliably saves to DB).
+// This avoids the issue where the 'cards' collection is silently dropped by Asphyxia.
+async function saveCardToProfile(cardid: string, refid: string, rec: any): Promise<void> {
+  try {
+    const norm = String(refid || "").trim().toUpperCase();
+    if (!norm) return;
+    const { getProfileByRefid, saveProfile } = await import("./utils");
+    const prof: any = await getProfileByRefid(norm);
+    if (prof) {
+      prof.card_id = String(cardid || "").toUpperCase();
+      prof.card_issued = !!rec.issued;
+      prof.card_bound = !!rec.bound;
+      prof.card_pin = rec.pin || "0000";
+      prof.card_updated_at = rec.updated_at || rec.created_at;
+      await saveProfile(norm, prof);
+    }
+  } catch (e) { try { console.error("saveCardToProfile error:", e); } catch {} }
+}
+
+// Look up a card record by card_id from the DB via profile documents.
+async function loadCardFromDB(cardid: string): Promise<any | null> {
+  try {
+    const want = String(cardid || "").toUpperCase();
+    if (!want) return null;
+    // @ts-ignore - ProfileSpace scan: refid=null matches all profiles
+    const all: any[] = await DB.Find(null, { collection: "profile" });
+    if (!all) return null;
+    for (const p of all) {
+      if (p && String(p.card_id || "").toUpperCase() === want) {
+        const rec: any = {
+          collection: "cards",
+          card_id: String(cardid).toUpperCase(),
+          refid: String(p.refid || "").toUpperCase(),
+          issued: !!p.card_issued,
+          bound: !!p.card_bound,
+          pin: p.card_pin || "0000",
+          updated_at: p.card_updated_at || p.updated_at || 0,
+          created_at: p.created_at || 0,
+        };
+        setCard(String(cardid).toUpperCase(), rec);
+        return rec;
+      }
+    }
+  } catch (e) { try { console.error("loadCardFromDB error:", e); } catch {} }
+  return null;
 }
 
 // XRPC handlers
@@ -231,8 +279,7 @@ async function handleCardmng(info: any, data: any, send: any): Promise<void> {
 
   // For decode failure empty <call/> case: cardid missing
   if (!rawCardId && (method === "inquire" || method === "getrefid")) {
-    // @ts-ignore
-    if (typeof console !== "undefined" && console.warn) console.warn(`[cardmng] ${method} rejected: missing cardid`);
+    vlog(`[cardmng] ${method} rejected: missing cardid`);
     if (method === "inquire") return send.status(112);
     return send.status(110);
   }
@@ -258,6 +305,7 @@ async function handleCardmng(info: any, data: any, send: any): Promise<void> {
   }
 
   const cardid = normalizeCardId(rawCardId);
+  vlog(`[cardmng] ${method} rawCardId='${rawCardId}' cardid='${cardid}' reqRefid='${reqRefid}'`);
 
   // Use in-memory store + also try to persist via DB (plugin DB)
   // For persistence, we also try to load from DB collection "cards"
@@ -265,36 +313,45 @@ async function handleCardmng(info: any, data: any, send: any): Promise<void> {
   let recByCard: any = null;
   let recByRefid: any = null;
 
-  // Try in-memory first
-  recByCard = getCardById(cardid) || null;
-  if (reqRefid) {
+  // Try in-memory first (normalize: card ids uppercase, refids uppercase)
+  const cardKey = String(cardid || "").toUpperCase();
+  const refKey = String(reqRefid || "").trim().toUpperCase();
+  recByCard = getCardById(cardKey) || getCardById(cardid) || null;
+  if (refKey) {
     // O(1) lookup via secondary index
-    recByRefid = CARD_STORE_BY_REFID.get(reqRefid) || null;
+    recByRefid = CARD_STORE_BY_REFID.get(refKey) || null;
   }
-  rec = reqRefid ? recByRefid : recByCard;
+  rec = refKey ? recByRefid : recByCard;
 
-  // Also try DB if not found in memory (best effort)
+  // Also try DB if not found in memory — look inside profile documents (cards col doesn't persist)
   if (!recByCard) {
-    try {
-      // @ts-ignore
-      const dbRec = await DB.FindOne(null, { collection: "cards", card_id: cardid });
-      if (dbRec) {
-        recByCard = dbRec;
-        CARD_STORE.set(cardid, dbRec);
-        if (!reqRefid) rec = dbRec;
-      }
-    } catch { }
+    const dbRec = await loadCardFromDB(cardKey);
+    if (dbRec) {
+      recByCard = dbRec;
+      if (!refKey) rec = dbRec;
+    }
   }
-  if (reqRefid && !recByRefid) {
+  if (refKey && !recByRefid) {
+    // Look for profile with this refid and check it has a card
     try {
-      // @ts-ignore
-      const dbRec2 = await DB.FindOne(null, { collection: "cards", refid: reqRefid });
-      if (dbRec2) {
-        recByRefid = dbRec2;
-        CARD_STORE.set(dbRec2.card_id, dbRec2);
-        rec = dbRec2;
+      const { getProfileByRefid } = await import("./utils");
+      const prof: any = await getProfileByRefid(refKey);
+      if (prof && prof.card_id) {
+        const synth: any = {
+          collection: "cards",
+          card_id: String(prof.card_id).toUpperCase(),
+          refid: String(prof.refid).toUpperCase(),
+          issued: !!prof.card_issued,
+          bound: !!prof.card_bound,
+          pin: prof.card_pin || "0000",
+          updated_at: prof.card_updated_at || prof.updated_at || 0,
+          created_at: prof.created_at || 0,
+        };
+        recByRefid = synth;
+        setCard(String(prof.card_id).toUpperCase(), synth);
+        rec = synth;
       }
-    } catch { }
+    } catch (e) { try { console.error("loadCardByRefid error:", e); } catch {} }
   }
 
   if (method === "inquire") {
@@ -332,35 +389,31 @@ async function handleCardmng(info: any, data: any, send: any): Promise<void> {
   }
 
   if (method === "getrefid") {
-    // create or update card profile
-    let existing = getCardById(cardid);
+    // create or update card profile (keys always uppercase)
+    const cardKey = String(cardid || "").toUpperCase();
+    let existing = getCardById(cardKey);
     if (!existing) {
-      try {
-        // @ts-ignore
-        const dbExisting = await DB.FindOne(null, { collection: "cards", card_id: cardid });
-        if (dbExisting) existing = dbExisting;
-      } catch { }
+      // Look up via profile documents instead of 'cards' collection
+      existing = await loadCardFromDB(cardKey);
     }
     let refid: string;
-    let issued = true;
     if (existing && existing.refid) {
-      refid = existing.refid;
+      refid = String(existing.refid).toUpperCase();
+      existing.refid = refid;
+      existing.card_id = cardKey;
       existing.issued = true;
       existing.bound = false;
       const passwd = cardAttr(data, "passwd") || "";
       existing.pin = sanitizePin(passwd, existing.pin || "0000");
       existing.updated_at = nowUnix();
-      setCard(cardid, existing);
-      try {
-        // @ts-ignore
-        await DB.Upsert(null, { collection: "cards", card_id: cardid }, existing);
-      } catch { }
+      setCard(cardKey, existing);
+      await saveCardToProfile(cardKey, refid, existing);
     } else {
-      refid = newRefid();
+      refid = String(newRefid()).toUpperCase();
       const passwd = cardAttr(data, "passwd") || "";
       const recNew: any = {
         collection: "cards",
-        card_id: cardid,
+        card_id: cardKey,
         refid,
         issued: true,
         bound: false,
@@ -368,16 +421,13 @@ async function handleCardmng(info: any, data: any, send: any): Promise<void> {
         created_at: nowUnix(),
         updated_at: nowUnix(),
       };
-      setCard(cardid, recNew);
+      setCard(cardKey, recNew);
+      // ensure profile exists first, then persist card data inside the profile
       try {
-        // @ts-ignore
-        await DB.Upsert(null, { collection: "cards", card_id: cardid }, recNew);
+        const { ensureProfile: ep } = await import("./utils");
+        await ep(refid, "GUEST");
       } catch { }
-      // also ensure profile exists
-      try {
-        const { ensureProfile } = await import("./utils");
-        await ensureProfile(refid, "GUEST");
-      } catch { }
+      await saveCardToProfile(cardKey, refid, recNew);
     }
     await send.object({
       "@attr": {
@@ -402,15 +452,15 @@ async function handleCardmng(info: any, data: any, send: any): Promise<void> {
     rec.issued = true;
     rec.bound = true;
     rec.updated_at = nowUnix();
-    setCard(rec.card_id || cardid, rec);
-    try {
-      // @ts-ignore
-      await DB.Upsert(null, { collection: "cards", card_id: rec.card_id }, rec);
-    } catch { }
-    // bind profile to gamecode
+    rec.refid = String(rec.refid || reqRefid || "").toUpperCase();
+    rec.card_id = String(rec.card_id || cardid || "").toUpperCase();
+    setCard(rec.card_id, rec);
+    // bind profile to gamecode and persist card data inside profile
+    // (never touch profile.name here — that belongs to create_player)
     try {
       await ensureProfile(rec.refid, "GUEST");
     } catch { }
+    await saveCardToProfile(rec.card_id, rec.refid, rec);
     await send.object({
       "@attr": {
         dataid: rec.refid,
@@ -438,26 +488,34 @@ async function handleVfgac(info: any, data: any, send: any): Promise<void> {
     if (customUrl && String(customUrl).trim() !== '') {
       url = String(customUrl).trim();
       if (!url.endsWith('/')) url += '/';
+      // A bare host:port root 404s game endpoints on the CORE port (core
+      // only routes /aog/*), while the native :22421 server accepts both
+      // root and /aog/. Appending aog/ to a bare root is therefore safe
+      // for either backend. (A bare core-port root caused
+      // CutinGachaPlayDraw resCb4:ProtocolError/404.)
+      try {
+        const u = new URL(url);
+        if (!u.pathname || u.pathname === '/') url = url + 'aog/';
+      } catch { }
     } else {
-      // For local testing and VPS: use requesting host + separate AOG port 22421 (proven to work)
-      // Fallback to integrated /aog on same port if you set mfg_service_url to http://host:port/aog
+      // Default: native AOG port with /aog/ path. The native server strips
+      // the aog/ prefix, and if it ever failed to bind (port clash) the
+      // core integrated router serves the same /aog/ path — one URL that
+      // works on both backends, never a bare root that can 404.
       const host = (info as any).host || (info as any).ip || '127.0.0.1';
-      // Use separate port 22421 by default (old plugin behaviour) - client expects http://host:22421/
-      // If you want integrated same-port, set mfg_service_url to http://host:${(info as any).port || CONFIG.port}/aog
-      const separatePort = (() => {
+      let separatePort = (() => {
         try {
           const p = U.GetConfig('mfg_http_port');
           if (p) return Number(p);
         } catch { }
         return 22421;
       })();
-      // If host is the VPS public IP, this will be reachable; for localhost testing it's 127.0.0.1
-      url = `http://${host}:${separatePort}/`;
+      url = `http://${host}:${separatePort}/aog/`;
     }
     // @ts-ignore
     let cfgPort: any = 'n/a';
     try { cfgPort = (typeof CONFIG !== 'undefined' ? (CONFIG as any).port : U.GetConfig('port')); } catch { }
-    console.log(`[VFG] vfgac.service_list host=${(info as any).host} port=${(info as any).port} cfgPort=${cfgPort} -> url=${url} model=${info.model} ip=${info.ip}`);
+    vlog(`[VFG] vfgac.service_list host=${(info as any).host} port=${(info as any).port} cfgPort=${cfgPort} -> url=${url} model=${info.model} ip=${info.ip}`);
     await send.object({
       service_url: K.ITEM("str", url),
       services: {
@@ -509,8 +567,7 @@ async function handleVfglog(info: any, data: any, send: any): Promise<void> {
           // @ts-ignore
           console.error(`[client] network_error: ${value}`);
         } else if (value || label !== "?") {
-          // @ts-ignore
-          console.log(`[client] ${label}: ${String(value).slice(0, 500)}`);
+          vlog(`[client] ${label}: ${String(value).slice(0, 500)}`);
         }
       }
     } catch { }
@@ -523,10 +580,13 @@ async function handleEacoin(info: any, data: any, send: any): Promise<void> {
   const getChild = (key: string): string => {
     return cardAttr(data, key) || "";
   };
+  const shortSess = (s: string) => String(s || "").slice(0, 8) + "...";
+  vlog(`[eacoin] ${method} sess=${shortSess(getChild("sessid"))} payment=${getChild("payment") || 0}`);
   if (method === "checkin" || method === "opcheckin") {
     // generate sessid
     const sess = Array.from({ length: 16 }, () => Math.floor(Math.random() * 16).toString(16)).join("");
     PASELI_SESSIONS.set(sess, PASELI_BALANCE);
+    vlog(`[eacoin] ${method} -> new sess=${shortSess(sess)} balance=${PASELI_BALANCE}`);
     if (method === "opcheckin") {
       await send.object({ sessid: K.ITEM("str", sess) });
       return;
@@ -552,6 +612,7 @@ async function handleEacoin(info: any, data: any, send: any): Promise<void> {
     balance = balance - payment;
     if (balance < 0) balance = 0;
     PASELI_SESSIONS.set(sess, balance);
+    vlog(`[eacoin] consume sess=${shortSess(sess)} paid=${payment} new_balance=${balance}`);
     await send.object({
       acstatus: K.ITEM("u8", 0),
       autocharge: K.ITEM("u8", 0),
@@ -587,56 +648,74 @@ async function handleEacoin(info: any, data: any, send: any): Promise<void> {
   await send.success();
 }
 
+// XRPC route wrapper: entry/exit through vlog so payment (eacoin) and all
+// other XRPC traffic is visible with VFG_VERBOSE (core doesn't log these).
+function xroute(method: string, handler: (info: any, data: any, send: any) => Promise<any>): void {
+  const wrapped = async (info: any, data: any, send: any) => {
+    const t0 = Date.now();
+    try { vlog(`[VFG] XRPC ${method} model=${info?.model || ""}`); } catch { }
+    try {
+      await handler(info, data, send);
+    } catch (e) {
+      try { console.error(`[VFG] XRPC ${method} handler threw: ${e}`); } catch { }
+      throw e;
+    } finally {
+      try { vlog(`[VFG] XRPC ${method} done ${Date.now() - t0}ms`); } catch { }
+    }
+  };
+  R.Route(method, wrapped);
+}
+
 // register
 export function registerEamuseRoutes(): void {
   // pcbtracker
-  R.Route("pcbtracker.alive", handlePcbtracker);
-  R.Route("pcbtracker.keepalive", handlePcbtracker);
+  xroute("pcbtracker.alive", handlePcbtracker);
+  xroute("pcbtracker.keepalive", handlePcbtracker);
 
   // message
-  R.Route("message.get", handleMessageGet);
+  xroute("message.get", handleMessageGet);
 
   // facility
-  R.Route("facility.get", handleFacilityGet);
+  xroute("facility.get", handleFacilityGet);
 
   // package
-  R.Route("package.list", handlePackageList);
+  xroute("package.list", handlePackageList);
 
   // pcbevent
-  R.Route("pcbevent.put", handlePcbeventPut);
+  xroute("pcbevent.put", handlePcbeventPut);
 
   // eventlog
-  R.Route("eventlog.write", handleEventlogWrite);
+  xroute("eventlog.write", handleEventlogWrite);
 
   // cardmng + shadow
   const cardMethods = ["inquire", "getrefid", "authpass", "bindmodel", "bindcard", "getdatalist"];
   for (const m of cardMethods) {
-    R.Route(`cardmng.${m}`, handleCardmng);
-    R.Route(`${CARDMNG_SHADOW_MODULE}.${m}`, handleCardmng);
+    xroute(`cardmng.${m}`, handleCardmng);
+    xroute(`${CARDMNG_SHADOW_MODULE}.${m}`, handleCardmng);
   }
 
   // vfgac
-  R.Route("vfgac.service_list", handleVfgac);
-  R.Route("vfgac.update_refer", handleVfgac);
-  R.Route("vfgac.ext_campaign", handleVfgac);
-  R.Route("vfgac.send_paylog", handleVfgac);
+  xroute("vfgac.service_list", handleVfgac);
+  xroute("vfgac.update_refer", handleVfgac);
+  xroute("vfgac.ext_campaign", handleVfgac);
+  xroute("vfgac.send_paylog", handleVfgac);
 
   // vfglog
-  R.Route("vfglog.put_msg", handleVfglog);
+  xroute("vfglog.put_msg", handleVfglog);
   // also generic vfglog handler for any method
-  R.Route("vfglog.put", handleVfglog);
+  xroute("vfglog.put", handleVfglog);
 
   // eacoin
   const eacoinMethods = ["checkin", "opcheckin", "consume", "getbalance", "checkout", "getlog", "getoplog", "getcampaign"];
   for (const m of eacoinMethods) {
-    R.Route(`eacoin.${m}`, handleEacoin);
+    xroute(`eacoin.${m}`, handleEacoin);
   }
 
   // generic fallbacks for other modules (posevent, pkglist, userdata, userid, sidmgr, netlog, etc.)
   const genericModules = ["posevent", "pkglist", "userdata", "userid", "sidmgr", "netlog", "local", "local2"];
   for (const mod of genericModules) {
-    R.Route(`${mod}.get`, async (info: any, data: any, send: any) => send.success());
-    R.Route(`${mod}.put`, async (info: any, data: any, send: any) => send.success());
-    R.Route(`${mod}.write`, async (info: any, data: any, send: any) => send.success());
+    xroute(`${mod}.get`, async (info: any, data: any, send: any) => send.success());
+    xroute(`${mod}.put`, async (info: any, data: any, send: any) => send.success());
+    xroute(`${mod}.write`, async (info: any, data: any, send: any) => send.success());
   }
 }

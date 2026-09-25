@@ -164,6 +164,8 @@ export class Table {
   first_go_around: boolean;
   discard_count: number;
   any_call: boolean;
+  // per-match yakuman wins per seat (for player_record). NOT reset per kyoku.
+  yakuman: number[];
 
   constructor(taku: number, human_seats: number[] = [0], seed?: number | null) {
     this.taku = taku;
@@ -211,6 +213,7 @@ export class Table {
     this.first_go_around = true;
     this.discard_count = 0;
     this.any_call = false;
+    this.yakuman = [0, 0, 0, 0];
 
     this._new_kyoku_state();
   }
@@ -1151,6 +1154,7 @@ export class Table {
     kyo[seat] = 1000 * this.kyotaku;
     for (let i = 0; i < 4; i++) this.scores[i] = before[i] + yaku[i] + kyo[i] + fu[i];
     this.kyotaku = 0;
+    try { if (res && Number(res.yakuman) > 0) this.yakuman[seat] = (this.yakuman[seat] || 0) + 1; } catch { }
 
     const inner =
       `<pindex>${seat}</pindex>` +
@@ -1176,6 +1180,7 @@ export class Table {
       yaku[discarder] -= total;
       fu[s] += 300 * this.honba;
       fu[discarder] -= 300 * this.honba;
+      try { if (res && Number(res.yakuman) > 0) this.yakuman[s] = (this.yakuman[s] || 0) + 1; } catch { }
       if (first) {
         kyo[s] += 1000 * this.kyotaku;
         first = false;

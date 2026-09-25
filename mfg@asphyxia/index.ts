@@ -11,6 +11,7 @@ declare const Buffer: any;
 
 import { registerEamuseRoutes } from "./handlers/eamuse";
 import { registerAogRoutes, AOG_HANDLER_MAP } from "./handlers/aog";
+import { vlog } from "./handlers/utils";
 
 export function register(): void {
   R.GameCode("VFG");
@@ -64,6 +65,22 @@ export function register(): void {
       desc: "Port for separate AOG HTTP server (when mfg_service_url is empty). Default 22421.",
       type: "integer",
       default: 22421,
+    });
+  } catch {}
+  try {
+    R.Config("VFG_VERBOSE", {
+      name: "Verbose Logging",
+      desc: "If enabled, per-request/per-player debug logs go to console. OFF by default to avoid spam with many players. Errors always show.",
+      type: "boolean",
+      default: false,
+    });
+  } catch {}
+  try {
+    R.Config("VFG_HIDE_GACHA", {
+      name: "Hide Gacha Series",
+      desc: "Comma-separated gacha series IDs to hide (e.g. 152 to hide UnlockJun). Empty by default.",
+      type: "string",
+      default: "",
     });
   } catch {}
 
@@ -123,10 +140,10 @@ export function register(): void {
           // Try to infer from body keys? For now keep empty
         }
         const ctx = { req, res: adaptRes(res), form: params, name: handlerName, url: clean };
-        try { console.log(`[VFG-NATIVE] ${req.method} ${clean} name=${handlerName} keys=${Object.keys(params).join(',')}`); } catch {}
+        try { vlog(`[VFG-NATIVE] ${req.method} ${clean} name=${handlerName} keys=${Object.keys(params).join(',')}`); } catch {}
         let handler: any = (AOG_HANDLER_MAP as any)[handlerName];
         if (handler) {
-          try { await handler(params, ctx); return; } catch (e) { console.log(`[VFG-NATIVE] handler error ${handlerName}: ${e}`); }
+          try { await handler(params, ctx); return; } catch (e) { try { console.error(`[VFG-NATIVE] handler error ${handlerName}: ${e}`); } catch {} }
         }
         // Try fallback via registry if not found in map (e.g., integrated handlers)
         try {
@@ -142,7 +159,7 @@ export function register(): void {
           const regHandler2 = reg2.getAogHandler(handlerName);
           if (regHandler2) { await regHandler2(params, ctx); return; }
         } catch {}
-        console.log(`[VFG-NATIVE] Unhandled ${clean} name=${handlerName} -> empty success`);
+        vlog(`[VFG-NATIVE] Unhandled ${clean} name=${handlerName} -> empty success`);
         try {
           const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<root><serv_st><code>0</code></serv_st></root>`;
           if (!res.headersSent) res.writeHead(200, { 'Content-Type': 'text/xml; charset=utf-8' });
@@ -165,14 +182,14 @@ export function register(): void {
     const mod = info.module || "unknown";
     const meth = info.method || "unknown";
     if (["eventlog", "posevent", "pkglist", "netlog", "sidmgr"].includes(mod)) return;
-    console.log(`[VFG] Unhandled XRPC ${mod}.${meth} model=${info.model}`);
+    vlog(`[VFG] Unhandled XRPC ${mod}.${meth} model=${info.model}`);
     try { await send.success(); } catch {}
   });
 
   try {
     R.AogUnhandled(async (ctx: any) => {
       const name = ctx?.name || ctx?.url || "unknown";
-      console.log(`[VFG] Unhandled AOG ${name}`);
+      vlog(`[VFG] Unhandled AOG ${name}`);
       try {
         ctx.res.set("Content-Type", "text/xml; charset=utf-8");
         ctx.res.send(`<?xml version="1.0" encoding="UTF-8"?>\n<root><serv_st><code>0</code></serv_st></root>`);

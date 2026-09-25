@@ -91,6 +91,72 @@ export function nowUnix(): number {
   return Math.floor(Date.now() / 1000);
 }
 
+// Verbose logging gate: per-request/per-player logs go through vlog() and
+// are silent by default. Enable with VFG_VERBOSE=1/true/on/yes in config.
+// console.error stays untouched (real errors always show).
+export function isVerbose(): boolean {
+  try {
+    const v = U.GetConfig("VFG_VERBOSE");
+    if (v == null || v === false || v === 0) return false;
+    const s = String(v).trim().toLowerCase();
+    return s === "1" || s === "true" || s === "yes" || s === "on";
+  } catch { return false; }
+}
+
+export function vlog(...args: any[]): void {
+  try { if (isVerbose()) console.log(...args); } catch { }
+}
+
+// Fresh cc_request body: exactly what a new save carries (now_idx 1, empty).
+export const CC_REQUEST_FRESH = `{"DataVersion":1,"now_idx":1,"done_idx":0,"m_ccInfos":[]}`;
+
+export interface CcSanitizeResult {
+  ok: boolean;
+  clean: string;
+  changed: boolean;
+  dropped: number;
+}
+
+// Validate + canonicalize a cc_request payload (CardConnectGameData:
+// {DataVersion, now_idx, done_idx, m_ccInfos:[{idx,kind,param,name}]}).
+// Mirrors the client's own Validate(): drops entries with idx <= done_idx
+// and recomputes now_idx = done_idx + count + 1. Returns ok:false when the
+// payload is unsalvageable (not a JSON object / m_ccInfos not an array).
+export function sanitizeCcRequest(raw: string): CcSanitizeResult {
+  try {
+    const obj = JSON.parse(raw);
+    if (!obj || typeof obj !== "object" || Array.isArray(obj)) {
+      return { ok: false, clean: CC_REQUEST_FRESH, changed: true, dropped: 0 };
+    }
+    const done = Number.isInteger((obj as any).done_idx) ? (obj as any).done_idx : 0;
+    const vers = Number.isInteger((obj as any).DataVersion) ? (obj as any).DataVersion : 1;
+    const list = (obj as any).m_ccInfos;
+    if (!Array.isArray(list)) {
+      return { ok: false, clean: CC_REQUEST_FRESH, changed: true, dropped: 0 };
+    }
+    const kept: Array<{ idx: number; kind: string; param: string; name: string }> = [];
+    let dropped = 0;
+    for (const e of list) {
+      if (e && typeof e === "object" && !Array.isArray(e)
+        && Number.isInteger((e as any).idx)
+        && typeof (e as any).kind === "string"
+        && typeof (e as any).param === "string"
+        && typeof (e as any).name === "string") {
+        if ((e as any).idx <= done) { dropped++; continue; } // client Validate()
+        kept.push({ idx: (e as any).idx, kind: (e as any).kind, param: (e as any).param, name: (e as any).name });
+      } else {
+        dropped++;
+      }
+    }
+    const clean = JSON.stringify({ DataVersion: vers, now_idx: done + kept.length + 1, done_idx: done, m_ccInfos: kept });
+    let changed = dropped > 0;
+    try { changed = changed || JSON.stringify(obj) !== clean; } catch { changed = true; }
+    return { ok: true, clean, changed, dropped };
+  } catch {
+    return { ok: false, clean: CC_REQUEST_FRESH, changed: true, dropped: 0 };
+  }
+}
+
 // player id helpers (port of Python _player_id_from_refid)
 export function playerIdFromRefid(refid: string): number {
   const prefix = (refid || "").slice(0, 8);
@@ -146,112 +212,185 @@ export interface ProfileDoc {
   updated_at?: number;
 }
 
+export function normalizeRefid(refid: string): string {
+  return (refid || "").trim().toUpperCase();
+}
+
 export async function getProfileByRefid(refid: string): Promise<ProfileDoc | null> {
-  if (!refid) return null;
+  const norm = normalizeRefid(refid);
+  if (!norm) return null;
+  // Fast path: in-memory cache (correct API needs refid-first queries,
+  // so cache is the only thing that worked before this fix)
+  const cached = _profileByRefid.get(norm);
+  if (cached) return cached;
+  try {
+    // Correct Asphyxia API: refid first, query second (ProfileSpace).
+    // Old code used DB.FindOne({ collection: "profile", refid }) which
+    // queries PluginSpace and ALWAYS misses.
+    // @ts-ignore
+    const doc = await DB.FindOne(norm, { collection: "profile" });
+    if (doc) {
+      // Normalize stored refid casing once
+      if ((doc as any).refid && normalizeRefid((doc as any).refid) !== norm) (doc as any).refid = norm;
+      _cacheProfile(doc);
+      return doc;
+    }
+  } catch { }
+  // Slow fallback: full scan (handles legacy docs saved with odd casing)
   try {
     // @ts-ignore
-    const doc = await DB.FindOne({ collection: "profile", refid });
-    if (doc) _cacheProfile(doc);
-    return doc || null;
-  } catch (e) {
-    return null;
-  }
+    const all: ProfileDoc[] = await DB.Find(null, { collection: "profile" });
+    if (all) for (const p of all) {
+      _cacheProfile(p);
+      if (normalizeRefid((p as any).refid) === norm) return p;
+    }
+  } catch { }
+  return null;
 }
 
 export async function getProfileBySession(pcuid: string): Promise<ProfileDoc | null> {
   if (!pcuid) return null;
   // Fast path: in-memory cache
-  const cached = _profileBySession.get(pcuid);
-  if (cached) return cached;
-  // Slow path: DB lookup — try indexed query first, fall back to full scan
+  const cached = _profileBySession.get(String(pcuid));
+  // Guard against stale sessions: after relog the same profile object gets
+  // a new session_id, so an old pcuid must NOT resolve anymore.
+  if (cached) {
+    if (String((cached as any).session_id) === String(pcuid)) return cached;
+    _profileBySession.delete(String(pcuid));
+  }
   try {
     // @ts-ignore
-    let doc: ProfileDoc | null = null;
-    try {
-      // @ts-ignore
-      doc = await DB.FindOne(null, { collection: "profile", session_id: pcuid });
-    } catch { }
-    if (!doc) {
-      // @ts-ignore
-      const all: ProfileDoc[] = await DB.Find(null, { collection: "profile" });
-      if (all) for (const p of all) { _cacheProfile(p); if ((p as any).session_id === pcuid) doc = p; }
+    let doc: ProfileDoc | null = await DB.FindOne(null, { collection: "profile", session_id: String(pcuid) });
+    if (doc) { _cacheProfile(doc); return doc; }
+  } catch { }
+  try {
+    // @ts-ignore
+    const all: ProfileDoc[] = await DB.Find(null, { collection: "profile" });
+    if (all) {
+      let found: ProfileDoc | null = null;
+      for (const p of all) { _cacheProfile(p); if (String((p as any).session_id) === String(pcuid)) found = p; }
+      return found;
     }
-    if (doc) _cacheProfile(doc);
-    return doc || null;
-  } catch {
-    return null;
-  }
+  } catch { }
+  return null;
 }
 
 export async function getProfileByPlayerId(mid: number): Promise<ProfileDoc | null> {
-  if (!mid) return null;
+  const num = Number(mid);
+  if (!num) return null;
   // Fast path: in-memory cache
-  const cached = _profileByPlayerId.get(Number(mid));
-  if (cached) return cached;
-  // Slow path: DB lookup
+  const cached = _profileByPlayerId.get(num);
+  if (cached && Number((cached as any).player_id) === num) return cached;
   try {
-    let doc: ProfileDoc | null = null;
+    // @ts-ignore
+    const doc: ProfileDoc | null = await DB.FindOne(null, { collection: "profile", player_id: num });
+    if (doc) { _cacheProfile(doc); return doc; }
+  } catch { }
+  try {
+    // @ts-ignore
+    const all: ProfileDoc[] = await DB.Find(null, { collection: "profile" });
+    if (all) {
+      let found: ProfileDoc | null = null;
+      for (const p of all) { _cacheProfile(p); if (Number((p as any).player_id) === num) found = p; }
+      return found;
+    }
+  } catch { }
+  return null;
+}
+
+async function findFreePlayerId(base: number, excludeRefid: string): Promise<number> {
+  let cand = base || 1;
+  const excl = normalizeRefid(excludeRefid);
+  for (let i = 0; i < 10000; i++) {
+    if (cand <= 0) cand = 1;
+    const hit = _profileByPlayerId.get(Number(cand));
+    if (hit && normalizeRefid((hit as any).refid) !== excl) { cand++; continue; }
     try {
       // @ts-ignore
-      doc = await DB.FindOne(null, { collection: "profile", player_id: mid });
+      const doc: any = await DB.FindOne(null, { collection: "profile", player_id: Number(cand) });
+      if (doc && normalizeRefid(doc.refid) !== excl) { if (doc) _cacheProfile(doc); cand++; continue; }
     } catch { }
-    if (!doc) {
-      // @ts-ignore
-      const all: ProfileDoc[] = await DB.Find(null, { collection: "profile" });
-      if (all) for (const p of all) { _cacheProfile(p); if (Number(p.player_id) === Number(mid)) doc = p; }
-    }
-    if (doc) _cacheProfile(doc);
-    return doc || null;
-  } catch {
-    return null;
+    return Number(cand);
   }
+  return Number(cand);
 }
 
 export async function ensureProfile(refid: string, name: string = "GUEST"): Promise<ProfileDoc> {
-  let p = await getProfileByRefid(refid);
+  const norm = normalizeRefid(refid) || "GUEST";
+  let p = await getProfileByRefid(norm);
   if (p) {
-    if (name && name !== "GUEST" && p.name === "GUEST") {
-      p.name = name;
-      await saveProfile(refid, p);
+    // Lazily fix legacy player_id collisions (e.g. ABA7824B* share prefix):
+    // if another cached/DB profile owns this player_id, mint a free one.
+    try {
+      const owner = _profileByPlayerId.get(Number((p as any).player_id));
+      if (owner && normalizeRefid((owner as any).refid) !== norm) {
+        (p as any).player_id = await findFreePlayerId(Number((p as any).player_id) + 1, norm);
+        await saveProfile(norm, p);
+      }
+    } catch { }
+    // Only ever upgrade GUEST -> real name. Never downgrade, never touch states/session here.
+    if (name && name !== "GUEST" && (p as any).name === "GUEST") {
+      (p as any).name = name;
+      await saveProfile(norm, p);
     }
     return p;
   }
+  let pid = playerIdFromRefid(norm);
+  pid = await findFreePlayerId(pid, norm);
   const doc: ProfileDoc = {
     collection: "profile",
-    refid,
+    refid: norm,
     name,
-    player_id: playerIdFromRefid(refid),
+    player_id: pid,
     states: {},
     created_at: nowUnix(),
   };
   try {
-    // @ts-ignore - global upsert to avoid core profile check
-    await DB.Upsert({ collection: "profile", refid }, doc);
+    // @ts-ignore - refid-first upsert targets ProfileSpace
+    await DB.Upsert(norm, { collection: "profile" }, doc);
   } catch { }
   _cacheProfile(doc);
   return doc;
 }
 
 export async function saveProfile(refid: string, doc: ProfileDoc): Promise<void> {
+  const norm = normalizeRefid(refid) || normalizeRefid((doc as any).refid) || "GUEST";
+  (doc as any).refid = norm;
+  (doc as any).updated_at = nowUnix();
   try {
     // @ts-ignore
-    await DB.Upsert({ collection: "profile", refid }, doc);
+    await DB.Upsert(norm, { collection: "profile" }, doc);
   } catch { }
   _cacheProfile(doc);
 }
 
-export async function saveState(mid: number, kind: string, payload: string): Promise<void> {
-  let p = await getProfileByPlayerId(mid);
+export async function saveState(mid: number, kind: string, payload: string, pcuid?: string): Promise<boolean> {
+  let p: ProfileDoc | null = null;
+  // Prefer session lookup when available: mid can collide (prefix hash) or be
+  // the menudata fallback mid=1. Session is unambiguous.
+  if (pcuid) p = await getProfileBySession(pcuid);
+  if (!p) p = await getProfileByPlayerId(mid);
   if (!p) {
-    const refid = `MID${String(mid).padStart(8, "0")}`;
-    p = await ensureProfile(refid, "GUEST");
-    p.player_id = mid;
-    p.refid = refid;
+    // mid=1 is the get_menudata fallback for "no profile" — creating
+    // MID00000001 orphans is exactly what polluted the DB. Refuse and let
+    // the caller re-resolve via session instead of forking states.
+    if (Number(mid) === 1) {
+      vlog(`[VFG] saveState refused orphan mid=1 kind=${kind} (resolving session first)`);
+      if (pcuid) p = await getProfileBySession(pcuid);
+      if (!p) return false;
+    } else {
+      const refid = normalizeRefid(`MID${String(Number(mid)).padStart(8, "0")}`);
+      p = await ensureProfile(refid, "GUEST");
+      (p as any).player_id = Number(mid);
+      await saveProfile(refid, p);
+    }
   }
-  if (!p.states) p.states = {};
-  p.states[kind] = payload;
+  if (!p) return false;
+  if (!(p as any).states) (p as any).states = {};
+  (p as any).states[kind] = payload;
   (p as any).updated_at = nowUnix();
-  await saveProfile(p.refid, p);
+  await saveProfile((p as any).refid, p);
+  return true;
 }
 
 // in-memory stores
@@ -294,14 +433,43 @@ export const CARD_STORE_BY_REFID: Map<string, CardRec> = new Map();
 // Profile cache — avoids full DB.Find on every request
 const _profileBySession: Map<string, ProfileDoc> = new Map();
 const _profileByPlayerId: Map<number, ProfileDoc> = new Map();
+const _profileByRefid: Map<string, ProfileDoc> = new Map();
+// Tracks current session per refid so relog invalidates the old pcuid.
+const _sessionByRefid: Map<string, string> = new Map();
 
 function _cacheProfile(p: ProfileDoc): void {
-  if ((p as any).session_id) _profileBySession.set(String((p as any).session_id), p);
-  if (p.player_id) _profileByPlayerId.set(Number(p.player_id), p);
+  const norm = normalizeRefid((p as any).refid);
+  if (norm) {
+    _profileByRefid.set(norm, p);
+    const sess = (p as any).session_id ? String((p as any).session_id) : "";
+    const prev = _sessionByRefid.get(norm);
+    if (prev && prev !== sess) _profileBySession.delete(prev);
+    if (sess) {
+      _profileBySession.set(sess, p);
+      _sessionByRefid.set(norm, sess);
+    }
+  } else if ((p as any).session_id) {
+    _profileBySession.set(String((p as any).session_id), p);
+  }
+  if ((p as any).player_id) {
+    // Don't let a stale duplicate overwrite the canonical owner: first wins,
+    // collisions are repaired lazily in ensureProfile via findFreePlayerId.
+    const cur = _profileByPlayerId.get(Number((p as any).player_id));
+    if (!cur || normalizeRefid((cur as any).refid) === norm) _profileByPlayerId.set(Number((p as any).player_id), p);
+  }
 }
 export function _evictProfileCache(p: ProfileDoc): void {
+  const norm = normalizeRefid((p as any).refid);
+  if (norm) {
+    _profileByRefid.delete(norm);
+    const sess = _sessionByRefid.get(norm);
+    if (sess) { _profileBySession.delete(sess); _sessionByRefid.delete(norm); }
+  }
   if ((p as any).session_id) _profileBySession.delete(String((p as any).session_id));
-  if (p.player_id) _profileByPlayerId.delete(Number(p.player_id));
+  if ((p as any).player_id) {
+    const cur = _profileByPlayerId.get(Number((p as any).player_id));
+    if (cur === p) _profileByPlayerId.delete(Number((p as any).player_id));
+  }
 }
 
 // helpers for base64 / state
@@ -410,11 +578,36 @@ export const GACHA_SERIES_CURATED: Array<[number, string, number, string]> = [
   [138, "PickupKimonoClear", 0, "Pickup"],
   [139, "PickupBomberPine2", 0, "Pickup"],
   [140, "PickupLillyIppatsu", 0, "Pickup"],
-  [141, "PickupNoel", 0, "Pickup"],
-  [142, "UnlockNoel", 0, "Unlock"],
-  [143, "PickupLisha", 0, "Pickup"],
-  [144, "UnlockLisha", 0, "Unlock"],
+  [145, "PickupSisterTsumire2", 0, "Pickup"],
+  [146, "PickupAlotGrimAroe", 0, "Pickup"],
+  [147, "PickupDarknessRobeMitsuba2", 0, "Pickup"],
+  [148, "PickupValentineHiyori", 0, "Pickup"],
+  [149, "PickupNurseChaos2", 0, "Pickup"],
+  [150, "MusicMitsuba", 0, "Music"],
+  [151, "PickupJun", 0, "Pickup"],
+  [152, "UnlockJun", 0, "Unlock"],
+  [153, "LimitedCharaReturns2", 0, "Limited"],
+  [154, "PickupGalSen", 0, "Pickup"],
+  [155, "PickupGalCocoa", 0, "Pickup"],
+  [156, "PickupGalDia", 0, "Pickup"],
+  [157, "PickupGalReturns", 0, "Pickup"],
+  [158, "PickupSuitChaos", 0, "Pickup"],
+  [159, "PickupJiangshiIyo2", 0, "Pickup"],
+  [160, "PickupUniformShiroe", 0, "Pickup"],
+  [161, "PickupMaidMusashi", 0, "Pickup"],
+  [162, "PickupSchoolMizugiTsumire", 0, "Pickup"],
+  [163, "PickupFundoshiMusashi2", 0, "Pickup"],
+  [164, "PickupBellyDanceYao2", 0, "Pickup"],
+  [165, "MusicToytoy", 0, "Music"],
+  [166, "PickupTrainDia", 0, "Pickup"],
+  [167, "PickupTouka", 0, "Pickup"],
+  [168, "UnlockTouka", 0, "Unlock"],
+  [169, "PickupMaidJun", 0, "Pickup"],
+  [170, "LimitedCharaReturns3", 0, "Limited"],
 ];
+// NOTE: ids 141-144 (Noel/Lisha) are intentionally NOT curated: this client
+// version (2026060900, CharaType max Chara21=Touka) has no such girls, so
+// those banners can never resolve. They stay in GACHA_SERIES_ALL only.
 
 export const GACHA_SERIES_ALL: Array<[number, string, number, string]> = [
   [0, "Normal", 0, "Normal"],
@@ -555,7 +748,48 @@ export const GACHA_SERIES_ALL: Array<[number, string, number, string]> = [
   [142, "UnlockNoel", 0, "Unlock"],
   [143, "PickupLisha", 0, "Pickup"],
   [144, "UnlockLisha", 0, "Unlock"],
+  [145, "PickupSisterTsumire2", 0, "Pickup"],
+  [146, "PickupAlotGrimAroe", 0, "Pickup"],
+  [147, "PickupDarknessRobeMitsuba2", 0, "Pickup"],
+  [148, "PickupValentineHiyori", 0, "Pickup"],
+  [149, "PickupNurseChaos2", 0, "Pickup"],
+  [150, "MusicMitsuba", 0, "Music"],
+  [151, "PickupJun", 0, "Pickup"],
+  [152, "UnlockJun", 0, "Unlock"],
+  [153, "LimitedCharaReturns2", 0, "Limited"],
+  [154, "PickupGalSen", 0, "Pickup"],
+  [155, "PickupGalCocoa", 0, "Pickup"],
+  [156, "PickupGalDia", 0, "Pickup"],
+  [157, "PickupGalReturns", 0, "Pickup"],
+  [158, "PickupSuitChaos", 0, "Pickup"],
+  [159, "PickupJiangshiIyo2", 0, "Pickup"],
+  [160, "PickupUniformShiroe", 0, "Pickup"],
+  [161, "PickupMaidMusashi", 0, "Pickup"],
+  [162, "PickupSchoolMizugiTsumire", 0, "Pickup"],
+  [163, "PickupFundoshiMusashi2", 0, "Pickup"],
+  [164, "PickupBellyDanceYao2", 0, "Pickup"],
+  [165, "MusicToytoy", 0, "Music"],
+  [166, "PickupTrainDia", 0, "Pickup"],
+  [167, "PickupTouka", 0, "Pickup"],
+  [168, "UnlockTouka", 0, "Unlock"],
+  [169, "PickupMaidJun", 0, "Pickup"],
+  [170, "LimitedCharaReturns3", 0, "Limited"],
 ];
+
+export function hiddenGachaIds(): Set<number> {
+  const out = new Set<number>();
+  const collect = (raw: any) => {
+    if (raw == null) return;
+    for (const part of String(raw).split(",")) {
+      const n = Number(String(part).trim());
+      if (Number.isInteger(n) && n >= 0) out.add(n);
+    }
+  };
+  try { collect(U.GetConfig("VFG_HIDE_GACHA")); } catch { }
+  // @ts-ignore
+  try { if (typeof process !== "undefined" && process.env) collect(process.env.VFG_HIDE_GACHA); } catch { }
+  return out;
+}
 
 export function gachaSeries(): Array<[number, string, number, string]> {
   let baseSeries = GACHA_SERIES_CURATED;
@@ -563,24 +797,34 @@ export function gachaSeries(): Array<[number, string, number, string]> {
     // @ts-ignore
     const v = U.GetConfig("VFG_GACHA_ALL");
     if (String(v).toLowerCase() === "1" || String(v).toLowerCase() === "true" || String(v).toLowerCase() === "yes" || String(v).toLowerCase() === "on") {
-      return GACHA_SERIES_ALL;
+      baseSeries = GACHA_SERIES_ALL;
     }
   } catch { }
   try {
     // also check env for local testing
     // @ts-ignore
     const ev = process.env.VFG_GACHA_ALL;
-    if (ev && ["1", "true", "yes", "on"].includes(ev.trim().toLowerCase())) return GACHA_SERIES_ALL;
+    if (ev && ["1", "true", "yes", "on"].includes(ev.trim().toLowerCase())) baseSeries = GACHA_SERIES_ALL;
   } catch { }
+  const hidden = hiddenGachaIds();
+  if (hidden.size) baseSeries = baseSeries.filter(([sid]) => !hidden.has(Number(sid)));
   return baseSeries;
 }
 
-export function _gachaPool(sid: number, stype: string): { items: string[]; charas: string[]; custom: string[] } {
+export interface GachaPool {
+  items: string[];
+  charas: string[];
+  custom: string[];
+  pickup: string[];
+  limited: string[];
+}
+
+export function _gachaPool(sid: number, stype: string): GachaPool {
   const entry: any = GACHA_SERIES_POOLS[String(sid)] || {};
   let charas: string[] = [...(entry.pickup_charas || [])];
   let custom: string[] = [...(entry.custom_pickup_items || [])];
   if (stype === "Music") {
-    return { items: [...(entry.music_items || [])], charas, custom: [] };
+    return { items: [...(entry.music_items || [])], charas, custom: [], pickup: [], limited: [] };
   }
   if (stype === "Pickup" && !charas.length && !custom.length) {
     charas = [GACHA_FALLBACK_CHARA];
@@ -589,10 +833,17 @@ export function _gachaPool(sid: number, stype: string): { items: string[]; chara
   for (const oid of (entry.extra_items || [])) {
     if (!items.includes(oid)) items.push(oid);
   }
-  return { items, charas, custom };
+  // pickup_items: featured cutins of this banner (= custom list; empty is
+  // fine — the client skips empty tags and IsPickitemsAllGet needs Count>0).
+  // limited_pickup_items: only Limited banners use it and the client previews
+  // those from its own hard-coded movie lists, so always empty (tag present).
+  return { items, charas, custom, pickup: [...custom], limited: [] };
 }
 
-let _gachaInfoCache: Map<boolean, string> = new Map();
+// Default rarity rates (per-mil / 10, matching the official schedule shape).
+const GACHA_RATE_DEFAULT = { n: 400, r: 300, sr: 200, ur: 100 };
+
+let _gachaInfoCache: Map<string, string> = new Map();
 export function buildGachaInfoXml(): string {
   const rows: string[] = [];
   for (const [sid, label, ticket, stype] of gachaSeries()) {
@@ -600,6 +851,9 @@ export function buildGachaInfoXml(): string {
     const items = pool.items.map(o => `<item>${xml_escape(o)}</item>`).join("");
     const charas = pool.charas.map(c => `<chara>${xml_escape(c)}</chara>`).join("");
     const custom = pool.custom.map(o => `<item>${xml_escape(o)}</item>`).join("");
+    const pickup = pool.pickup.map(o => `<item>${xml_escape(o)}</item>`).join("");
+    const limited = pool.limited.map(o => `<item>${xml_escape(o)}</item>`).join("");
+    const r = GACHA_RATE_DEFAULT;
     rows.push(
       "<info>" +
       `<id>${sid}</id>` +
@@ -610,10 +864,14 @@ export function buildGachaInfoXml(): string {
       `<series_type>${stype}</series_type>` +
       `<items>${items}</items>` +
       `<pickup_charas>${charas}</pickup_charas>` +
+      `<pickup_items>${pickup}</pickup_items>` +
+      `<limited_pickup_items>${limited}</limited_pickup_items>` +
       `<custom_pickup_items>${custom}</custom_pickup_items>` +
       `<exchange_items>${stype === "Music" ? items : custom}</exchange_items>` +
+      `<pickup_rate><normal><n>${r.n}</n><r>${r.r}</r><sr>${r.sr}</sr><ur>${r.ur}</ur></normal><pickup><n>${r.n}</n><r>${r.r}</r><sr>${r.sr}</sr><ur>${r.ur}</ur></pickup><limited><n>${r.n}</n><r>${r.r}</r><sr>${r.sr}</sr><ur>${r.ur}</ur></limited></pickup_rate>` +
       `<start_date>${EVENT_BEGIN}</start_date>` +
       `<end_date>${EVENT_END}</end_date>` +
+      "<force_end_date></force_end_date>" +
       "</info>"
     );
   }
@@ -621,13 +879,42 @@ export function buildGachaInfoXml(): string {
 }
 
 export function _gachaInfoXml(): string {
-  const key = gachaSeries() === GACHA_SERIES_ALL;
+  const series = gachaSeries();
+  const key = [...hiddenGachaIds()].sort((a, b) => a - b).join(",") + "|" + series.map(([sid]) => sid).join(",");
   let xml = _gachaInfoCache.get(key);
   if (xml == null) {
     xml = buildGachaInfoXml();
     _gachaInfoCache.set(key, xml);
   }
   return xml;
+}
+
+// Mission schedule (mission_date info_data "missions", parsed by
+// MissionStatus.LoadFromJson). The per-player progress lives client-side in
+// the "mission" state; the server only declares which categories are active.
+// Category ints match MFG.Types.Mission.Category (None=0, JudgmentDaily=1,
+// JudgmentWeekly=2, Player=3, Character=4, Weekly=5, Yaku=6, StartDash=7).
+// Event/dated categories are intentionally off (they need real schedules).
+export const MISSION_CATEGORIES: Array<[number, string]> = [
+  [1, "JudgmentDaily"],
+  [2, "JudgmentWeekly"],
+  [3, "Player"],
+  [4, "Character"],
+  [5, "Weekly"],
+  [6, "Yaku"],
+  [7, "StartDash"],
+];
+
+export function missionsJson(): string {
+  const rows = MISSION_CATEGORIES.map(([id, name]) => ({
+    Category: id,
+    category: name,
+    active: true,
+    begin: EVENT_BEGIN,
+    end: EVENT_END,
+    param: "",
+  }));
+  return JSON.stringify({ list: rows });
 }
 
 // aliases for legacy naming

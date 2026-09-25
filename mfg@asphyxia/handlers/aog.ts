@@ -28,15 +28,20 @@ import {
   nowUnix,
   playerIdFromRefid,
   ensureProfile,
+  getProfileByRefid,
   getProfileBySession,
   getProfileByPlayerId,
   saveProfile,
   saveState,
+  vlog,
+  sanitizeCcRequest,
+  CC_REQUEST_FRESH,
   MATCHES,
   TABLES,
   MATCH_LOBBY,
   PLAYER_SEAT,
   SHARED_TABLES,
+  CARD_STORE_BY_REFID,
   nextTid,
   STAMPS,
   _stampSeq,
@@ -46,6 +51,7 @@ import {
   infoData,
   eventsJson,
   proStatsJson,
+  missionsJson,
   EVENT_BEGIN,
   EVENT_END,
   PORT,
@@ -344,13 +350,20 @@ export async function handle_appli_info(form: Record<string, string>, ctx: any):
 
 export async function handle_login(form: Record<string, string>, ctx: any): Promise<void> {
   const guest = formGet(form, "guest") === "1";
-  const userId = formGet(form, "user_id", "dataid") || "GUEST";
+  // Accept every refid spelling the client may use; login and create_player
+  // MUST resolve to the same normalized refid or names/states fork.
+  const rawId = formGet(form, "user_id", "dataid", "refid", "ref_id") || "GUEST";
+  const userId = String(rawId).trim().toUpperCase() || "GUEST";
   const session = Array.from({ length: 32 }, () => Math.floor(Math.random() * 16).toString(16)).join("");
-  const profile = await ensureProfile(userId, guest ? "GUEST" : "PLAYER");
+  // Never write "PLAYER" as profile.name here: that masked real registrations
+  // (DB showed name=PLAYER forever, real name only inside states). Login only
+  // rotates the session; create_player owns the name.
+  const profile = await ensureProfile(userId, "GUEST");
   (profile as any).session_id = session;
   (profile as any).is_guest = guest;
-  // saveProfile also updates the in-memory cache
+  // saveProfile also updates the in-memory cache (and evicts the old pcuid)
   await saveProfile(profile.refid, profile);
+  vlog(`[VFG] login refid=${userId} guest=${guest} mid=${(profile as any).player_id} session=${session.slice(0, 8)}... keys=${Object.keys(form).join(",")}`);
   const xml = xml_response(`<auth><session_id>${session}</session_id></auth>`);
   sendXml(ctx, xml);
 }
@@ -361,12 +374,46 @@ export async function handle_logout(form: Record<string, string>, ctx: any): Pro
 }
 
 export async function handle_create_player(form: Record<string, string>, ctx: any): Promise<void> {
-  const name = formGet(form, "name") || "PLAYER";
-  const userId = formGet(form, "user_id") || Array.from({ length: 16 }, () => Math.floor(Math.random() * 16).toString(16)).join("");
+  const name = (formGet(form, "name", "player_name") || "PLAYER").trim() || "PLAYER";
+  let rawId = formGet(form, "user_id", "dataid", "refid", "ref_id");
+  if (!rawId) {
+    // Some clients send only pcuid+name: resolve refid via session so the
+    // name lands on the SAME profile that login created (not a random fork).
+    try {
+      const sess = await getProfileBySession(formGet(form, "pcuid"));
+      if (sess) rawId = (sess as any).refid;
+    } catch { }
+  }
+  if (!rawId) rawId = Array.from({ length: 16 }, () => Math.floor(Math.random() * 16).toString(16)).join("");
+  const userId = String(rawId).trim().toUpperCase();
   const p = await ensureProfile(userId, name);
+  // Registration is explicit: always store the chosen name (login never does).
   (p as any).name = name;
-  // @ts-ignore
-  await DB.Upsert(p.refid, { collection: "profile" }, p);
+  // Also mirror into states.player_game.PlayerName if present, so menudata
+  // and matching show the same name even for old clients.
+  try {
+    const st = (p as any).states || {};
+    if (st.player_game && typeof st.player_game === "string" && st.player_game.includes("PlayerName")) {
+      const obj = JSON.parse(st.player_game);
+      if (obj && obj.PlayerName !== name) { obj.PlayerName = name; st.player_game = JSON.stringify(obj); }
+    }
+  } catch { }
+  await saveProfile(p.refid, p);
+  vlog(`[VFG] create_player refid=${userId} name=${name} mid=${(p as any).player_id}`);
+
+  const card = CARD_STORE_BY_REFID.get(userId);
+  if (card) {
+    card.bound = true;
+    card.updated_at = nowUnix();
+    try {
+      const prof: any = await getProfileByRefid(userId);
+      if (prof) {
+        prof.card_bound = true;
+        await saveProfile(userId, prof);
+      }
+    } catch (e) { try { console.error("saveProfile create_player error:", e); } catch {} }
+  }
+
   const xml = xml_response();
   sendXml(ctx, xml);
 }
@@ -396,27 +443,56 @@ export async function handle_keep_alive(form: Record<string, string>, ctx: any):
 
 export async function handle_client_state_read(form: Record<string, string>, ctx: any): Promise<void> {
   const mid = Number(formGet(form, "mid") || 0) || 0;
+  const pcuid = formGet(form, "pcuid");
   const one = formGet(form, "one_kind");
   const chunks: string[] = [];
+  // Session first (unambiguous), mid second (prefix hash can collide).
   let profile: any = null;
-  if (mid) profile = await getProfileByPlayerId(mid);
-  if (!profile) profile = await getProfileBySession(formGet(form, "pcuid"));
+  if (pcuid) profile = await getProfileBySession(pcuid);
+  if (!profile && mid) profile = await getProfileByPlayerId(mid);
   const states = (profile || {}).states || {};
   const items: Array<[string, string]> = one ? (states[one] ? [[one, states[one]]] : []) : Object.entries(states) as any;
+  let healed = false;
   for (const [kind, payload] of items) {
     let sanitized = String(payload);
-    // Strip invalid JSON control characters (0x00-0x08, 0x0B, 0x0C, 0x0E-0x1F)
-    sanitized = sanitized.replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g, "");
-    // Validate JSON - if broken, skip this state so the client won't crash
+    const cleanStr = sanitized.replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g, "");
+    let isJson = false;
     try {
-      JSON.parse(sanitized);
-    } catch {
-      console.log(`[VFG] Skipping corrupt state '${kind}' for mid=${mid || "?"}`);
+      JSON.parse(cleanStr);
+      isJson = true;
+    } catch {}
+
+    if (isJson) {
+      sanitized = cleanStr;
+    } else if (cleanStr.trim().startsWith("{") || cleanStr.trim().startsWith("[")) {
+      vlog(`[VFG] Skipping heavily corrupted JSON state '${kind}' for mid=${mid || "?"}`);
       continue;
+    }
+    // cc_request guard (see issue: populated m_ccInfos bricked continue):
+    // never serve bytes the client can't load. Heal the stored copy so an
+    // already-broken profile recovers on next continue instead of needing
+    // manual Save.json surgery. Original is preserved in quarantine.
+    if (kind === "cc_request" && profile) {
+      try {
+        const res = sanitizeCcRequest(sanitized);
+        if (!res.ok || res.changed) {
+          if (!(profile as any).quarantine_cc_request) {
+            (profile as any).quarantine_cc_request = { at: nowUnix(), dropped: res.dropped, raw: String(sanitized).slice(0, 20000) };
+          }
+          if (!(profile as any).states) (profile as any).states = {};
+          (profile as any).states[kind] = res.clean;
+          healed = true;
+          sanitized = res.clean;
+          vlog(`[VFG] healed cc_request on read mid=${mid} dropped=${res.dropped} ok=${res.ok}`);
+        }
+      } catch { }
     }
     let b64 = "";
     try { b64 = Buffer.from(sanitized, "utf-8").toString("base64"); } catch { b64 = ""; }
     chunks.push(`<state kind="${xml_escape(kind)}"><data>${b64}</data></state>`);
+  }
+  if (healed && profile) {
+    try { await saveProfile((profile as any).refid, profile); } catch { }
   }
   sendXml(ctx, xml_response(...chunks));
 }
@@ -426,32 +502,119 @@ export async function handle_client_state_write(form: Record<string, string>, ct
   let mid = Number(midRaw || 0) || 0;
   const kind = formGet(form, "kind") || "unknown";
   const data = formGet(form, "data");
+  const pcuid = formGet(form, "pcuid");
   if (!mid) {
-    const p = await getProfileBySession(formGet(form, "pcuid"));
+    const p = await getProfileBySession(pcuid);
     mid = Number((p as any)?.player_id || 0);
   }
   if (data && mid) {
+    // The client posts urlencoded base64, but some payloads arrive with
+    // literal '+' (raw base64) — and our old form-decode turned every '+'
+    // into a space, silently corrupting the stream from that point on
+    // (valid JSON head + mojibake tail, always breaking at the same spot
+    // for identical prefixes, e.g. cc_request). Try each strategy and keep
+    // the first one that yields valid JSON; fall back to legacy behavior.
+    const CONTROL_RE = /[\x00-\x08\x0b\x0c\x0e-\x1f]/g;
+    const b64 = (s: string): string | null => {
+      try {
+        const out = Buffer.from(s, "base64").toString("utf-8");
+        return out ? out : null;
+      } catch { return null; }
+    };
+    const variants: Array<{ text: string; via: string }> = [];
+    try { const f = decodeURIComponent(data.replace(/\+/g, " ")); const d = b64(f); if (d) variants.push({ text: d, via: "form" }); } catch { }
+    try { const r = decodeURIComponent(data); const d = b64(r); if (d) variants.push({ text: d, via: "raw+" }); } catch { }
+    try { const d = b64(data); if (d) variants.push({ text: d, via: "raw" }); } catch { }
+    variants.push({ text: data, via: "plain" });
     let decoded = data;
-    try {
-      const plus = decodeURIComponent(data.replace(/\+/g, " "));
-      // data is urlencoded base64, try base64 decode
-      decoded = Buffer.from(plus, "base64").toString("utf-8");
-      // if result looks like not base64, fallback to raw
-      if (!decoded) decoded = data;
-    } catch {
-      try { decoded = Buffer.from(data, "base64").toString("utf-8"); } catch { decoded = data; }
+    let via = "plain";
+    let isJson = false;
+    for (const v of variants) {
+      const clean = v.text.replace(CONTROL_RE, "");
+      try {
+        JSON.parse(clean);
+        decoded = clean;
+        via = v.via;
+        isJson = true;
+        break;
+      } catch { }
     }
-    // Sanitize: strip invalid control characters that crash JSON parsers
-    decoded = decoded.replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g, "");
-    // Validate JSON before saving to prevent corrupt states
-    try {
-      JSON.parse(decoded);
-    } catch {
-      console.log(`[VFG] Discarding invalid JSON for state '${kind}' (mid=${mid})`);
+    if (!isJson) {
+      // No variant parsed: keep legacy choice (first non-empty decode).
+      for (const v of variants) {
+        if (v.text) { decoded = v.text.replace(CONTROL_RE, ""); via = v.via + "?"; break; }
+      }
+    }
+    const cleanStr = decoded.replace(CONTROL_RE, "");
+    if (isJson) {
+      decoded = cleanStr;
+      if (via !== "form") vlog(`[VFG] state '${kind}' decoded via ${via} (mid=${mid})`);
+    } else if (cleanStr.trim().startsWith("{") || cleanStr.trim().startsWith("[")) {
+      let reason = "unparseable";
+      try { JSON.parse(cleanStr); } catch (e) { reason = String((e as any)?.message || e).slice(0, 160); }
+      vlog(`[VFG] Discarding corrupted JSON state '${kind}' (mid=${mid}) rawlen=${(data || "").length} declen=${cleanStr.length} err=${reason} head=${cleanStr.slice(0, 200)} tail=${cleanStr.slice(-120)}`);
       sendXml(ctx, xml_response());
       return;
     }
-    await saveState(mid, kind, decoded);
+    // cc_request guard: validate MemorialCard entries before they touch the
+    // DB. Invalid payloads are quarantined (never overwrite last-good data);
+    // malformed-but-salvageable ones are canonicalized. This keeps one bad
+    // gacha reward from bricking the whole profile on next continue.
+    if (kind === "cc_request") {
+      const res = sanitizeCcRequest(isJson ? decoded : cleanStr);
+      if (!res.ok) {
+        try {
+          let prof: any = null;
+          if (pcuid) prof = await getProfileBySession(pcuid);
+          if (!prof) prof = await getProfileByPlayerId(mid);
+          if (prof && !(prof as any).quarantine_cc_request) {
+            (prof as any).quarantine_cc_request = { at: nowUnix(), dropped: res.dropped, raw: String(decoded).slice(0, 20000) };
+            await saveProfile((prof as any).refid, prof);
+          }
+        } catch { }
+        vlog(`[VFG] quarantined invalid cc_request write mid=${mid} (kept last-good)`);
+        sendXml(ctx, xml_response());
+        return;
+      }
+      if (res.changed) {
+        try {
+          let prof: any = null;
+          if (pcuid) prof = await getProfileBySession(pcuid);
+          if (!prof) prof = await getProfileByPlayerId(mid);
+          if (prof && !(prof as any).quarantine_cc_request) {
+            (prof as any).quarantine_cc_request = { at: nowUnix(), dropped: res.dropped, raw: String(decoded).slice(0, 20000) };
+            await saveProfile((prof as any).refid, prof);
+          }
+        } catch { }
+        vlog(`[VFG] sanitized cc_request write mid=${mid} dropped=${res.dropped}`);
+      }
+      decoded = res.clean;
+    }
+    const ok = await saveState(mid, kind, decoded, pcuid);
+    if (!ok) vlog(`[VFG] saveState skipped kind=${kind} mid=${mid} (no profile — relogin first)`);
+    // Mirror states -> profile: the client only ever sends the real name
+    // inside player_game JSON (create_player arrives as name=PLAYER).
+    // Without this, profile.name stays PLAYER/GUEST forever and get_menudata
+    // never shows the real name.
+    if (ok && kind === "player_game") {
+      try {
+        const obj = JSON.parse(decoded);
+        const pn = (obj && (obj.PlayerName || obj.playerName) || "").trim();
+        if (pn && pn !== "PLAYER" && pn !== "GUEST") {
+          let prof: any = null;
+          if (pcuid) prof = await getProfileBySession(pcuid);
+          if (!prof) prof = await getProfileByPlayerId(mid);
+          if (prof) {
+            const cur = String((prof as any).name || "");
+            if ((cur === "GUEST" || cur === "PLAYER" || cur === "" || cur === "ゲスト") && cur !== pn) {
+              (prof as any).name = pn;
+              await saveProfile((prof as any).refid, prof);
+              vlog(`[VFG] mirrored PlayerName '${pn}' to profile ${(prof as any).refid}`);
+            }
+          }
+        }
+      } catch { }
+    }
   }
   sendXml(ctx, xml_response());
 }
@@ -464,7 +627,9 @@ export async function handle_entry_game(form: Record<string, string>, ctx: any):
   let gmode = Number(formGet(form, "gmode") || 1) || 1;
   if (!(gmode in GMODE_TAKU)) gmode = 1;
   const pcuid = formGet(form, "pcuid");
-  const passphrase = formGet(form, "passphrase");
+  // NOTE: the client always sends passphrase=<space> when no passphrase was
+  // entered — trim it or every public lobby collapses into one shared key.
+  const passphrase = formGet(form, "passphrase").trim();
   const seats = GMODE_SEATS[gmode];
   const profile = await getProfileBySession(pcuid);
   const mid = Number((profile as any)?.player_id || 1);
@@ -503,55 +668,70 @@ function sendDiscordWebhook(url: string, payload: any) {
   }
 }
 
-  let lobby = MATCH_LOBBY.get(lobbyKey);
-  if (!lobby) {
-    const cTime = nowUnix();
-    lobby = { pcuids: [], tid: nextTid(), createdAt: cTime };
-    MATCH_LOBBY.set(lobbyKey, lobby);
-
-    try {
-      // @ts-ignore
-      const webhookUrl = typeof U !== "undefined" && U.GetConfig("VFG_DISCORD_WEBHOOK");
-      if (webhookUrl && webhookUrl.startsWith("http")) {
-        let modeName = `Mode ${gmode}`;
-        let winds = "東";
-        if (gmode === 1) { modeName = "Tonpuusen"; winds = "東"; }
-        else if (gmode === 2) { modeName = "Hanchan"; winds = "東南"; }
-        else if (gmode === 3) { modeName = "Sanma"; winds = "東"; }
-        else if (gmode === 4) { modeName = "Nima"; winds = "東南"; }
-
-        sendDiscordWebhook(webhookUrl, {
-          embeds: [
-            {
-              title: "🀄 New Lobby Created!",
-              color: 14177041,
-              fields: [
-                { name: "Creator", value: name || "Player", inline: true },
-                { name: "Mode", value: modeName, inline: true },
-                { name: "Player capacity", value: `${seats} Players`, inline: true },
-                { name: "Wind rounds", value: winds, inline: false },
-                { name: "Time Since Creation", value: `<t:${cTime}:R>`, inline: false },
-                { name: "Lobby created on", value: `<t:${cTime}:f>`, inline: false }
-              ]
-            }
-          ]
-        });
-      }
-    } catch { }
-  }
-  
-  if (!lobby.pcuids.includes(pcuid)) {
-    lobby.pcuids.push(pcuid);
-  }
-  
-  const pindex = lobby.pcuids.indexOf(pcuid);
-  PLAYER_SEAT.set(pcuid, { tid: lobby.tid, pindex, name, mid, profile, lobbyKey, gmode });
-  
-  if (lobby.pcuids.length >= seats) {
+  let tid: number;
+  let pindex = 0;
+  // 2-seat (Nima) is CPU-only by design: never park these players in the
+  // shared lobby, or two strangers entering at once get paired together.
+  // Each player gets an instant private table (seat 0 human, rest CPU).
+  // Passphrase lobbies still match humans together for private Versus.
+  if (seats <= 2 && !passphrase) {
+    tid = nextTid();
     const taku = GMODE_TAKU[gmode] ?? 0;
-    const human_seats = lobby.pcuids.map((id, i) => i);
-    ensureSharedTable(lobby.tid, taku, human_seats);
-    MATCH_LOBBY.delete(lobbyKey);
+    ensureSharedTable(tid, taku, [0]);
+    PLAYER_SEAT.set(pcuid, { tid, pindex: 0, name, mid, profile, lobbyKey: `solo_${tid}`, gmode });
+    vlog(`[VFG] solo 2P table tid=${tid} name=${name} mid=${mid}`);
+  } else {
+    let lobby = MATCH_LOBBY.get(lobbyKey);
+    if (!lobby) {
+      const cTime = nowUnix();
+      lobby = { pcuids: [], tid: nextTid(), createdAt: cTime };
+      MATCH_LOBBY.set(lobbyKey, lobby);
+
+      try {
+        // @ts-ignore
+        const webhookUrl = typeof U !== "undefined" && U.GetConfig("VFG_DISCORD_WEBHOOK");
+        if (webhookUrl && webhookUrl.startsWith("http")) {
+          let modeName = `Mode ${gmode}`;
+          let winds = "東";
+          if (gmode === 1) { modeName = "Tonpuusen"; winds = "東"; }
+          else if (gmode === 2) { modeName = "Hanchan"; winds = "東南"; }
+          else if (gmode === 3) { modeName = "Sanma"; winds = "東"; }
+          else if (gmode === 4) { modeName = "Nima"; winds = "東南"; }
+
+          sendDiscordWebhook(webhookUrl, {
+            embeds: [
+              {
+                title: "🀄 New Lobby Created!",
+                color: 14177041,
+                fields: [
+                  { name: "Creator", value: name || "Player", inline: true },
+                  { name: "Mode", value: modeName, inline: true },
+                  { name: "Player capacity", value: `${seats} Players`, inline: true },
+                  { name: "Wind rounds", value: winds, inline: false },
+                  { name: "Time Since Creation", value: `<t:${cTime}:R>`, inline: false },
+                  { name: "Lobby created on", value: `<t:${cTime}:f>`, inline: false }
+                ]
+              }
+            ]
+          });
+        }
+      } catch { }
+    }
+
+    if (!lobby.pcuids.includes(pcuid)) {
+      lobby.pcuids.push(pcuid);
+    }
+
+    pindex = lobby.pcuids.indexOf(pcuid);
+    tid = lobby.tid;
+    PLAYER_SEAT.set(pcuid, { tid: lobby.tid, pindex, name, mid, profile, lobbyKey, gmode });
+
+    if (lobby.pcuids.length >= seats) {
+      const taku = GMODE_TAKU[gmode] ?? 0;
+      const human_seats = lobby.pcuids.map((id, i) => i);
+      ensureSharedTable(lobby.tid, taku, human_seats);
+      MATCH_LOBBY.delete(lobbyKey);
+    }
   }
 
   let url = gameBaseUrl();
@@ -564,7 +744,7 @@ function sendDiscordWebhook(url: string, payload: any) {
   const xml = xml_response(
     "<entry>" +
     "<gserv_id>1</gserv_id>" +
-    `<tid>${lobby.tid}</tid>` +
+    `<tid>${tid}</tid>` +
     `<pindex>${pindex}</pindex>` +
     "<next_sno>0</next_sno>" +
     "<last_cyoukou_num>3</last_cyoukou_num>" +
@@ -586,6 +766,51 @@ function sendDiscordWebhook(url: string, payload: any) {
   sendXml(ctx, xml);
 }
 
+export async function handle_reconnect(form: Record<string, string>, ctx: any): Promise<void> {
+  const pcuid = formGet(form, "pcuid");
+  const seatInfo = PLAYER_SEAT.get(pcuid);
+  if (seatInfo && SHARED_TABLES.has(seatInfo.tid)) {
+    const table = SHARED_TABLES.get(seatInfo.tid);
+    if (table && !(table as any).humans.includes(seatInfo.pindex)) {
+      (table as any).humans.push(seatInfo.pindex);
+      (seatInfo as any).lastSeen = Date.now();
+      vlog(`[VFG] Player ${seatInfo.name} in seat ${seatInfo.pindex} reconnected. Taking back control from CPU.`);
+    }
+    let url = gameBaseUrl();
+    try {
+      const host = ctx?.req?.hostname || ctx?.req?.headers?.host || "127.0.0.1";
+      let port = PORT;
+      try { if (CONFIG && CONFIG.port) port = CONFIG.port; } catch { }
+      url = `http://${String(host).split(":")[0]}:${port}/aog/`;
+    } catch { }
+    const xml = xml_response(
+      "<entry>" +
+      "<gserv_id>1</gserv_id>" +
+      `<tid>${seatInfo.tid}</tid>` +
+      `<pindex>${seatInfo.pindex}</pindex>` +
+      "<next_sno>0</next_sno>" +
+      "<last_cyoukou_num>3</last_cyoukou_num>" +
+      "<cyoukou_num>3</cyoukou_num>" +
+      "<ste_oya1_limit_time>15000</ste_oya1_limit_time>" +
+      "<ste_limit_time>10000</ste_limit_time>" +
+      "<ste_reechi1_limit_time>15000</ste_reechi1_limit_time>" +
+      "<naki_limit_time>8000</naki_limit_time>" +
+      "<agari_limit_time>10000</agari_limit_time>" +
+      "<naki_choice_limit_time>8000</naki_choice_limit_time>" +
+      "<reechi_choice_limit_time>8000</reechi_choice_limit_time>" +
+      "<last_cyoukou_limit_time>30000</last_cyoukou_limit_time>" +
+      "<last_time>30000</last_time>" +
+      `<gserv_url>${xml_escape(url)}</gserv_url>` +
+      "<pay_mode>0</pay_mode>" +
+      `<gmode>${seatInfo.gmode || 1}</gmode>` +
+      "</entry>"
+    );
+    sendXml(ctx, xml);
+    return;
+  }
+  return handle_entry_game(form, ctx);
+}
+
 export async function handle_gget(form: Record<string, string>, ctx: any): Promise<void> {
   const pcuid = formGet(form, "pcuid");
   const ready = formGet(form, "ready") === "1";
@@ -597,6 +822,10 @@ export async function handle_gget(form: Record<string, string>, ctx: any): Promi
   const gmode = seatInfo.gmode || 1;
   const seats = GMODE_SEATS[gmode] || 4;
   const lobbyKey = seatInfo.lobbyKey || "1";
+  
+  if (PLAYER_SEAT.has(pcuid)) {
+    (PLAYER_SEAT.get(pcuid) as any).lastSeen = Date.now();
+  }
 
   let lobby = MATCH_LOBBY.get(lobbyKey);
   if (lobby && lobby.tid === seatInfo.tid) {
@@ -609,6 +838,51 @@ export async function handle_gget(form: Record<string, string>, ctx: any): Promi
   }
 
   let table = SHARED_TABLES.get(seatInfo.tid);
+  
+  if (table && !(table as any).finished) {
+    const now = Date.now();
+    for (let i = (table as any).humans.length - 1; i >= 0; i--) {
+      const h_seat = (table as any).humans[i];
+      let h_info = null;
+      for (const p of PLAYER_SEAT.values()) {
+        if (p.tid === seatInfo.tid && p.pindex === h_seat) {
+          h_info = p; break;
+        }
+      }
+      
+      if (h_info) {
+        if (!(h_info as any).lastSeen) {
+          (h_info as any).lastSeen = now;
+        } else if (now - (h_info as any).lastSeen > 60000) {
+          vlog(`[VFG] Player ${h_info.name} in seat ${h_seat} disconnected for >60s. Converting to CPU.`);
+          (table as any).humans.splice(i, 1);
+          
+          if ((table as any).state === "discard" && (table as any).turn === h_seat) {
+            (table as any)._cpu_turn(h_seat);
+            (table as any).flush_pending();
+          } else if ((table as any).state === "call") {
+            if ((table as any).sute_choices && (table as any).sute_choices[h_seat]) {
+              const choice = (table as any).sute_choices[h_seat];
+              delete (table as any).sute_choices[h_seat];
+              
+              let anyHumanCanCall = false;
+              for (const rem_h of (table as any).humans) {
+                if ((table as any).sute_choices[rem_h]) {
+                  anyHumanCanCall = true;
+                  break;
+                }
+              }
+              if (!anyHumanCanCall && typeof (table as any)._cpu_calls === "function") {
+                (table as any)._cpu_calls(choice.discarder, choice.tile);
+                (table as any).flush_pending();
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
   let isMatched = false;
   
   const players = [];
@@ -692,26 +966,36 @@ export async function handle_end_or_kiken(form: Record<string, string>, ctx: any
   if (table) {
     if (!(table as any).archiveSaved) {
       (table as any).archiveSaved = true;
-      const rows = (table as any).result_rows() as Array<[number, number, number]>;
-      const playersInfo = rows.map((r, i) => {
-        const s = Array.from(PLAYER_SEAT.values()).find(x => x.tid === seatInfo!.tid && x.pindex === i);
-        return {
-          pindex: i,
-          name: s ? s.name : "CPU",
-          mid: s ? s.mid : 0,
-          rank: r[0],
-          score: r[1],
-          uma: r[2]
-        };
-      });
-      // @ts-ignore
-      DB.Insert({
-        collection: 'match_archive',
-        tid: seatInfo!.tid,
-        gmode,
-        timestamp: Date.now(),
-        players: playersInfo
-      }).catch((e: any) => console.error(e));
+      // Only archive naturally finished matches: a kiken mid-game would
+      // record bogus ranks into player_record histories.
+      if ((table as any).finished) {
+        const rows = (table as any).result_rows() as Array<[number, number, number]>;
+        const seats = Number((table as any).seats || 0);
+        const yaku = ((table as any).yakuman || []) as number[];
+        const playersInfo = rows.map((r, i) => {
+          const s = Array.from(PLAYER_SEAT.values()).find(x => x.tid === seatInfo!.tid && x.pindex === i);
+          return {
+            pindex: i,
+            name: s ? s.name : "CPU",
+            mid: s ? Number(s.mid || 0) : 0,
+            refid: s && (s as any).profile ? String((s as any).profile.refid || "") : "",
+            rank: r[0],
+            score: r[1],
+            uma: r[2],
+            yakuman: Number(yaku[i] || 0),
+            buttobi: r[1] < 0,
+          };
+        });
+        // @ts-ignore
+        DB.Insert({
+          collection: 'match_archive',
+          tid: seatInfo!.tid,
+          gmode,
+          seats,
+          timestamp: Date.now(),
+          players: playersInfo
+        }).catch((e: any) => console.error(e));
+      }
     }
     table.state = "game_end";
     table.finished = true;
@@ -826,8 +1110,7 @@ export async function handle_req_draw_gacha(form: Record<string, string>, ctx: a
   const p = await getProfileBySession(formGet(form, "pcuid"));
   if (p) {
     (p as any).gacha_txn = { id: txn, gacha: formGet(form, "gacha_name"), times: Number(formGet(form, "times") || 1) || 1 };
-    // @ts-ignore
-    await DB.Upsert((p as any).refid, { collection: "profile" }, p);
+    await saveProfile(p.refid, p);
   }
   sendXml(ctx, xml_response(`<transaction_info><transaction_id>${txn}</transaction_id></transaction_info>`));
 }
@@ -841,18 +1124,35 @@ export async function handle_get_gacha_result(form: Record<string, string>, ctx:
 export async function handle_cutin_gacha_play_draw(form: Record<string, string>, ctx: any): Promise<void> {
   const playCount = Number(formGet(form, "play_count") || 1);
   const gachaId = Number(formGet(form, "gacha_id") || 140);
+  const isTicket = formGet(form, "is_ticket");
+  const giftCfg = formGet(form, "gift_config");
+  const enChara = formGet(form, "enable_charas");
   const pool = _gachaPool(gachaId, "Pickup"); // Assume Pickup or fallback
+  vlog(`[VFG] gacha_draw id=${gachaId} x${playCount} ticket=${isTicket} gift_cfg=${giftCfg} enable_charas=${String(enChara).slice(0, 80)} pool_n=${(pool.items || []).length}`);
   let items = pool.items;
   if (!items || items.length === 0) {
-    items = ["OID_CHIP_DEFAULT"];
+    // Never emit unknown OIDs: the client resolves every gain oid through
+    // CutinItemMaster and an unresolvable one corrupts the saved inventory.
+    // Fall back to the standard pool (always non-empty when pools load).
+    try {
+      const { getGachaPools } = await import("./utils");
+      const std = (getGachaPools() as any)?.standard_pool || [];
+      if (std.length) items = [...std];
+    } catch { }
+  }
+  if (!items || items.length === 0) {
+    sendXml(ctx, xml_response(`<gacha_draw><is_success>0</is_success><request_id>0</request_id><gain_items></gain_items><gift>0</gift></gacha_draw>`));
+    return;
   }
 
   let gainItems = "";
+  const rolled: string[] = [];
   for (let i = 0; i < Math.max(1, playCount); i++) {
     const randomOid = items[Math.floor(Math.random() * items.length)];
+    rolled.push(randomOid);
     gainItems += `<item><oid>${randomOid}</oid><gift_type>0</gift_type></item>`;
   }
-  
+  vlog(`[VFG] gacha_draw id=${gachaId} rolled=${rolled.join(",")}`);
   const reqId = Math.floor(Math.random() * 1000000000).toString();
   const xml = `<gacha_draw><is_success>1</is_success><request_id>${reqId}</request_id><gain_items>${gainItems}</gain_items><gift>0</gift></gacha_draw>`;
   sendXml(ctx, xml_response(xml));
@@ -860,6 +1160,7 @@ export async function handle_cutin_gacha_play_draw(form: Record<string, string>,
 
 export async function handle_cutin_gacha_play_apply(form: Record<string, string>, ctx: any): Promise<void> {
   const reqId = formGet(form, "request_id") || "123456789";
+  vlog(`[VFG] gacha_apply request_id=${reqId}`);
   const xml = `<gacha_apply><is_success>1</is_success><request_id>${reqId}</request_id></gacha_apply>`;
   sendXml(ctx, xml_response(xml));
 }
@@ -870,7 +1171,7 @@ export async function handle_gacha_log(form: Record<string, string>, ctx: any): 
     try {
       const txt = Buffer.from(decodeURIComponent(raw.replace(/\+/g, " ")), "base64").toString("utf-8");
       // @ts-ignore
-      console.log(`[gacha] ${txt}`);
+      vlog(`[gacha] ${txt}`);
     } catch { }
   }
   sendXml(ctx, xml_response());
@@ -905,7 +1206,7 @@ export async function handle_music_gacha_play(form: Record<string, string>, ctx:
       }
     }
   } catch (e) {
-    console.log("[Music Gacha] Failed to read owned items");
+    vlog("[Music Gacha] Failed to read owned items");
   }
 
   const unowned = pool.filter(oid => !owned.has(oid));
@@ -928,12 +1229,78 @@ export async function handle_get_mg(form: Record<string, string>, ctx: any): Pro
 }
 
 export async function handle_mission_date(form: Record<string, string>, ctx: any): Promise<void> {
-  const payload = JSON.stringify({ list: [] });
-  sendXml(ctx, xml_response(infoData("missions", payload)));
+  sendXml(ctx, xml_response(infoData("missions", missionsJson())));
+}
+
+function fmtRecordDate(ts: number): string {
+  try {
+    const d = new Date(Number(ts) || 0);
+    const p = (n: number) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}/${p(d.getMonth() + 1)}/${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+  } catch { return ""; }
 }
 
 export async function handle_player_record(form: Record<string, string>, ctx: any): Promise<void> {
-  sendXml(ctx, xml_response("<player_record></player_record>"));
+  const pcuid = formGet(form, "pcuid");
+  const me = await getProfileBySession(pcuid);
+  if (!me) {
+    sendXml(ctx, xml_response("<player_record></player_record>"));
+    return;
+  }
+  const myRef = String((me as any).refid || "");
+  const myMid = Number((me as any).player_id || 0);
+  const mineRow = (players: any[]): any | null => {
+    if (!Array.isArray(players)) return null;
+    for (const p of players) {
+      if (myRef && String((p as any).refid || "") === myRef) return p;
+      if (!(p as any).refid && myMid && Number((p as any).mid) === myMid) return p; // legacy archives
+    }
+    return null;
+  };
+  let docs: any[] = [];
+  try {
+    // @ts-ignore - global scan: refid=null matches all PluginSpace docs
+    docs = await DB.Find(null, { collection: 'match_archive' }) || [];
+  } catch { docs = []; }
+  const mine = docs
+    .filter(d => mineRow((d as any).players))
+    .sort((a, b) => (Number((b as any).timestamp) || 0) - (Number((a as any).timestamp) || 0));
+  if (!mine.length) {
+    sendXml(ctx, xml_response("<player_record></player_record>"));
+    return;
+  }
+  const groups = new Map<string, any[]>();
+  for (const m of mine) {
+    const seats = Number((m as any).seats) === 3 ? 3 : Number((m as any).seats) === 2 ? 2 : 4;
+    const kind = seats === 3 ? "Sanma" : seats === 2 ? "Nima" : "Yonma";
+    const row = mineRow((m as any).players);
+    if (!row) continue;
+    if (!groups.has(kind)) groups.set(kind, []);
+    groups.get(kind)!.push({ ...row, ts: Number((m as any).timestamp) || 0, seats });
+  }
+  let out = "";
+  for (const kind of ["Yonma", "Sanma", "Nima"]) {
+    const rows = groups.get(kind);
+    if (!rows || !rows.length) continue;
+    const seats = Number(rows[0].seats || 4);
+    const counts = new Array(seats).fill(0);
+    let yaku = 0;
+    for (const r of rows) {
+      const rk = Number(r.rank || 0);
+      if (rk >= 0 && rk < seats) counts[rk]++;
+      yaku += Number(r.yakuman || 0);
+    }
+    const hist = rows.slice(0, 20).map(r => {
+      const bt = (r as any).buttobi != null ? !!((r as any).buttobi) : Number(r.score || 0) < 0;
+      return `<history><rank>${Number(r.rank || 0)}</rank><score>${Number(r.score || 0)}</score>` +
+        `<is_yakuman>${Number(r.yakuman || 0) > 0 ? 1 : 0}</is_yakuman>` +
+        `<is_buttobi>${bt ? 1 : 0}</is_buttobi>` +
+        `<date>${xml_escape(fmtRecordDate(Number((r as any).ts) || 0))}</date></history>`;
+    }).join("");
+    out += `<info><kind>${kind}</kind><rank_list>${counts.map(c => `<rank_count>${c}</rank_count>`).join("")}</rank_list>` +
+      `<yakuman_num>${yaku}</yakuman_num><histories>${hist}</histories></info>`;
+  }
+  sendXml(ctx, xml_response(`<player_record>${out}</player_record>`));
 }
 
 export async function handle_get_haifu_list(form: Record<string, string>, ctx: any): Promise<void> {
@@ -959,7 +1326,7 @@ export async function handle_log_only(form: Record<string, string>, ctx: any): P
     try {
       const txt = Buffer.from(decodeURIComponent(raw.replace(/\+/g, " ")), "base64").toString("utf-8");
       // @ts-ignore
-      console.log(`[itemlog] ${txt}`);
+      vlog(`[itemlog] ${txt}`);
     } catch { }
   }
   sendXml(ctx, xml_response());
@@ -992,7 +1359,7 @@ export const AOG_HANDLER_MAP: Record<string, (f: any, c: any) => Promise<void>> 
   end_game: handle_end_or_kiken,
   kiken_game: handle_end_or_kiken,
   end_show: handle_end_show,
-  reconnect: handle_entry_game,
+  reconnect: handle_reconnect,
   chk_tabooword: handle_chk_tabooword,
   dojo_get_status: handle_dojo_get_status,
   dojo_set_slot: handle_dojo_set_slot,
@@ -1029,10 +1396,26 @@ export const AOG_HANDLER_MAP: Record<string, (f: any, c: any) => Promise<void>> 
 };
 
 
-// register
+// register (every handler wrapped: entry/exit/errors go through vlog so a
+// single VFG_VERBOSE flag controls all per-request diagnostics)
 export function registerAogRoutes(): void {
   for (const [name, handler] of Object.entries(AOG_HANDLER_MAP)) {
+    const wrapped = async (form: any, ctx: any) => {
+      const t0 = Date.now();
+      try {
+        const keys = form ? Object.keys(form).join(",") : "";
+        vlog(`[VFG] AOG ${name} keys=${keys}`);
+      } catch { }
+      try {
+        await (handler as any)(form, ctx);
+      } catch (e) {
+        try { console.error(`[VFG] AOG ${name} handler threw: ${e}`); } catch { }
+        throw e;
+      } finally {
+        try { vlog(`[VFG] AOG ${name} done ${Date.now() - t0}ms`); } catch { }
+      }
+    };
     // @ts-ignore - R.AogRoute is injected by RyuNET
-    if (typeof R !== "undefined" && R.AogRoute) R.AogRoute(name, handler as any);
+    if (typeof R !== "undefined" && R.AogRoute) R.AogRoute(name, wrapped as any);
   }
 }
