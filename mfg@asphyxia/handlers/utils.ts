@@ -820,6 +820,7 @@ export interface GachaPool {
   custom: string[];
   pickup: string[];
   limited: string[];
+  exchange: string[];
 }
 
 export function _gachaPool(sid: number, stype: string): GachaPool {
@@ -827,7 +828,8 @@ export function _gachaPool(sid: number, stype: string): GachaPool {
   let charas: string[] = [...(entry.pickup_charas || [])];
   let custom: string[] = [...(entry.custom_pickup_items || [])];
   if (stype === "Music") {
-    return { items: [...(entry.music_items || [])], charas, custom: [], pickup: [], limited: [] };
+    const music = [...(entry.music_items || [])];
+    return { items: music, charas, custom: [], pickup: [], limited: [], exchange: music };
   }
   if (stype === "Pickup" && !charas.length && !custom.length) {
     charas = [GACHA_FALLBACK_CHARA];
@@ -840,7 +842,23 @@ export function _gachaPool(sid: number, stype: string): GachaPool {
   // fine — the client skips empty tags and IsPickitemsAllGet needs Count>0).
   // limited_pickup_items: only Limited banners use it and the client previews
   // those from its own hard-coded movie lists, so always empty (tag present).
-  return { items, charas, custom, pickup: [...custom], limited: [] };
+  // exchange: the banner girl's cutins (by OID_XX prefix) plus custom tickets
+  // so the exchange list is never empty. All OIDs come from pools already
+  // validated against the client's CutinItemMaster.
+  const nums = new Set<string>();
+  for (const c of charas) {
+    const m = /^Chara(\d+)$/.exec(String(c || ""));
+    if (m) nums.add(String(m[1]).padStart(2, "0"));
+  }
+  let exchange = [...custom];
+  if (nums.size) {
+    for (const oid of items) {
+      const m = /^OID_(\d{2})/.exec(String(oid || ""));
+      if (m && nums.has(m[1]) && !exchange.includes(oid)) exchange.push(oid);
+    }
+  }
+  if (!exchange.length) exchange = [...items];
+  return { items, charas, custom, pickup: [...custom], limited: [], exchange };
 }
 
 // Default rarity rates (per-mil / 10, matching the official schedule shape).
@@ -856,6 +874,7 @@ export function buildGachaInfoXml(): string {
     const custom = pool.custom.map(o => `<item>${xml_escape(o)}</item>`).join("");
     const pickup = pool.pickup.map(o => `<item>${xml_escape(o)}</item>`).join("");
     const limited = pool.limited.map(o => `<item>${xml_escape(o)}</item>`).join("");
+    const exchange = pool.exchange.map(o => `<item>${xml_escape(o)}</item>`).join("");
     const r = GACHA_RATE_DEFAULT;
     rows.push(
       "<info>" +
@@ -870,7 +889,7 @@ export function buildGachaInfoXml(): string {
       `<pickup_items>${pickup}</pickup_items>` +
       `<limited_pickup_items>${limited}</limited_pickup_items>` +
       `<custom_pickup_items>${custom}</custom_pickup_items>` +
-      `<exchange_items>${stype === "Music" ? items : custom}</exchange_items>` +
+      `<exchange_items>${exchange}</exchange_items>` +
       `<pickup_rate><normal><n>${r.n}</n><r>${r.r}</r><sr>${r.sr}</sr><ur>${r.ur}</ur></normal><pickup><n>${r.n}</n><r>${r.r}</r><sr>${r.sr}</sr><ur>${r.ur}</ur></pickup><limited><n>${r.n}</n><r>${r.r}</r><sr>${r.sr}</sr><ur>${r.ur}</ur></limited></pickup_rate>` +
       `<start_date>${EVENT_BEGIN}</start_date>` +
       `<end_date>${EVENT_END}</end_date>` +
