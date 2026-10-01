@@ -1,0 +1,468 @@
+{
+  "events": [
+    {
+      "id": "matching.local.00001",
+      "param": "asset_id=00001"
+    },
+    {
+      "id": "matching.online.00001",
+      "param": "asset_id=00002"
+    },
+    {
+      "id": "matching.room.00001",
+      "param": "asset_id=00001"
+    },
+    {
+      "id": "feature.aprilfools2025",
+      "param": ""
+    },
+    {
+      "id": "feature.entryboostitem",
+      "param": ""
+    },
+    {
+      "id": "feature.bgm1staniv",
+      "param": ""
+    },
+    {
+      "id": "feature.privacyranking",
+      "param": ""
+    },
+    {
+      "id": "feature.storyselect",
+      "param": ""
+    },
+    {
+      "id": "feature.costumechange",
+      "param": ""
+    },
+    {
+      "id": "feature.namechange",
+      "param": ""
+    },
+    {
+      "id": "season.1",
+      "param": ""
+    },
+    {
+      "id": "login_bonus.00001",
+      "param": ""
+    },
+    {
+      "id": "login_bonus.00002",
+      "param": ""
+    },
+    {
+      "id": "login_bonus.00003",
+      "param": ""
+    },
+    {
+      "id": "login_bonus.00005",
+      "param": ""
+    },
+    {
+      "id": "login_bonus.00006",
+      "param": ""
+    },
+    {
+      "id": "login_bonus.00007",
+      "param": ""
+    },
+    {
+      "id": "login_bonus.00008",
+      "param": ""
+    },
+    {
+      "id": "login_bonus.00010",
+      "param": ""
+    },
+    {
+      "id": "login_bonus.00012",
+      "param": ""
+    },
+    {
+      "id": "login_bonus.00018",
+      "param": ""
+    },
+    {
+      "id": "login_bonus.00019",
+      "param": ""
+    },
+    {
+      "id": "login_bonus.00022",
+      "param": ""
+    },
+    {
+      "id": "login_bonus.00023",
+      "param": ""
+    },
+    {
+      "id": "login_bonus.00025",
+      "param": ""
+    },
+    {
+      "id": "login_bonus.00028",
+      "param": ""
+    },
+    {
+      "id": "login_bonus.00032",
+      "param": ""
+    },
+    {
+      "id": "login_bonus.00037",
+      "param": ""
+    },
+    {
+      "id": "login_bonus.00042",
+      "param": ""
+    },
+    {
+      "id": "login_bonus.00047",
+      "param": ""
+    },
+    {
+      "id": "login_bonus.00055",
+      "param": ""
+    },
+    {
+      "id": "login_bonus.00060",
+      "param": ""
+    },
+    {
+      "id": "login_bonus.00001.0001",
+      "param": ""
+    },
+    {
+      "id": "login_bonus.00001.0002",
+      "param": ""
+    },
+    {
+      "id": "login_bonus.00001.0003",
+      "param": ""
+    },
+    {
+      "id": "login_bonus.00001.0004",
+      "param": ""
+    },
+    {
+      "id": "login_bonus.00001.0005",
+      "param": ""
+    },
+    {
+      "id": "login_bonus.00001.0006",
+      "param": ""
+    },
+    {
+      "id": "login_bonus.00001.0007",
+      "param": ""
+    },
+    {
+      "id": "login_bonus.00001.0008",
+      "param": ""
+    },
+    {
+      "id": "login_bonus.00001.0009",
+      "param": ""
+    },
+    {
+      "id": "login_bonus.00001.0010",
+      "param": ""
+    },
+    {
+      "id": "login_bonus.00002.0001",
+      "param": ""
+    },
+    {
+      "id": "login_bonus.00003.0001",
+      "param": ""
+    },
+    {
+      "id": "login_bonus.00003.0002",
+      "param": ""
+    },
+    {
+      "id": "login_bonus.00003.0003",
+      "param": ""
+    },
+    {
+      "id": "login_bonus.00003.0004",
+      "param": ""
+    },
+    {
+      "id": "login_bonus.00003.0005",
+      "param": ""
+    },
+    {
+      "id": "login_bonus.00003.0006",
+      "param": ""
+    },
+    {
+      "id": "login_bonus.00003.0007",
+      "param": ""
+    },
+    {
+      "id": "login_bonus.00003.0008",
+      "param": ""
+    },
+    {
+      "id": "login_bonus.00003.0009",
+      "param": ""
+    },
+    {
+      "id": "login_bonus.00003.0010",
+      "param": ""
+    },
+    {
+      "id": "login_bonus.00005.0001",
+      "param": ""
+    },
+    {
+      "id": "login_bonus.00006.0001",
+      "param": ""
+    },
+    {
+      "id": "login_bonus.00007.0001",
+      "param": ""
+    },
+    {
+      "id": "login_bonus.00008.0001",
+      "param": ""
+    },
+    {
+      "id": "login_bonus.00012.0001",
+      "param": ""
+    },
+    {
+      "id": "login_bonus.00010.0001",
+      "param": ""
+    },
+    {
+      "id": "login_bonus.00018.0001",
+      "param": ""
+    },
+    {
+      "id": "login_bonus.00019.0001",
+      "param": ""
+    },
+    {
+      "id": "login_bonus.00022.0001",
+      "param": ""
+    },
+    {
+      "id": "login_bonus.00023.0001",
+      "param": ""
+    },
+    {
+      "id": "login_bonus.00025.0001",
+      "param": ""
+    },
+    {
+      "id": "login_bonus.00028.0001",
+      "param": ""
+    },
+    {
+      "id": "login_bonus.00032.0001",
+      "param": ""
+    },
+    {
+      "id": "login_bonus.00037.0001",
+      "param": ""
+    },
+    {
+      "id": "login_bonus.00042.0001",
+      "param": ""
+    },
+    {
+      "id": "login_bonus.00047.0001",
+      "param": ""
+    },
+    {
+      "id": "login_bonus.00055.0001",
+      "param": ""
+    },
+    {
+      "id": "login_bonus.00060.0001",
+      "param": ""
+    },
+    {
+      "id": "ticket.00001",
+      "param": ""
+    },
+    {
+      "id": "ticket.00002",
+      "param": ""
+    },
+    {
+      "id": "ticket.00003",
+      "param": ""
+    },
+    {
+      "id": "ticket.00004",
+      "param": ""
+    },
+    {
+      "id": "ticket.00005",
+      "param": ""
+    },
+    {
+      "id": "ticket.00006",
+      "param": ""
+    },
+    {
+      "id": "ticket.00007",
+      "param": ""
+    },
+    {
+      "id": "ticket.00008",
+      "param": ""
+    },
+    {
+      "id": "ticket.00009",
+      "param": ""
+    },
+    {
+      "id": "ticket.00010",
+      "param": ""
+    },
+    {
+      "id": "ticket.00011",
+      "param": ""
+    },
+    {
+      "id": "ticket.00012",
+      "param": ""
+    },
+    {
+      "id": "shop.00000",
+      "param": ""
+    },
+    {
+      "id": "shop.00001",
+      "param": ""
+    },
+    {
+      "id": "shop.00002",
+      "param": ""
+    },
+    {
+      "id": "shop.00003",
+      "param": ""
+    },
+    {
+      "id": "shop.00004",
+      "param": ""
+    },
+    {
+      "id": "shop.00005",
+      "param": ""
+    },
+    {
+      "id": "shop.00006",
+      "param": ""
+    },
+    {
+      "id": "shop.00007",
+      "param": ""
+    },
+    {
+      "id": "shop.20001",
+      "param": ""
+    },
+    {
+      "id": "shop.00008",
+      "param": ""
+    },
+    {
+      "id": "shop.00009",
+      "param": ""
+    },
+    {
+      "id": "shop.00010",
+      "param": ""
+    },
+    {
+      "id": "shop.00011",
+      "param": ""
+    },
+    {
+      "id": "shop.00012",
+      "param": ""
+    },
+    {
+      "id": "shop.00000.00001",
+      "param": ""
+    },
+    {
+      "id": "shop.00000.00002",
+      "param": ""
+    },
+    {
+      "id": "shop.00000.00003",
+      "param": ""
+    },
+    {
+      "id": "shop.00000.00004",
+      "param": ""
+    },
+    {
+      "id": "shop.00000.00005",
+      "param": ""
+    },
+    {
+      "id": "promo.00001",
+      "param": ""
+    },
+    {
+      "id": "caravan.00010000",
+      "param": ""
+    },
+    {
+      "id": "caravan.00010001",
+      "param": ""
+    },
+    {
+      "id": "caravan.00010002",
+      "param": ""
+    },
+    {
+      "id": "caravan.00010003",
+      "param": ""
+    },
+    {
+      "id": "caravan.00010004",
+      "param": ""
+    },
+    {
+      "id": "caravan.00010005",
+      "param": ""
+    },
+    {
+      "id": "caravan.00010006",
+      "param": ""
+    },
+    {
+      "id": "caravan.00010007",
+      "param": ""
+    },
+    {
+      "id": "caravan.00010008",
+      "param": ""
+    },
+    {
+      "id": "costume.0048000101",
+      "param": ""
+    },
+    {
+      "id": "costume.0048000101.promo",
+      "param": ""
+    },
+    {
+      "id": "mv.00304",
+      "param": ""
+    },
+    {
+      "id": "mv.00196",
+      "param": ""
+    }
+  ]
+}

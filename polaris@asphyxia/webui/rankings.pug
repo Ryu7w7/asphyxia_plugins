@@ -1,0 +1,81 @@
+//DATA//
+  profiles: DB.Find(null, { collection: 'profile' })
+
+-
+  function docOf(p) {
+    try {
+      var d = p.data;
+      if (typeof d === "string") d = JSON.parse(d);
+      return d || {};
+    } catch (e) { return {}; }
+  }
+  function leaf(v) {
+    if (v == null) return "";
+    if (typeof v === "object") {
+      var c = v["@content"];
+      if (Array.isArray(c)) return c.length ? c[0] : "";
+      return c == null ? "" : c;
+    }
+    return v;
+  }
+  function num(v) { var n = parseInt(leaf(v), 10); return isNaN(n) ? 0 : n; }
+  function str(v, d) {
+    var s = leaf(v);
+    s = (s == null || s === "") ? (d || "") : String(s);
+    return s;
+  }
+  var DIFF = ["NOV", "ADV", "EXH", "INF", "MXM"];
+  var best = {};
+  for (const p of profiles) {
+    const d = docOf(p);
+    const echo = d.data || {};
+    const name = str((echo.usr_profile || {}).usr_name, "PLAYER");
+    const scores = Array.isArray(d.scores) ? d.scores : [];
+    for (const s of scores) {
+      const mid = num(s.music_id);
+      const diff = num(s.chart_difficulty_type);
+      if (!mid) continue;
+      const k = mid + ":" + diff;
+      const sc = num(s.score);
+      if (!best[k] || sc > best[k].score) {
+        best[k] = {
+          music_id: mid, diff: diff, score: sc, name: name,
+          rate: num(s.achievement_rate), rank: num(s.score_rank),
+          combo: num(s.combo),
+        };
+      }
+      best[k].plays = (best[k].plays || 0) + 1;
+    }
+  }
+  var rows = Object.values(best).sort((a, b) => a.music_id - b.music_id || a.diff - b.diff);
+
+div
+  .card
+    .card-header
+      p.card-header-title
+        span.icon
+          i.mdi.mdi-trophy
+        | Chart Rankings (best per chart)
+    .card-content
+      table.table.is-fullwidth.is-striped.is-hoverable
+        thead
+          tr
+            th Music
+            th Diff
+            th Player
+            th Score
+            th Rate
+            th Rank
+            th Combo
+            th Plays
+        tbody
+          each r in rows
+            tr
+              td= r.music_id
+              td= DIFF[r.diff] || r.diff
+              td= r.name
+              td= r.score
+              td= r.rate
+              td= r.rank
+              td= r.combo
+              td= r.plays
