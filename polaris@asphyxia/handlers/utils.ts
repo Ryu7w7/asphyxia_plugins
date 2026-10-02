@@ -325,6 +325,13 @@ export async function saveProfile(refid: string, doc: XifProfile): Promise<void>
   const norm = normalizeRefid(refid) || normalizeRefid((doc as any).refid) || "GUEST";
   (doc as any).refid = norm;
   (doc as any).updated_at = nowUnix();
+  // Stamp the in-game name at the top level so the RyuNET WebUI profile
+  // listing (which looks for doc.name) shows the real player name instead
+  // of falling back to the core profile's random or GUEST name.
+  try {
+    const inGameName = echoUsrName((doc as any).data);
+    if (inGameName) (doc as any).name = inGameName;
+  } catch { }
   try {
     // @ts-ignore
     await DB.Upsert(norm, { collection: "profile" }, dbEncode(doc));
