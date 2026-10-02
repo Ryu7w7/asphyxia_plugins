@@ -163,7 +163,8 @@ function playerDataBody(profile: any): any {
   try {
     const playedBefore = ((profile as any).scores || []).length > 0
       || X.numOf(((data as any).usr_profile || {}), "exp") > 0
-      || COUNT_FIELDS.some(f => X.numOf(((data as any).usr_play_info || {}), f) > 0);
+      || COUNT_FIELDS.some(f => X.numOf(((data as any).usr_play_info || {}), f) > 0)
+      || !!echoUsrName(data); // name set = prologue already completed, avoid infinite repeat
     if (playedBefore) {
       const holder = (out as any).usr_count;
       const rows = readListRows(holder).rows;
@@ -234,12 +235,34 @@ async function usrGet(info: any, data: any, send: any): Promise<void> {
   }
 
   if (!profile) {
-    dlog(`usr.get refs=${refId || "-"}/${dataId || "-"}/${cardId || "-"} -> result=1 (no profile)`);
+    // No Polaris profile yet, but the card IS registered in the core
+    // (cardmng.inquire already returned binded=1). Returning result=1 here
+    // contradicts that — the EA3 Unity client treats result=1 as "unregistered
+    // card" and immediately calls usr.checkout to abort the session.
+    // Instead, auto-create the profile shell and return result=2 (card
+    // registered, no name yet) which correctly triggers the name-entry
+    // tutorial so the player can set their username and start playing.
+    if (want) {
+      try {
+        profile = await ensureProfileByRefid(want);
+      } catch { }
+    }
+    if (!profile) {
+      dlog(`usr.get refs=${refId || "-"}/${dataId || "-"}/${cardId || "-"} -> result=1 (no profile, no refid to create)`);
+      await send.object({
+        result: K.ITEM("s32", 1),
+        now_date: K.ITEM("str", nowDateSpace()),
+        usr_id: K.ITEM("s32", 0),
+        crew_id: K.ITEM("str", ""),
+      });
+      return;
+    }
+    dlog(`usr.get refs=${refId || "-"}/${dataId || "-"}/${cardId || "-"} -> auto-created shell, result=2`);
     await send.object({
-      result: K.ITEM("s32", 1),
+      result: K.ITEM("s32", 2),
       now_date: K.ITEM("str", nowDateSpace()),
-      usr_id: K.ITEM("s32", 0),
-      crew_id: K.ITEM("str", ""),
+      usr_id: K.ITEM("s32", Number((profile as any).usr_id || 0)),
+      crew_id: K.ITEM("str", String((profile as any).crew_id || "")),
     });
     return;
   }
