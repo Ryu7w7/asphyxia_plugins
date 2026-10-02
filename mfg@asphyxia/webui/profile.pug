@@ -1,0 +1,132 @@
+//DATA//
+  profile: DB.FindOne(refid, { collection: 'profile' })
+  archives: DB.Find(null, { collection: 'match_archive' })
+
+-
+  var MODE_NAMES = { 1: "Tonpuusen (4P)", 2: "Hanchan (4P)", 3: "Sanma (3P)", 4: "Nima (2P)" };
+  var RANK_LABELS = ["1st", "2nd", "3rd", "4th"];
+  var RANK_CLS    = ["is-warning", "is-light", "", "is-danger is-light"];
+
+  function formatDate(ts) {
+    if (!ts) return "-";
+    return new Date(ts).toLocaleString();
+  }
+  function umaClass(uma) {
+    var v = Number(uma || 0);
+    return v > 0 ? "has-text-success" : v < 0 ? "has-text-danger" : "";
+  }
+
+  if !profile
+    return
+
+  var p = profile;
+  var mid = Number(p.player_id || 0);
+  var name = p.name || "PLAYER";
+
+  // Parse player_game state for extra info
+  var pg = {};
+  try { pg = JSON.parse((p.states && p.states.player_game) || "{}"); } catch(e) {}
+
+  // Collect this player's matches (filter by mid)
+  var myMatches = [];
+  var totalGames = 0, wins = 0, top2 = 0, sumRank = 0, sumUma = 0, sumScore = 0, busts = 0;
+  for (var i = 0; i < (archives || []).length; i++) {
+    var m = archives[i];
+    if (!m.players) continue;
+    var mySlot = null;
+    for (var j = 0; j < m.players.length; j++) {
+      if (Number(m.players[j].mid) === mid) { mySlot = m.players[j]; break; }
+    }
+    if (!mySlot) continue;
+    totalGames++;
+    if (mySlot.rank === 0) wins++;
+    if (mySlot.rank <= 1) top2++;
+    sumRank += mySlot.rank + 1;
+    sumUma += Number(mySlot.uma || 0);
+    sumScore += Number(mySlot.score || 0);
+    if (mySlot.buttobi) busts++;
+    myMatches.push({ m: m, slot: mySlot });
+  }
+  myMatches.sort(function(a, b) { return (b.m.timestamp || 0) - (a.m.timestamp || 0); });
+
+  var avgRank = totalGames > 0 ? (sumRank / totalGames).toFixed(2) : "-";
+  var avgUma  = totalGames > 0 ? Math.round(sumUma / totalGames) : 0;
+  var winRate = totalGames > 0 ? ((wins / totalGames) * 100).toFixed(1) + "%" : "0.0%";
+
+if !profile
+  .notification.is-warning
+    | This player profile was not found.
+else
+  // ── Profile card ─────────────────────────────────────────────────────────
+  .card(style="margin-bottom:1rem")
+    .card-header
+      p.card-header-title
+        span.icon
+          i.mdi.mdi-account-circle
+        | &nbsp;#{name}
+        span.has-text-grey-light(style="font-weight:normal;font-size:.8rem;margin-left:.5rem") MID: #{mid}
+    .card-content
+      .columns.is-multiline
+        .column.is-narrow
+          .has-text-grey-light(style="font-size:.75rem") GAMES
+          strong= totalGames
+        .column.is-narrow
+          .has-text-grey-light(style="font-size:.75rem") 1ST PLACE
+          strong= wins
+        .column.is-narrow
+          .has-text-grey-light(style="font-size:.75rem") WIN RATE
+          strong= winRate
+        .column.is-narrow
+          .has-text-grey-light(style="font-size:.75rem") TOP 2
+          strong= top2
+        .column.is-narrow
+          .has-text-grey-light(style="font-size:.75rem") AVG RANK
+          strong= avgRank
+        .column.is-narrow
+          .has-text-grey-light(style="font-size:.75rem") AVG UMA
+          strong(class=avgUma > 0 ? "has-text-success" : avgUma < 0 ? "has-text-danger" : "")
+            = avgUma.toLocaleString()
+        .column.is-narrow
+          .has-text-grey-light(style="font-size:.75rem") BUSTS
+          strong= busts
+        .column.is-narrow
+          .has-text-grey-light(style="font-size:.75rem") MEMBER SINCE
+          strong= formatDate(p.created_at ? p.created_at * 1000 : null)
+
+  // ── Match History ─────────────────────────────────────────────────────────
+  .card
+    .card-header
+      p.card-header-title
+        span.icon
+          i.mdi.mdi-history
+        | &nbsp;Match History (#{myMatches.length})
+    .card-content(style="padding:.75rem")
+      if !myMatches.length
+        .notification.is-info.is-light
+          p No matches recorded yet.
+      else
+        table.table.is-fullwidth.is-hoverable.is-striped.is-narrow(style="font-size:.85rem")
+          thead
+            tr
+              th Date
+              th Mode
+              th Rank
+              th Score
+              th Uma
+              th vs.
+          tbody
+            each entry in myMatches
+              - var sl = entry.slot; var mm = entry.m;
+              tr
+                td.has-text-grey-light(style="font-size:.75rem;white-space:nowrap")= formatDate(mm.timestamp)
+                td= MODE_NAMES[mm.gmode] || ("Mode " + mm.gmode)
+                td
+                  if sl.buttobi
+                    span.tag.is-danger.is-light(style="margin-right:.2rem" title="Bust") 飛
+                  span.tag(class=RANK_LABELS[sl.rank] ? RANK_CLS[sl.rank] : "")= RANK_LABELS[sl.rank] || ("R" + (sl.rank + 1))
+                td= Number(sl.score || 0).toLocaleString()
+                td(class=umaClass(sl.uma))= Number(sl.uma || 0).toLocaleString()
+                td
+                  each opp in mm.players
+                    if Number(opp.mid) !== mid
+                      span(style="margin-right:.3rem;font-size:.8rem")= opp.name || "CPU"

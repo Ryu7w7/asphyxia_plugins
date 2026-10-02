@@ -1,45 +1,108 @@
 //DATA//
   profiles: DB.Find(null, { collection: 'profile' })
+  archives: DB.Find(null, { collection: 'match_archive' })
 
 -
-  let players = [];
-  for (const p of profiles) {
-    if (p.states && p.states.player_game) {
-      try {
-        const pg = JSON.parse(p.states.player_game);
-        players.push({
-          name: pg.PlayerName || "Guest",
-          mid: p.player_id,
-          rating: Number(pg.Rating || 0),
-          grade: Number(pg.Grade || 0),
-          chara: Number(pg.SelectChara || 0)
-        });
-      } catch (e) {}
+  var MODE_NAMES = { 1: "Tonpuusen (4P)", 2: "Hanchan (4P)", 3: "Sanma (3P)", 4: "Nima (2P)" };
+
+  // Build stats per player_id from match history
+  var stats = {};
+  for (var i = 0; i < (archives || []).length; i++) {
+    var m = archives[i];
+    if (!m.players) continue;
+    for (var j = 0; j < m.players.length; j++) {
+      var pl = m.players[j];
+      if (!pl.mid || pl.mid === 0) continue;
+      var key = String(pl.mid);
+      if (!stats[key]) stats[key] = { mid: pl.mid, name: pl.name || "PLAYER", games: 0, wins: 0, top2: 0, sumRank: 0, sumUma: 0, busts: 0 };
+      stats[key].games++;
+      if (pl.rank === 0) stats[key].wins++;
+      if (pl.rank <= 1) stats[key].top2++;
+      stats[key].sumRank += pl.rank + 1;
+      stats[key].sumUma += Number(pl.uma || 0);
+      if (pl.buttobi) stats[key].busts++;
     }
   }
-  players.sort((a, b) => b.rating - a.rating);
 
-div
-  .card
-    .card-header
-      p.card-header-title
-        span.icon
-          i.mdi.mdi-trophy
-        | Global Leaderboard
-    .card-content
-      table.table.is-fullwidth.is-striped.is-hoverable
+  // Index profiles by player_id
+  var profMap = {};
+  for (var pi = 0; pi < (profiles || []).length; pi++) {
+    var p = profiles[pi];
+    if (p.player_id) profMap[String(p.player_id)] = p;
+  }
+
+  // Build rows — players with match history first
+  var rows = [];
+  var seenMids = {};
+  for (var mid in stats) {
+    seenMids[mid] = true;
+    var st = stats[mid];
+    var prof = profMap[mid] || null;
+    var name = (prof && prof.name && prof.name !== "GUEST") ? prof.name : (st.name || "PLAYER");
+    rows.push({
+      mid: st.mid,
+      refid: prof ? (prof.refid || "") : "",
+      name: name,
+      games: st.games,
+      wins: st.wins,
+      top2: st.top2,
+      winRate: st.games > 0 ? ((st.wins / st.games) * 100).toFixed(1) + "%" : "0.0%",
+      avgRank: st.games > 0 ? (st.sumRank / st.games).toFixed(2) : "-",
+      avgUma: st.games > 0 ? Math.round(st.sumUma / st.games).toLocaleString() : "0",
+      avgUmaNum: st.games > 0 ? Math.round(st.sumUma / st.games) : 0,
+      busts: st.busts,
+    });
+  }
+  // Also include profiles with no history
+  for (var pid in profMap) {
+    if (!seenMids[pid]) {
+      var pp = profMap[pid];
+      rows.push({ mid: pp.player_id, refid: pp.refid || "", name: pp.name || "PLAYER", games: 0, wins: 0, top2: 0, winRate: "0.0%", avgRank: "-", avgUma: "0", avgUmaNum: 0, busts: 0 });
+    }
+  }
+  rows.sort(function(a, b) {
+    if (b.wins !== a.wins) return b.wins - a.wins;
+    return a.avgUmaNum - b.avgUmaNum ? (b.avgUmaNum - a.avgUmaNum) : (b.games - a.games);
+  });
+
+.card
+  .card-header
+    p.card-header-title
+      span.icon
+        i.mdi.mdi-trophy
+      | &nbsp;Global Leaderboard
+      span.has-text-grey-light.is-size-7(style="font-weight:normal;margin-left:.5rem")
+        | &nbsp;— stats computed from #{(archives || []).length} recorded matches
+  .card-content(style="overflow-x:auto;padding:.75rem")
+    if !rows.length
+      p.has-text-grey No players registered yet.
+    else
+      table.table.is-fullwidth.is-hoverable.is-striped(style="font-size:.85rem")
         thead
           tr
-            th Rank
+            th #
             th Name
-            th Rating
-            th Grade
             th MID
+            th Games
+            th 1st
+            th 1st Rate
+            th Avg Rank
+            th Avg Uma
+            th Busts
         tbody
-          each p, index in players
+          each r, idx in rows
             tr
-              td= index + 1
-              td= p.name
-              td= p.rating
-              td= p.grade
-              td= p.mid
+              td= idx + 1
+              td
+                if r.refid
+                  a(href="/plugin/mfg@asphyxia/profile?refid=" + r.refid)= r.name
+                else
+                  = r.name
+              td.has-text-grey-light= r.mid
+              td= r.games
+              td= r.wins
+              td= r.winRate
+              td= r.avgRank
+              td(class=r.avgUmaNum > 0 ? "has-text-success" : r.avgUmaNum < 0 ? "has-text-danger" : "")
+                = r.avgUma
+              td= r.busts || 0

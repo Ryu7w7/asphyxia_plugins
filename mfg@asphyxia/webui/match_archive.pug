@@ -2,45 +2,67 @@
   archives: DB.Find(null, { collection: 'match_archive' })
 
 -
-  let matches = archives || [];
-  matches.sort((a, b) => b.timestamp - a.timestamp);
-
-  const MODE_NAMES = {
-    1: "Tonpuusen (4-player)",
-    2: "Hanchan (4-player)",
-    3: "Sanma (3-player)",
-    4: "Nima (2-player)"
-  };
+  var MODE_NAMES = { 1: "Tonpuusen (4P)", 2: "Hanchan (4P)", 3: "Sanma (3P)", 4: "Nima (2P)" };
+  var RANK_LABELS = ["1st", "2nd", "3rd", "4th"];
+  var RANK_CLS    = ["is-warning", "is-light", "", "is-danger is-light"];
 
   function formatDate(ts) {
     if (!ts) return "-";
-    const d = new Date(ts);
-    return d.toLocaleString();
+    return new Date(ts).toLocaleString();
+  }
+  function umaClass(uma) {
+    var v = Number(uma || 0);
+    return v > 0 ? "has-text-success" : v < 0 ? "has-text-danger" : "";
+  }
+  function fmtScore(s) {
+    var v = Number(s || 0);
+    return v.toLocaleString();
   }
 
-div
-  .card
-    .card-header
-      p.card-header-title
-        span.icon
-          i.mdi.mdi-history
-        | Global Match Archive
-    .card-content
-      table.table.is-fullwidth.is-striped.is-hoverable
-        thead
-          tr
-            th Date
-            th Mode
-            th Players & Scores
-        tbody
-          each m in matches
-            tr
-              td= formatDate(m.timestamp)
-              td= MODE_NAMES[m.gmode] || ("Mode " + m.gmode)
-              td
-                ul
-                  if m.players
-                    each p in m.players
-                      li 
-                        strong= p.name 
-                        |  - Score: #{p.score} (Uma: #{p.uma}, Rank: #{p.rank})
+  var matches = (archives || []).slice().sort(function(a, b) { return (b.timestamp || 0) - (a.timestamp || 0); });
+
+.card
+  .card-header
+    p.card-header-title
+      span.icon
+        i.mdi.mdi-history
+      | &nbsp;Match Archive
+      span.has-text-grey-light.is-size-7(style="font-weight:normal;margin-left:.5rem")
+        | &nbsp;— #{matches.length} matches recorded
+  .card-content(style="padding:.75rem")
+    if !matches.length
+      .notification.is-info.is-light
+        p No completed matches recorded yet. Matches are saved when a full game ends on the server.
+    else
+      each m in matches
+        .box(style="margin-bottom:1rem;padding:.75rem")
+          .level.is-mobile(style="margin-bottom:.5rem")
+            .level-left
+              .level-item
+                span.tag.is-dark= MODE_NAMES[m.gmode] || ("Mode " + m.gmode)
+            .level-right
+              .level-item
+                span.has-text-grey-light.is-size-7= formatDate(m.timestamp)
+          table.table.is-fullwidth.is-narrow.is-striped(style="font-size:.85rem;margin-bottom:0")
+            thead
+              tr
+                th Rank
+                th Player
+                th Score
+                th Uma
+                if m.players && m.players.some(function(p){ return p.yakuman; })
+                  th Yakuman
+            tbody
+              if m.players
+                each pl in m.players
+                  tr
+                    td
+                      span.tag(class=RANK_LABELS[pl.rank] ? RANK_CLS[pl.rank] : "")= RANK_LABELS[pl.rank] || ("R" + (pl.rank + 1))
+                    td
+                      if pl.buttobi
+                        span.tag.is-danger.is-light(style="margin-right:.25rem" title="Bust") 飛
+                      = pl.name || "CPU"
+                    td= fmtScore(pl.score)
+                    td(class=umaClass(pl.uma))= Number(pl.uma || 0).toLocaleString()
+                    if m.players.some(function(p){ return p.yakuman; })
+                      td= pl.yakuman || ""
