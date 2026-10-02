@@ -62,12 +62,14 @@ import {
 import { ARENA_STATION_ITEMS } from './data/exg';
 import { ARENA_STATION_ITEMS7 } from './data/nbl';
 import { dataUpdate } from './handlers/migrate';
+import * as eacloud from './handlers/eacloud';
 
 export function register() {
 
   R.Contributor("LatoWolf#1170");
   R.Contributor("22vv0");
   R.GameCode('KFC');
+  R.GameCode('QCV'); // Konasute PC client
 
   R.Config('sdvx_eg_root_dir', { type: 'string', needRestart: true, default: '', name: 'Game Data Directory', desc: 'The root directory of your Exceed Gear/∇ game files (for asset copying)'});
   R.Config('use_blasterpass',{ type: 'boolean', default: true, name:'Use BLASTER PASS', desc:''});
@@ -84,6 +86,7 @@ export function register() {
   R.DataFile('./webui/asset/uploads/6_mdb.xml', {name: 'music_db.xml (EXCEED GEAR)', accept: 'text/xml, .xml'});
   R.DataFile('./webui/asset/uploads/7_mdb.xml', {name: 'music_db.xml (∇)', accept: 'text/xml, .xml'});
   R.DataFile('./webui/asset/uploads/0_mdb.xml', {name: 'music_db.xml (Omnimix)', desc: 'SDVX7 compatible mdb', accept: 'text/xml, .xml'});
+  R.DataFile('./webui/asset/uploads/8_mdb.xml', {name: 'music_db.xml (Konasute)', desc: 'Konasute PC (QCV) compatible music_db', accept: 'text/xml, .xml'});
 
   R.WebUIEvent('copyResourcesFromGame', copyResourcesFromGame);
   R.WebUIEvent('getRivalScores', getRivalScores);
@@ -193,7 +196,92 @@ export function register() {
     //logerrlevel: K.ITEM('s32', 0),
     //evtidnosendflg: K.ITEM('s32', 0)
   }));
-  
+
+  // ─── Konasute (QCV) — eacnet routes ────────────────────────────────────────
+  // The Konasute PC client uses a separate protocol (eacnet) on top of EA3.
+  // These routes are completely independent from the arcade KFC flow.
+  R.Route('sdvx.getServices',              eacloud.getServices);
+  R.Route('sdvx.getServerState',           eacloud.getServerState);
+  R.Route('sdvx.getServerClock',           eacloud.getServerClock);
+  R.Route('sdvx.checkVersion',             eacloud.checkVersion);
+  R.Route('sdvx.getGoodsList',             eacloud.getGoodsList);
+  R.Route('sdvx.getHash',                  eacloud.getHash);
+  R.Route('sdvx.uploadFile',               eacloud.uploadFile);
+  R.Route('sdvx.getResourceInfo',          eacloud.getResourceInfo);
+  R.Route('sdvx.checkSendLogAvailable',    eacloud.checkSendLogAvailable);
+  R.Route('sdvx.getInformation',           eacloud.getInformation);
+  R.Route('sdvx.getServerValues',          eacloud.getServerValues);
+  R.Route('sdvx.sendLog',                  eacloud.sendLog);
+  R.Route('sdvx.consumeItem',              eacloud.consumeItem);
+  R.Route('sdvx.checkGameStart',           eacloud.checkGameStart);
+  R.Route('sdvx.getItemList',              eacloud.getItemList);
+  R.Route('sdvx.getSubscriptionStatus',    eacloud.getSubscriptionStatus);
+  R.Route('sdvx.getUserIDs',               eacloud.getUserIDs);
+  R.Route('sdvx.heartbeat',                eacloud.heartbeat);
+  R.Route('sdvx.reserveConsumeItem',       eacloud.reserveConsumeItem);
+  R.Route('sdvx.cancelReserveConsumeItem', eacloud.cancelReserveConsumeItem);
+  R.Route('sdvx.gameEnd',                  eacloud.gameEnd);
+  R.Route('sdvx.acRelay',                  eacloud.acRelay);
+  // Legacy qcv surface (URLs advertised in getServices — must exist)
+  R.Route('sdvx.login',                    eacloud.login);
+  R.Route('sdvx.getLauncherData',          eacloud.getLauncherData);
+  R.Route('sdvx.getFile',                  eacloud.getFile);
+  R.Route('sdvx.getItemNum',               eacloud.getItemNum);
+  R.Route('sdvx.softwareSpecificService',  eacloud.softwareSpecificService);
+  R.Route('sdvx.urlAgreement',             eacloud.urlAgreement);
+  R.Route('sdvx.urlEaShop',               eacloud.urlEaShop);
+  R.Route('sdvx.checkGameVersion',         eacloud.checkGameVersion);
+  R.Route('sdvx.checkUpdate',              eacloud.checkUpdate);
+
+  // ─── Konasute (QCV) — p2d routes ───────────────────────────────────────────
+  // P2D protocol — handles subscription/account state for Konasute.
+  // Without correct P2D responses the client defaults to GUEST.
+  R.Route('p2d.getServerValues',           eacloud.p2dGetServerValues);
+  R.Route('p2d.heartbeat',                 eacloud.p2dHeartbeat);
+  R.Route('p2d.checkGameStart',            eacloud.p2dCheckGameStart);
+  R.Route('p2d.checkVersion',              eacloud.p2dCheckVersion);
+  R.Route('p2d.checkUpdate',               eacloud.p2dCheckUpdate);
+  R.Route('p2d.sendLog',                   eacloud.p2dSendLog);
+  R.Route('p2d.getClearRate',              eacloud.p2dGetClearRate);
+  R.Route('p2d.getServices',               eacloud.getServices);
+  R.Route('p2d.getServerState',            eacloud.getServerState);
+  R.Route('p2d.getServerClock',            eacloud.getServerClock);
+  R.Route('p2d.getUserIDs',                eacloud.getUserIDs);
+  R.Route('p2d.getSubscriptionStatus',     eacloud.getSubscriptionStatus);
+  R.Route('p2d.getItemList',               eacloud.getItemList);
+  R.Route('p2d.getGoodsList',              eacloud.getGoodsList);
+  R.Route('p2d.reserveConsumeItem',        eacloud.reserveConsumeItem);
+  R.Route('p2d.consumeItem',               eacloud.consumeItem);
+  R.Route('p2d.cancelReserveConsumeItem',  eacloud.cancelReserveConsumeItem);
+
+  // ─── Konasute (QCV) — acRelay tunnelled game routes ───────────────────────
+  // Konasute tunnels standard arcade EA3 calls through eacnet's acRelay.
+  // These routes forward the inner request to the standard game handlers.
+  R.Route('sdvx.sv6_common',     common);
+  R.Route('sdvx.sv6_hiscore',    hiscore);
+  R.Route('sdvx.sv6_log',        log);
+  R.Route('sdvx.sv6_load',       load);
+  R.Route('sdvx.sv6_load_r',     rival);
+  R.Route('sdvx.sv6_load_m',     loadScore);
+  R.Route('sdvx.sv6_save',       save);
+  R.Route('sdvx.sv6_save_m',     saveScore);
+  R.Route('sdvx.sv6_save_c',     saveCourse);
+  R.Route('sdvx.sv6_save_pb',    savePb);
+  R.Route('sdvx.sv6_save_e',     saveE);
+  R.Route('sdvx.sv6_save_mega',  true);
+  R.Route('sdvx.sv6_play_e',     true);
+  R.Route('sdvx.sv6_play_s',     true);
+  R.Route('sdvx.sv6_buy',        buy);
+  R.Route('sdvx.sv6_lounge',     lounge);
+  R.Route('sdvx.sv6_entry_s',    globalMatch);
+  R.Route('sdvx.sv6_entry_e',    entryE);
+  R.Route('sdvx.sv6_frozen',     true);
+  R.Route('sdvx.sv6_exception',  true);
+  R.Route('sdvx.sv6_music_url',  eacloud.acRelay);
+  R.Route('sdvx.sv6_mdata',      true);
+  R.Route('sdvx.sv6_st',         true);
+  R.Route('sdvx.sv6_arena_m',    true);
+
   R.Unhandled(undefined)
 
   // Hiscore options (apply to sv4+/sv5+/sv6/sv7 cabinets)

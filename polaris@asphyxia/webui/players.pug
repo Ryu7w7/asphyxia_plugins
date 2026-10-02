@@ -27,11 +27,24 @@
   for (const p of profiles) {
     const d = docOf(p);
     const echo = d.data || {};
-    const prof = echo.usr_profile || {};
+    var prof = echo.usr_profile || {};
+    if (Array.isArray(prof)) prof = prof[0] || {};
+    
+    var nameStr = str(prof.usr_name, "");
+    if (!nameStr) {
+      for (const k in prof) {
+        if (/usr_?name/i.test(k)) {
+          nameStr = str(prof[k], "");
+          if (nameStr) break;
+        }
+      }
+    }
+    if (!nameStr) nameStr = "PLAYER";
+    
     const scores = Array.isArray(d.scores) ? d.scores : [];
     rows.push({
       refid: p.__refid || d.refid || "",
-      name: str(prof.usr_name, "PLAYER"),
+      name: nameStr,
       rank: parseInt(leaf(prof.usr_rank), 10) || 0,
       exp: parseInt(leaf(prof.exp), 10) || 0,
       usr_id: p.usr_id || d.usr_id || 0,

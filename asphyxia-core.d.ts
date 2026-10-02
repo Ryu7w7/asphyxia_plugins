@@ -87,6 +87,18 @@ declare interface EamuseInfo {
   module: string;
   method: string;
   model: string;
+  /** Requester IP address (e.g. "192.168.1.1"). Available on most requests. */
+  ip?: string;
+  /** Game code (e.g. "KFC" for arcade, "QCV" for Konasute). */
+  gameCode?: string;
+  /** Cabinet PCBID, if applicable. */
+  pcbid?: string;
+  /**
+   * Konasute eacnet launch token from the -t argument.
+   * Populated by the eacnet middleware before the handler is called.
+   * Used by eacloud.ts to resolve card+profile identity.
+   */
+  eaCloudToken?: string;
 }
 
 /**
@@ -1002,6 +1014,27 @@ declare namespace IO {
    * Returns null if any error occurs while reading a file.
    */
   function ReadFile(path: string): Promise<Buffer | null>;
+
+  // ── Konasute identity APIs ────────────────────────────────────────────────
+  // These allow plugins to map Konasute launch tokens to card+profile refids.
+
+  /** Find a card by card ID. Returns the card document or false if not found. */
+  function FindCard(cid: string): Promise<{ __refid: string; cid: string; print: string } | false | null>;
+
+  /** Find all cards associated with a refid. Returns an array or false. */
+  function FindCardsByRefid(refid: string): Promise<{ __refid: string; cid: string; print: string }[] | false>;
+
+  /** Create a new card linked to an existing refid. */
+  function CreateCard(cid: string, refid: string): Promise<{ __refid: string } | false>;
+
+  /**
+   * Create a new core profile for the given game code.
+   * Returns the new profile document (with `__refid`) or false on failure.
+   */
+  function CreateProfile(gameCode: string): Promise<{ __refid: string } | false>;
+
+  /** Bind an existing profile refid to an additional game code. */
+  function BindProfile(refid: string, gameCode: string): Promise<any>;
 }
 
 /**

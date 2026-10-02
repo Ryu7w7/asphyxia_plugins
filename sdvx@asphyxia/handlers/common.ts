@@ -513,6 +513,7 @@ export const common: EPR = async (info, data, send) => {
       console.log("Highest music id: " + songNum)
     }
 
+    console.log("MARKER: Before song loop");
     for (let id = 1; id <= songNum; ++id) {
       const foundSongIndex = mdb.mdb.music.map(function(x) { return x['id']; }).indexOf(id.toString());
       if (foundSongIndex != -1) {
@@ -521,6 +522,7 @@ export const common: EPR = async (info, data, send) => {
         if (absVersion >= 6 && ('omnimix') in songData.info) omniList.push(id)  // lazy
       }
     }
+    console.log("MARKER: After song loop");
 
     // For testing extend data.
     if(IO.Exists('handlers/extend.json')) {
@@ -637,6 +639,7 @@ export const common: EPR = async (info, data, send) => {
     }
 
     else if(absVersion >= 5) {
+      console.log("MARKER: Inside absVersion >= 5");
       let musicOverrideFin = []
       const createItem = (key, val) => {return (typeof val === 'string') ? K.ITEM('str', val) : ((key === 'volume') ? K.ITEM('u16', val) : K.ITEM('u32', val))}
       for(const music of musicOverride.filter(m => checkVerStart(0, 0, m.start, date))) {

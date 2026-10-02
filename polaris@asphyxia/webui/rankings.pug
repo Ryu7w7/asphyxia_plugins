@@ -29,7 +29,19 @@
   for (const p of profiles) {
     const d = docOf(p);
     const echo = d.data || {};
-    const name = str((echo.usr_profile || {}).usr_name, "PLAYER");
+    var prof = echo.usr_profile || {};
+    if (Array.isArray(prof)) prof = prof[0] || {};
+    
+    var name = str(prof.usr_name, "");
+    if (!name) {
+      for (const k in prof) {
+        if (/usr_?name/i.test(k)) {
+          name = str(prof[k], "");
+          if (name) break;
+        }
+      }
+    }
+    if (!name) name = "PLAYER";
     const scores = Array.isArray(d.scores) ? d.scores : [];
     for (const s of scores) {
       const mid = num(s.music_id);

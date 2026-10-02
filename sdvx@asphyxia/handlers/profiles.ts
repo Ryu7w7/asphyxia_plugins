@@ -23,7 +23,27 @@ import { CURRENT_ARENA7, EVENT_ITEMS7, UNLOCK_EVENTS7 } from '../data/nbl'
 import { getRankListDB } from './webui'
 import { invalidateHiscoreIfNew } from './features'
 import { DB_VER, iiMigrate, iiiMigrate, ivMigrate, vMigrate, viMigrate, viiMigrate } from './migrate'
+import { isKonasuteRequest } from './konasute_store'
 const logging = false
+
+/**
+ * Selects the correct DB handle for a given request.
+ * - Arcade (KFC): always returns the default plugin DB.
+ * - Konasute (QCV): always returns KonasuteDB so PC progress is
+ *   fully isolated from arcade rows.
+ */
+function KDB(info?: any): any {
+  try {
+    if (
+      info &&
+      isKonasuteRequest(info) &&
+      typeof (global as any).KonasuteDB !== 'undefined'
+    ) {
+      return (global as any).KonasuteDB;
+    }
+  } catch {}
+  return (global as any).DB;
+}
 
 function unlockNavigators(items: Partial<Item>[], version: number) {
   console.log("Unlocking Navigators and Genesis Cards");

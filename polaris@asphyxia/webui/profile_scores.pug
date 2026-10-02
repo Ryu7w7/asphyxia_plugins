@@ -28,7 +28,19 @@
   const p = profile || {};
   const d = docOf(p);
   const echo = d.data || {};
-  const prof = echo.usr_profile || {};
+  var prof = echo.usr_profile || {};
+  if (Array.isArray(prof)) prof = prof[0] || {};
+  
+  var nameStr = str(prof.usr_name, "");
+  if (!nameStr) {
+    for (const k in prof) {
+      if (/usr_?name/i.test(k)) {
+        nameStr = str(prof[k], "");
+        if (nameStr) break;
+      }
+    }
+  }
+  if (!nameStr) nameStr = "PLAYER";
   const scores = Array.isArray(d.scores) ? d.scores : [];
   var best = {};
   for (const s of scores) {
@@ -62,7 +74,7 @@ else
         p.card-header-title
           span.icon
             i.mdi.mdi-account
-          | #{str(prof.usr_name, "PLAYER")} (#{d.usr_id || ""})
+          | #{nameStr} (#{d.usr_id || ""})
       .card-content
         table.basic_data
           tr
