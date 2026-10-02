@@ -4,7 +4,7 @@
 -
   function docOf(p) {
     try {
-      var d = p.data;
+      var d = (p || {}).data;
       if (typeof d === "string") d = JSON.parse(d);
       return d || {};
     } catch (e) { return {}; }
@@ -23,61 +23,69 @@
     s = (s == null || s === "") ? (d || "") : String(s);
     return s;
   }
+  function num(v) { var n = parseInt(leaf(v), 10); return isNaN(n) ? 0 : n; }
+
   var rows = [];
-  for (const p of profiles) {
-    const d = docOf(p);
-    const echo = d.data || {};
-    var prof = echo.usr_profile || {};
+  for (var i = 0; i < profiles.length; i++) {
+    var p    = profiles[i];
+    var d    = docOf(p);             // d = p.data (echo blob)
+    var prof = d.usr_profile || {};
     if (Array.isArray(prof)) prof = prof[0] || {};
-    
+
     var nameStr = str(prof.usr_name, "");
     if (!nameStr) {
-      for (const k in prof) {
-        if (/usr_?name/i.test(k)) {
-          nameStr = str(prof[k], "");
-          if (nameStr) break;
-        }
+      for (var _k in prof) {
+        if (/usr_?name/i.test(_k)) { nameStr = str(prof[_k], ""); if (nameStr) break; }
       }
     }
     if (!nameStr) nameStr = "PLAYER";
-    
-    const scores = Array.isArray(d.scores) ? d.scores : [];
+
+    var pinfo = d.usr_play_info || {};
+    if (Array.isArray(pinfo)) pinfo = pinfo[0] || {};
+
+    var rawScores = Array.isArray(p.scores) ? p.scores : [];
+    var charts = {};
+    for (var j = 0; j < rawScores.length; j++) {
+      var s = rawScores[j];
+      var k = (s.music_id || 0) + ":" + (s.chart_difficulty_type || 0);
+      if (!charts[k] || (s.score || 0) > charts[k]) charts[k] = s.score || 0;
+    }
+
     rows.push({
-      refid: p.__refid || d.refid || "",
-      name: nameStr,
-      rank: parseInt(leaf(prof.usr_rank), 10) || 0,
-      exp: parseInt(leaf(prof.exp), 10) || 0,
-      usr_id: p.usr_id || d.usr_id || 0,
-      crew_id: p.crew_id || d.crew_id || "",
-      plays: scores.length,
+      refid:      p.refid || p.__refid || "",
+      name:       nameStr,
+      usrId:      p.usr_id || 0,
+      rank:       num(prof.usr_rank),
+      exp:        num(prof.exp),
+      plays:      rawScores.length,
+      charts:     Object.keys(charts).length,
+      totalPlays: Math.max(num(pinfo.game_play_count), num(pinfo.total_play_count)),
+      crewId:     p.crew_id || "—",
     });
   }
-  rows.sort((a, b) => b.exp - a.exp);
+  rows.sort(function(a, b) { return b.exp - a.exp; });
 
-div
-  .card
-    .card-header
-      p.card-header-title
-        span.icon
-          i.mdi.mdi-account-multiple
-        | Polaris Chord Profiles
-    .card-content
-      table.table.is-fullwidth.is-striped.is-hoverable
-        thead
-          tr
-            th Name
-            th Rank
-            th EXP
-            th Plays
-            th Crew ID
-            th Usr ID
-        tbody
-          each r in rows
-            tr
-              td
-                a(href=`profile_scores?refid=${r.refid}`)= r.name
-              td= r.rank
-              td= r.exp
-              td= r.plays
-              td= r.crew_id
-              td= r.usr_id
+.table-container
+  table.table.is-fullwidth.is-hoverable.is-striped
+    thead
+      tr
+        th #
+        th Player
+        th ID
+        th Crew
+        th Rank
+        th EXP
+        th Plays
+        th Charts
+    tbody
+      each r, idx in rows
+        tr
+          td= idx + 1
+          td
+            a(href="profile?refid=" + r.refid)= r.name
+          td.has-text-grey= r.usrId || "—"
+          td= r.crewId
+          td= r.rank
+          td= r.exp.toLocaleString()
+          td= r.plays.toLocaleString()
+          td= r.charts.toLocaleString()

@@ -4,7 +4,7 @@
 -
   function docOf(p) {
     try {
-      var d = p.data;
+      var d = (p || {}).data;
       if (typeof d === "string") d = JSON.parse(d);
       return d || {};
     } catch (e) { return {}; }
@@ -18,76 +18,106 @@
     }
     return v;
   }
-  function num(v) { var n = parseInt(leaf(v), 10); return isNaN(n) ? 0 : n; }
   function str(v, d) {
     var s = leaf(v);
     s = (s == null || s === "") ? (d || "") : String(s);
     return s;
   }
-  var DIFF = ["NOV", "ADV", "EXH", "INF", "MXM"];
+  function pct(r) {
+    var v = parseInt(String(r), 10);
+    return isNaN(v) ? "0.00%" : (v / 100).toFixed(2) + "%";
+  }
+  function clearInfo(cs) {
+    var v = parseInt(String(cs), 10) || 0;
+    if (v >= 10) v = Math.floor(v / 10);
+    if (v >= 4) return { label: "PFC", cls: "is-warning is-light" };
+    if (v >= 3) return { label: "FC",  cls: "is-success" };
+    if (v >= 2) return { label: "CLR", cls: "is-info" };
+    if (v >= 1) return { label: "AC",  cls: "is-light" };
+    return           { label: "FAIL", cls: "is-danger is-light" };
+  }
+  function scoreRankLabel(r) {
+    var v = parseInt(String(r), 10) || 0;
+    return ["D","C","B","A","S","SS","SSS"][v] || ("R" + v);
+  }
+  var DIFF_LABEL = ["NOV","ADV","EXH","INF","MXM"];
+  var DIFF_CLS   = ["is-primary is-light","is-warning is-light","is-danger is-light","is-purple","is-dark is-light"];
+
+  // Aggregate global best per (music_id, difficulty) across all players
   var best = {};
-  for (const p of profiles) {
-    const d = docOf(p);
-    const echo = d.data || {};
-    var prof = echo.usr_profile || {};
+  for (var i = 0; i < profiles.length; i++) {
+    var p    = profiles[i];
+    var d    = docOf(p);
+    var prof = d.usr_profile || {};
     if (Array.isArray(prof)) prof = prof[0] || {};
-    
-    var name = str(prof.usr_name, "");
-    if (!name) {
-      for (const k in prof) {
-        if (/usr_?name/i.test(k)) {
-          name = str(prof[k], "");
-          if (name) break;
-        }
+
+    var nameStr = str(prof.usr_name, "");
+    if (!nameStr) {
+      for (var _k in prof) {
+        if (/usr_?name/i.test(_k)) { nameStr = str(prof[_k], ""); if (nameStr) break; }
       }
     }
-    if (!name) name = "PLAYER";
-    const scores = Array.isArray(d.scores) ? d.scores : [];
-    for (const s of scores) {
-      const mid = num(s.music_id);
-      const diff = num(s.chart_difficulty_type);
-      if (!mid) continue;
-      const k = mid + ":" + diff;
-      const sc = num(s.score);
-      if (!best[k] || sc > best[k].score) {
-        best[k] = {
-          music_id: mid, diff: diff, score: sc, name: name,
-          rate: num(s.achievement_rate), rank: num(s.score_rank),
-          combo: num(s.combo),
-        };
+    if (!nameStr) nameStr = "PLAYER";
+
+    // Scores at p.scores (ROOT, plain numbers)
+    var rawScores = Array.isArray(p.scores) ? p.scores : [];
+    for (var j = 0; j < rawScores.length; j++) {
+      var s    = rawScores[j];
+      var mid  = s.music_id             || 0;
+      var diff = s.chart_difficulty_type || 0;
+      var k    = mid + ":" + diff;
+      var sc   = s.score                || 0;
+      if (!best[k]) best[k] = { music_id: mid, diff: diff, score: 0, rate: 0, srank: 0, combo: 0, clear: 0, player: "" };
+      if (sc > best[k].score) {
+        best[k].score  = sc;
+        best[k].rate   = s.achievement_rate || 0;
+        best[k].srank  = s.score_rank       || 0;
+        best[k].combo  = s.combo            || 0;
+        best[k].clear  = s.clear_status     || 0;
+        best[k].player = nameStr;
+        best[k].refid  = p.refid || p.__refid || "";
       }
-      best[k].plays = (best[k].plays || 0) + 1;
     }
   }
-  var rows = Object.values(best).sort((a, b) => a.music_id - b.music_id || a.diff - b.diff);
+  var rows = Object.values(best).sort(function(a, b) { return b.score - a.score; });
 
-div
-  .card
-    .card-header
-      p.card-header-title
-        span.icon
-          i.mdi.mdi-trophy
-        | Chart Rankings (best per chart)
-    .card-content
-      table.table.is-fullwidth.is-striped.is-hoverable
+.card
+  .card-header
+    p.card-header-title
+      span.icon
+        i.mdi.mdi-trophy
+      | &nbsp;Rankings — Best Score per Chart (#{rows.length} charts)
+  .card-content(style="padding:.75rem;overflow-x:auto")
+    if !rows.length
+      p.has-text-grey No scores recorded yet.
+    else
+      table.table.is-fullwidth.is-hoverable.is-striped(style="font-size:.85rem")
         thead
           tr
+            th #
             th Music
             th Diff
-            th Player
             th Score
             th Rate
-            th Rank
+            th Grade
             th Combo
-            th Plays
+            th Clear
+            th Player
         tbody
-          each r in rows
+          each r, idx in rows
+            - var ci = clearInfo(r.clear)
             tr
+              td= idx + 1
               td= r.music_id
-              td= DIFF[r.diff] || r.diff
-              td= r.name
-              td= r.score
-              td= r.rate
-              td= r.rank
-              td= r.combo
-              td= r.plays
+              td
+                span.tag(class=DIFF_CLS[r.diff] || "")= DIFF_LABEL[r.diff] || r.diff
+              td
+                strong= r.score.toLocaleString()
+              td= pct(r.rate)
+              td
+                span.tag= scoreRankLabel(r.srank)
+              td= r.combo.toLocaleString()
+              td
+                span.tag(class=ci.cls)= ci.label
+              td
+                a(href="profile?refid=" + r.refid)= r.player

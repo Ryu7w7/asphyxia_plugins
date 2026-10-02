@@ -2,6 +2,7 @@
   profile: DB.FindOne(refid, { collection: 'profile' })
 
 -
+  // ── helpers ────────────────────────────────────────────────────────────────
   function docOf(p) {
     try {
       var d = (p || {}).data;
@@ -24,100 +25,145 @@
     s = (s == null || s === "") ? (d || "") : String(s);
     return s;
   }
-  var DIFF = ["NOV", "ADV", "EXH", "INF", "MXM"];
-  const p = profile || {};
-  const d = docOf(p);
-  const echo = d.data || {};
-  var prof = echo.usr_profile || {};
+  function pct(r) {
+    var v = parseInt(String(r), 10);
+    return isNaN(v) ? "0.00%" : (v / 100).toFixed(2) + "%";
+  }
+  function scoreRankLabel(r) {
+    var v = parseInt(String(r), 10) || 0;
+    return ["D","C","B","A","S","SS","SSS"][v] || ("R" + v);
+  }
+  function scoreRankCls(r) {
+    var v = parseInt(String(r), 10) || 0;
+    return ["is-light","is-light","","is-info","is-warning","is-danger","is-dark"][v] || "";
+  }
+  function clearInfo(cs) {
+    var v = parseInt(String(cs), 10) || 0;
+    if (v >= 10) v = Math.floor(v / 10);
+    if (v >= 4) return { label: "PFC", cls: "is-warning is-light" };
+    if (v >= 3) return { label: "FC",  cls: "is-success" };
+    if (v >= 2) return { label: "CLR", cls: "is-info" };
+    if (v >= 1) return { label: "AC",  cls: "is-light" };
+    return           { label: "FAIL", cls: "is-danger is-light" };
+  }
+  var DIFF_LABEL = ["NOV","ADV","EXH","INF","MXM"];
+  var DIFF_CLS   = ["is-primary is-light","is-warning is-light","is-danger is-light","is-purple","is-dark is-light"];
+
+  // ── data (FIXED: p.data = echo blob; p.scores = score log) ───────────────
+  const p     = profile || {};
+  const d     = docOf(p);           // d = p.data  (the XRPC echo: usr_profile, usr_play_info …)
+  var prof    = d.usr_profile || {};
   if (Array.isArray(prof)) prof = prof[0] || {};
-  
+
   var nameStr = str(prof.usr_name, "");
   if (!nameStr) {
-    for (const k in prof) {
-      if (/usr_?name/i.test(k)) {
-        nameStr = str(prof[k], "");
-        if (nameStr) break;
-      }
+    for (var _k in prof) {
+      if (/usr_?name/i.test(_k)) { nameStr = str(prof[_k], ""); if (nameStr) break; }
     }
   }
   if (!nameStr) nameStr = "PLAYER";
-  const scores = Array.isArray(d.scores) ? d.scores : [];
+
+  const usrId  = p.usr_id  || 0;
+  const crewId = p.crew_id || "—";
+  const rank   = num(prof.usr_rank);
+  const exp    = num(prof.exp);
+
+  var pinfo = d.usr_play_info || {};
+  if (Array.isArray(pinfo)) pinfo = pinfo[0] || {};
+  const totalPlays = Math.max(num(pinfo.game_play_count), num(pinfo.total_play_count));
+
+  // Scores are plain-number objects stored at p.scores (ROOT), not d.scores
+  const rawScores = Array.isArray(p.scores) ? p.scores : [];
+
   var best = {};
-  for (const s of scores) {
-    const mid = num(s.music_id);
-    const diff = num(s.chart_difficulty_type);
-    const k = mid + ":" + diff;
-    const sc = num(s.score);
-    if (!best[k] || sc > best[k].score) {
-      best[k] = {
-        music_id: mid, diff: diff,
-        score: sc,
-        rate: num(s.achievement_rate),
-        rank: num(s.score_rank),
-        combo: num(s.combo),
-        clear: num(s.clear_status),
-      };
+  for (var i = 0; i < rawScores.length; i++) {
+    var s   = rawScores[i];
+    var mid  = s.music_id             || 0;
+    var diff = s.chart_difficulty_type || 0;
+    var k    = mid + ":" + diff;
+    var sc   = s.score                || 0;
+    if (!best[k]) best[k] = { music_id: mid, diff: diff, score: 0, rate: 0, srank: 0, combo: 0, clear: 0, plays: 0, clears: 0 };
+    best[k].plays++;
+    var cs = s.clear_status || 0; if (cs >= 10) cs = Math.floor(cs / 10);
+    if (cs >= 2) best[k].clears++;
+    if (sc > best[k].score) {
+      best[k].score  = sc;
+      best[k].rate   = s.achievement_rate || 0;
+      best[k].srank  = s.score_rank       || 0;
+      best[k].combo  = s.combo            || 0;
+      best[k].clear  = s.clear_status     || 0;
     }
-    best[k].plays = (best[k].plays || 0) + 1;
-    var cs = num(s.clear_status); if (cs >= 10) cs = Math.floor(cs / 10); if (cs >= 2) best[k].clears = (best[k].clears || 0) + 1;
   }
-  var rows = Object.values(best).sort((a, b) => a.music_id - b.music_id || a.diff - b.diff);
+  var rows = Object.values(best).sort(function(a, b) { return b.score - a.score; });
 
 if !profile
-  div
-    .notification.is-warning
-      | This player hasn't played Polaris Chord yet.
+  .notification.is-warning
+    | This player hasn't played Polaris Chord yet.
 else
-  div
-    .card
-      .card-header
-        p.card-header-title
-          span.icon
-            i.mdi.mdi-account
-          | #{nameStr} (#{d.usr_id || ""})
-      .card-content
-        table.basic_data
-          tr
-            td Crew ID
-            td= d.crew_id || ""
-          tr
-            td Rank
-            td= num(prof.usr_rank)
-          tr
-            td EXP
-            td= num(prof.exp)
-          tr
-            td Total plays
-            td= scores.length
-          tr
-            td Charts played
-            td= rows.length
-    .card
-      .card-header
-        p.card-header-title
-          span.icon
-            i.mdi.mdi-music
-          | Best scores
-      .card-content
-        table.table.is-fullwidth.is-striped.is-hoverable
+  // ── profile card ──────────────────────────────────────────────────────────
+  .card(style="margin-bottom:1rem")
+    .card-header
+      p.card-header-title
+        span.icon
+          i.mdi.mdi-account-circle
+        | &nbsp;#{nameStr}
+        span.has-text-grey-light(style="font-weight:normal;margin-left:.5rem") &nbsp;##{usrId}
+    .card-content
+      .columns.is-multiline
+        .column.is-narrow
+          .has-text-grey-light(style="font-size:.75rem") CREW ID
+          strong= crewId
+        .column.is-narrow
+          .has-text-grey-light(style="font-size:.75rem") RANK
+          strong= rank
+        .column.is-narrow
+          .has-text-grey-light(style="font-size:.75rem") EXP
+          strong= exp.toLocaleString()
+        .column.is-narrow
+          .has-text-grey-light(style="font-size:.75rem") PLAYS (game)
+          strong= totalPlays.toLocaleString()
+        .column.is-narrow
+          .has-text-grey-light(style="font-size:.75rem") PLAYS (logged)
+          strong= rawScores.length.toLocaleString()
+        .column.is-narrow
+          .has-text-grey-light(style="font-size:.75rem") CHARTS PLAYED
+          strong= rows.length.toLocaleString()
+
+  // ── score table ───────────────────────────────────────────────────────────
+  .card
+    .card-header
+      p.card-header-title
+        span.icon
+          i.mdi.mdi-music-note
+        | &nbsp;Best Scores (#{rows.length})
+    .card-content(style="padding:.75rem;overflow-x:auto")
+      if !rows.length
+        p.has-text-grey No scores recorded yet.
+      else
+        table.table.is-fullwidth.is-hoverable.is-striped(style="font-size:.85rem")
           thead
             tr
               th Music
               th Diff
               th Score
               th Rate
-              th Rank
+              th Grade
               th Combo
               th Clear
               th Plays
           tbody
             each r in rows
+              - var ci = clearInfo(r.clear)
               tr
                 td= r.music_id
-                td= DIFF[r.diff] || r.diff
-                td= r.score
-                td= r.rate
-                td= r.rank
-                td= r.combo
-                td= r.clear
-                td= r.plays
+                td
+                  span.tag(class=DIFF_CLS[r.diff] || "")= DIFF_LABEL[r.diff] || r.diff
+                td
+                  strong= r.score.toLocaleString()
+                td= pct(r.rate)
+                td
+                  span.tag(class=scoreRankCls(r.srank))= scoreRankLabel(r.srank)
+                td= r.combo.toLocaleString()
+                td
+                  span.tag(class=ci.cls)= ci.label
+                td #{r.clears}/#{r.plays}
