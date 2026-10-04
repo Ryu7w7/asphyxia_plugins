@@ -12,7 +12,7 @@ import { WeeklyMusicScore } from '../models/weeklymusic'
 import { VariantPower } from '../models/variant'
 import { GWStory } from '../models/gw_story'
 import { PluginSettings } from '../models/settings'
-import { getVersion, IDToCode, checkVerStart, convertGWHHGrade, getYMDDate, computeForce, loadMusicDb, isValidMid } from '../utils'
+import { getVersion, IDToCode, checkVerStart, convertGWHHGrade, getYMDDate, computeForce, loadMusicDb, isValidMid, isCustomMid } from '../utils'
 import { Mix } from '../models/mix'
 import { POLICY_BREAK2 } from '../data/ii'
 import { POLICY_BREAK3, COURSES3 } from '../data/gw'
@@ -271,6 +271,19 @@ export const loadScore: EPR = async (info, data, send) => {
     const egClear = [0, 1, 2, 3, 6, 4, 5]
     const music_db = await IO.ReadFile('webui/asset/json/music_db.json')
     const mdb = JSON.parse(music_db.toString()).mdb.music;
+    const mdbMap = new Map<string, any>(mdb.map(m => [String(m['id']), m]))
+
+    // Per-chart VOLFORCE for the current version. Scores saved in-game carry the
+    // value sent by the client, but scores imported from Tachi (or edited outside
+    // the game) have no/stale volforce, which made them count as 0 VF in-game.
+    // Compute it on the fly and keep whichever is higher.
+    const currentForce = (rec: MusicRecord) => {
+      const stored = rec.volforce || 0
+      if (isCustomMid(rec.mid)) return stored
+      const songData = mdbMap.get(String(rec.mid))
+      if (!songData) return stored
+      return Math.max(stored, computeForce(7, rec, songData))
+    }
 
     const recordsMerged = records.concat(await DB.Find<MusicRecord>(refid, { collection: 'music', version: version - 1 }))
     return send.object({
@@ -296,17 +309,17 @@ export const loadScore: EPR = async (info, data, send) => {
               newScore.buttonRate,
               newScore.longRate,
               newScore.volRate,
-              newScore.volforce
+              currentForce(newScore)
             ])
 
             // populate previous version scores
             if(!oldScore) scoreData = scoreData.concat([0,0,0,0,0,0,0,0,0,0,0,0,0,0])
             else {              
               if(!newScore) {
-                let mdbInd = mdb.map(function(x) {return x['id']; }).indexOf(oldScore.mid.toString())
+                const oldSong = mdbMap.get(String(oldScore.mid))
                 scoreData[0] = oldScore.mid
                 scoreData[1] = oldScore.type
-                scoreData[11] = (mdbInd >= 0) ? computeForce(6, oldScore, mdb[mdbInd]) : 0
+                scoreData[11] = oldSong ? computeForce(6, oldScore, oldSong) : 0
               }
 
               scoreData = scoreData.concat([

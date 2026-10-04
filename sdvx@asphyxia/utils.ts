@@ -215,10 +215,12 @@ export function computeForce(version, rec, songData) {
   let clear = rec.clear
   if(version === 6) clear = egClear.indexOf(clear)
 
-  let diffLevel = parseInt(songData['difficulty'][6][diffName[rec.type]])
+  const levels = songData?.['difficulty']?.[6]
+  let diffLevel = levels ? parseInt(levels[diffName[rec.type]]) : NaN
   let lvOverride = levelDifOverride.findIndex(d => d.mid === rec.mid && d.type === rec.type)
   if(lvOverride >= 0) diffLevel = levelDifOverride[lvOverride].lvl
-  return Math.floor(diffLevel * (rec.score / 10000000) * (gradeCoef[rec.grade]) * (medalCoef[clear]) * 20)
+  const vf = Math.floor(diffLevel * ((rec.score || 0) / 10000000) * (gradeCoef[rec.grade] || 0) * (medalCoef[clear] || 0) * 20)
+  return Number.isFinite(vf) && vf > 0 ? vf : 0
 }
 
 export function checkVerStart(gameVersion, checkVersion, checkStart, dateObj) {
