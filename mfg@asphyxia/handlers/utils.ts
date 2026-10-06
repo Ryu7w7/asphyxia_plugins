@@ -1028,6 +1028,7 @@ export const BASE_EVENTS: Array<[string, string]> = [
   ["StickerEditNotice", ""],
   ["DecorationSticker", ""],
   ["ChaosUsable", ""],
+  ["ChaosAppearance", ""],
   ["ClearAppearance", ""],
   ["IyoAppearance", ""],
   ["GrimAroeAppearance", ""],
@@ -1040,21 +1041,31 @@ export const BASE_EVENTS: Array<[string, string]> = [
   ["PineAppearance", ""],
   ["ZoudaiAppearance", ""],
   ["CinderellaMitsubaAppearance", ""],
+  ["JunAppearance", ""],
+  ["ToukaAppearance", ""],
   ["PremiumStartEnable", ""],
   ["RevengeContinueEnable", ""],
   ["EnableOdekake", ""],
   ["ItemGainLogEnable", ""],
-  ["PrivateMatchingDisplay", ""],
-  ["PrivateMatchingEnable", ""],
   ["FavoBonusEvent", ""],
   ["FanBonusEvent", ""],
   ["ReachSongVoiceGacha", ""],
 ];
 
+// Costumes: every costume with UnlockEventType=CostumeAdditionN is hidden in
+// My Room unless that event is active (IsDispEnable/IsUnlocked). Enable the
+// whole range (1-77 per GameEventType) so all costumes in the client master
+// can appear; unlocking itself still costs fight spirits (client-side).
+function costumeAdditionEvents(): Array<[string, string]> {
+  const out: Array<[string, string]> = [];
+  for (let i = 1; i <= 77; i++) out.push([`CostumeAddition${i}`, ""]);
+  return out;
+}
+
 export const ACTIVE_EVENTS: Array<[string, string]> = (() => {
   const flags = eventTakuFlags();
   const extra: Array<[string, string]> = flags.map(f => [f, ""]);
-  return [...BASE_EVENTS, ...extra];
+  return [...BASE_EVENTS, ...costumeAdditionEvents(), ...extra];
 })();
 
 export const EVENT_BEGIN = "2020/01/01 00:00:00";
