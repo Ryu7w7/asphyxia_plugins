@@ -571,6 +571,43 @@ async function handleVfglog(info: any, data: any, send: any): Promise<void> {
         }
       }
     } catch { }
+  } else if (method === "error_log") {
+    // Client exception reporter (XrpcCabinet.RequestError): type/location_id
+    // attrs + data{error_type,message,stack_trace}. Always print — this is
+    // the only way to see client-side crashes/NREs (e.g. gacha result hang).
+    try {
+      const pick = (key: string): string => {
+        let v = cardAttr(data, key);
+        if (v) return v;
+        try {
+          const inner = (data as any)?.data || (data as any)?.["0"]?.data;
+          if (inner) {
+            if (inner["@attr"] && inner["@attr"][key] != null) return String(inner["@attr"][key]);
+            if (inner[key] != null) {
+              const vv = inner[key];
+              if (typeof vv === "string") return vv;
+              if (vv && vv["@content"] != null) return String(Array.isArray(vv["@content"]) ? vv["@content"][0] : vv["@content"]);
+            }
+          }
+        } catch { }
+        return "";
+      };
+      const etype = pick("error_type") || pick("type") || "?";
+      const msg = pick("message");
+      const stack = pick("stack_trace");
+      // @ts-ignore
+      console.error(`[client] error_log type=${etype} msg=${String(msg).slice(0, 300)}`);
+      if (stack) {
+        // @ts-ignore
+        console.error(`[client] error_log stack=${String(stack).slice(0, 1500)}`);
+      }
+      if (!msg && !stack) {
+        try {
+          // @ts-ignore
+          console.error(`[client] error_log raw=${JSON.stringify(data).slice(0, 800)}`);
+        } catch { }
+      }
+    } catch { }
   }
   await send.success();
 }
@@ -700,8 +737,9 @@ export function registerEamuseRoutes(): void {
   xroute("vfgac.ext_campaign", handleVfgac);
   xroute("vfgac.send_paylog", handleVfgac);
 
-  // vfglog
+  // vfglog (put_msg = client msgs, error_log = client exception reporter)
   xroute("vfglog.put_msg", handleVfglog);
+  xroute("vfglog.error_log", handleVfglog);
   // also generic vfglog handler for any method
   xroute("vfglog.put", handleVfglog);
 

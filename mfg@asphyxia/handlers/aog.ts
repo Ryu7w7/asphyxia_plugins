@@ -455,7 +455,7 @@ export async function handle_client_state_read(form: Record<string, string>, ctx
   let healed = false;
   for (const [kind, payload] of items) {
     let sanitized = String(payload);
-    const cleanStr = sanitized.replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g, "");
+    let cleanStr = sanitized.replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g, "");
     let isJson = false;
     try {
       JSON.parse(cleanStr);
@@ -463,6 +463,98 @@ export async function handle_client_state_read(form: Record<string, string>, ctx
     } catch {}
 
     if (isJson) {
+      if (kind === "player_game") {
+        try {
+          let pg = JSON.parse(cleanStr);
+          let modified = false;
+
+          // The client serializes List<CharaType> with JsonUtility.ToJson,
+          // which emits ints (11 = Chara12). Never serve "CharaXX" strings:
+          // FromJson can't parse them and IsCharaSelectable() fails, which
+          // locks previously unlocked gacha/exchange characters in My Room.
+          const toCharaIdx = (x: any): number | null => {
+            if (typeof x === "number" && Number.isInteger(x) && x >= 0 && x <= 20) return x;
+            if (typeof x === "string") {
+              const m = /^Chara(\d{1,2})$/.exec(x.trim());
+              if (m) {
+                const n = parseInt(m[1], 10) - 1;
+                if (n >= 0 && n <= 20) return n;
+              }
+              const n = Number(x);
+              if (Number.isInteger(n) && n >= 0 && n <= 20) return n;
+            }
+            return null;
+          };
+          const normalizeList = (arr: any): number[] => {
+            const out: number[] = [];
+            const seen = new Set<number>();
+            for (const x of (arr || [])) {
+              const n = toCharaIdx(x);
+              if (n != null && !seen.has(n)) { seen.add(n); out.push(n); }
+            }
+            return out;
+          };
+          if (Array.isArray(pg.GachaCharaUsableList)) {
+            const norm = normalizeList(pg.GachaCharaUsableList);
+            if (JSON.stringify(norm) !== JSON.stringify(pg.GachaCharaUsableList)) {
+              pg.GachaCharaUsableList = norm;
+              modified = true;
+            }
+          } else {
+            pg.GachaCharaUsableList = [];
+            modified = true;
+          }
+          if (Array.isArray(pg.PurchaseCharaList)) {
+            const norm = normalizeList(pg.PurchaseCharaList);
+            if (JSON.stringify(norm) !== JSON.stringify(pg.PurchaseCharaList)) {
+              pg.PurchaseCharaList = norm;
+              modified = true;
+            }
+          } else {
+            pg.PurchaseCharaList = [];
+            modified = true;
+          }
+
+          // Strict unlock proof: the client only unlocks Chara12-21 via the
+          // dedicated unlock cutin (GachaUtility.CharaUnlockItemIDDict), from
+          // gacha OR exchange. Owning any other cutin of that chara does NOT
+          // unlock it, so the heal must only look at these 10 ItemIDs
+          // (ItemID enum ints: Item12AgariSR01=176 … Item21AgariSR01=493).
+          // Anything in GachaCharaUsableList without its unlock cutin was
+          // over-granted and is pruned, so unearned characters lock again.
+          // PurchaseCharaList (Coop/stamp) is normalize-only, never granted.
+          if (states["customize_item"]) {
+            try {
+              const cust = JSON.parse(String(states["customize_item"]).replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g, ""));
+              const cutins = new Set<number>();
+              for (const x of (cust.CutinItems || [])) {
+                const raw = (x && typeof x === "object") ? (x as any).ItemID : x;
+                const n = typeof raw === "number" ? raw : Number(raw);
+                if (Number.isInteger(n)) cutins.add(n);
+              }
+              const UNLOCK_ITEM_TO_CHARA: Record<number, number> = {176:11,206:12,247:13,279:14,305:15,338:16,386:17,411:18,439:19,493:20};
+              const proven: number[] = [];
+              for (const [itemStr, ch] of Object.entries(UNLOCK_ITEM_TO_CHARA)) {
+                if (cutins.has(Number(itemStr))) proven.push(Number(ch));
+              }
+              proven.sort((a, b) => a - b);
+              const cur = pg.GachaCharaUsableList as number[];
+              const same = cur.length === proven.length && cur.every((v, i) => v === proven[i]);
+              if (!same) {
+                if (cur.length > proven.length) {
+                  try { vlog(`[VFG] pruned over-granted gacha chars mid=${mid} had=[${cur}] now=[${proven}]`); } catch {}
+                }
+                pg.GachaCharaUsableList = proven;
+                modified = true;
+              }
+            } catch {}
+          }
+
+          if (modified) {
+            cleanStr = JSON.stringify(pg);
+          }
+        } catch {}
+      }
       sanitized = cleanStr;
     } else if (cleanStr.trim().startsWith("{") || cleanStr.trim().startsWith("[")) {
       vlog(`[VFG] Skipping heavily corrupted JSON state '${kind}' for mid=${mid || "?"}`);
@@ -1121,6 +1213,14 @@ export async function handle_get_gacha_result(form: Record<string, string>, ctx:
   sendXml(ctx, xml_response(`<lottery_result>${rows}</lottery_result><gift><acquired>0</acquired><prev>0</prev><after>0</after></gift>`));
 }
 
+// Pending-draw tracker: diagnoses the "gacha freezes showing results" bug.
+// The client must call cutin_gacha_play_apply after presenting each draw.
+// If a draw never gets its apply, the client hung during the results screen
+// and the rolled OIDs logged here are the prime suspects (bad icon asset,
+// missing movie, or NRE on that item). Watch for the WARN lines.
+const PENDING_DRAWS: Map<string, { at: number; pcuid: string; gacha: number; rolled: string[] }> = new Map();
+const PENDING_BY_PCUID: Map<string, string> = new Map();
+
 export async function handle_cutin_gacha_play_draw(form: Record<string, string>, ctx: any): Promise<void> {
   const playCount = Number(formGet(form, "play_count") || 1);
   const gachaId = Number(formGet(form, "gacha_id") || 140);
@@ -1130,6 +1230,75 @@ export async function handle_cutin_gacha_play_draw(form: Record<string, string>,
   const pool = _gachaPool(gachaId, "Pickup"); // Assume Pickup or fallback
   vlog(`[VFG] gacha_draw id=${gachaId} x${playCount} ticket=${isTicket} gift_cfg=${giftCfg} enable_charas=${String(enChara).slice(0, 80)} pool_n=${(pool.items || []).length}`);
   let items = pool.items;
+  // Freeze bisection: VFG_GACHA_CHARAS="10,11,12" restricts rolls to those
+  // charas' items (prefix OID_XX); VFG_GACHA_SAFE=1 is shorthand for 01-09
+  // (oldest, most-tested assets). Bisect Halves (10-15, 16-21, then thirds)
+  // to isolate a freeze-causing newer-chara asset; if even 01-09 freezes,
+  // the cause is timing/memory, not an item.
+  try {
+    let allow = new Set<string>();
+    try {
+      const raw = String(U.GetConfig("VFG_GACHA_CHARAS") ?? "").trim();
+      for (const tok of raw.split(",")) {
+        const n = parseInt(tok.trim(), 10);
+        if (Number.isInteger(n) && n >= 1 && n <= 21) allow.add(String(n).padStart(2, "0"));
+      }
+    } catch {}
+    if (!allow.size) {
+      try {
+        const safe = U.GetConfig("VFG_GACHA_SAFE");
+        if (["1", "true", "yes", "on"].includes(String(safe ?? "").trim().toLowerCase())) {
+          allow = new Set(["01", "02", "03", "04", "05", "06", "07", "08", "09"]);
+        }
+      } catch {}
+    }
+    if (allow.size) {
+      const before = (items || []).length;
+      const list = [...allow].join("|");
+      const re = new RegExp(`^OID_(${list})[^0-9]`);
+      const filtered = (items || []).filter(o => re.test(String(o || "")));
+      if (filtered.length) {
+        items = filtered;
+        console.log(`[VFG] gacha_draw chara filter [${[...allow].sort().join(",")}]: pool ${before} -> ${items.length}`);
+      }
+    }
+    // Item-level exclusion. Permanent guard: Jun/Touka NakiA cutins hang the
+    // gacha cutin preview (unguarded client await, no timeout/skip escape).
+    // Proven by bisection: 5/5 frozen multis contained one of these 4 OIDs;
+    // 500+ pulls clean without them (SAFE 200 + group A 300 + 19,20,21 run).
+    // They stay obtainable via exchange (separate list, redeem shows no
+    // preview). VFG_GACHA_EXCLUDE adds more OIDs on top when needed.
+    try {
+      const banned = new Set([
+        "OID_20NAKIA01", "OID_20NAKIA02",
+        "OID_21NAKIA01", "OID_21NAKIA02",
+      ]);
+      try {
+        const rawEx = String(U.GetConfig("VFG_GACHA_EXCLUDE") ?? "").trim();
+        for (const s of rawEx.split(",")) {
+          const t = s.trim().toUpperCase();
+          if (t) banned.add(t);
+        }
+      } catch {}
+      if (banned.size) {
+        const before = (items || []).length;
+        const kept = (items || []).filter(o => !banned.has(String(o || "").trim().toUpperCase()));
+        if (kept.length) {
+          items = kept;
+          // Log only user-added extras; the 4 permanent guards stay silent.
+          const extra = [...banned].filter(
+            o => o !== "OID_20NAKIA01" && o !== "OID_20NAKIA02" &&
+                 o !== "OID_21NAKIA01" && o !== "OID_21NAKIA02"
+          );
+          if (extra.length) {
+            console.log(`[VFG] gacha_draw exclude [${extra.sort().join(",")}]: pool ${before} -> ${items.length}`);
+          }
+        } else {
+          console.log(`[VFG] gacha_draw exclude ignored (would empty pool)`);
+        }
+      }
+    } catch {}
+  } catch {}
   if (!items || items.length === 0) {
     // Never emit unknown OIDs: the client resolves every gain oid through
     // CutinItemMaster and an unresolvable one corrupts the saved inventory.
@@ -1147,20 +1316,71 @@ export async function handle_cutin_gacha_play_draw(form: Record<string, string>,
 
   let gainItems = "";
   const rolled: string[] = [];
+  const spirits: number[] = [];
   for (let i = 0; i < Math.max(1, playCount); i++) {
     const randomOid = items[Math.floor(Math.random() * items.length)];
     rolled.push(randomOid);
+    if (!/^OID_\d{2}[A-Za-z]+\d+$/.test(String(randomOid || ""))) {
+      console.log(`[VFG] WARN gacha_draw id=${gachaId}: suspicious OID format '${randomOid}' — client may not resolve it (freeze risk)`);
+    }
     gainItems += `<item><oid>${randomOid}</oid><gift_type>0</gift_type></item>`;
+    // Fight spirit income: the client grants +1 spirit per <fight_spirits>
+    // entry (GachaResultInfo adds ToFightSpiritItemID(chara)). Costumes cost
+    // 50-100 spirits, so without this they are unreachable (official draws
+    // include spirits; we grant the spirit of the drawn item's chara,
+    // parsed from the OID_XX prefix, 0-based to match CharaType).
+    const m = /^OID_(\d{2})/.exec(String(randomOid || ""));
+    if (m) {
+      const ch = parseInt(m[1], 10) - 1;
+      if (ch >= 0 && ch <= 20) spirits.push(ch);
+    }
   }
-  vlog(`[VFG] gacha_draw id=${gachaId} rolled=${rolled.join(",")}`);
+  vlog(`[VFG] gacha_draw id=${gachaId} rolled=${rolled.join(",")} spirits=${spirits.join(",")}`);
   const reqId = Math.floor(Math.random() * 1000000000).toString();
-  const xml = `<gacha_draw><is_success>1</is_success><request_id>${reqId}</request_id><gain_items>${gainItems}</gain_items><gift>0</gift></gacha_draw>`;
+  try {
+    const pcuid = String(formGet(form, "pcuid") || "");
+    // Same-session check first, then any stale pending (covers game restart
+    // after a freeze: new pcuid, old draw still without apply).
+    const stale: Array<[string, { at: number; pcuid: string; gacha: number; rolled: string[] }]> = [];
+    const prev = PENDING_BY_PCUID.get(pcuid);
+    if (prev && PENDING_DRAWS.has(prev)) {
+      stale.push([prev, PENDING_DRAWS.get(prev)!]);
+    } else {
+      const now = Date.now();
+      for (const [rid, p] of PENDING_DRAWS) {
+        if (now - p.at > 5 * 60 * 1000) stale.push([rid, p]);
+      }
+    }
+    for (const [rid, p] of stale) {
+      console.log(`[VFG] WARN previous draw req=${rid} (id=${p.gacha} rolled=${p.rolled.join(",")}) never got apply after ${Date.now() - p.at}ms — client likely froze on those results`);
+      PENDING_DRAWS.delete(rid);
+    }
+    if (PENDING_DRAWS.size > 200) {
+      const oldest = PENDING_DRAWS.keys().next().value as string;
+      PENDING_DRAWS.delete(oldest);
+    }
+    PENDING_DRAWS.set(reqId, { at: Date.now(), pcuid, gacha: gachaId, rolled: [...rolled] });
+    if (pcuid) PENDING_BY_PCUID.set(pcuid, reqId);
+  } catch {}
+  const spiritsXml = spirits.length ? `<fight_spirits>${spirits.map(s => `<item>${s}</item>`).join("")}</fight_spirits>` : "";
+  const xml = `<gacha_draw><is_success>1</is_success><request_id>${reqId}</request_id><gain_items>${gainItems}</gain_items><gift>0</gift>${spiritsXml}</gacha_draw>`;
   sendXml(ctx, xml_response(xml));
 }
 
 export async function handle_cutin_gacha_play_apply(form: Record<string, string>, ctx: any): Promise<void> {
   const reqId = formGet(form, "request_id") || "123456789";
-  vlog(`[VFG] gacha_apply request_id=${reqId}`);
+  try {
+    const p = PENDING_DRAWS.get(String(reqId));
+    if (p) {
+      const el = Date.now() - p.at;
+      PENDING_DRAWS.delete(String(reqId));
+      if (PENDING_BY_PCUID.get(p.pcuid) === String(reqId)) PENDING_BY_PCUID.delete(p.pcuid);
+      vlog(`[VFG] gacha_apply request_id=${reqId} elapsed=${el}ms rolled=${p.rolled.join(",")}`);
+      if (el > 120000) console.log(`[VFG] WARN gacha_apply request_id=${reqId} took ${el}ms since draw — results presentation stalled, near-freeze`);
+    } else {
+      vlog(`[VFG] gacha_apply request_id=${reqId} (no pending record — restart or legacy id)`);
+    }
+  } catch {}
   const xml = `<gacha_apply><is_success>1</is_success><request_id>${reqId}</request_id></gacha_apply>`;
   sendXml(ctx, xml_response(xml));
 }
@@ -1170,8 +1390,9 @@ export async function handle_gacha_log(form: Record<string, string>, ctx: any): 
   if (raw) {
     try {
       const txt = Buffer.from(decodeURIComponent(raw.replace(/\+/g, " ")), "base64").toString("utf-8");
-      // @ts-ignore
-      vlog(`[gacha] ${txt}`);
+      // Always print: the client only sends this on gacha anomalies, and it
+      // is our only window into client-side failures (freezes show no error).
+      console.log(`[VFG] [gacha-log] ${txt.slice(0, 500)}`);
     } catch { }
   }
   sendXml(ctx, xml_response());
@@ -1392,7 +1613,10 @@ export const AOG_HANDLER_MAP: Record<string, (f: any, c: any) => Promise<void>> 
   odekake_done: async (f: any, c: any) => sendXml(c, xml_response()),
   coop_done: async (f: any, c: any) => sendXml(c, xml_response()),
   eashop_done: async (f: any, c: any) => sendXml(c, xml_response()),
-  chara_enabled: async (f: any, c: any) => sendXml(c, xml_response(`<chara_enabled><is_gacha_enabled>1</is_gacha_enabled><end_date>2099-12-31T23:59:59+09:00</end_date></chara_enabled>`)),
+  chara_enabled: async (f: any, c: any) => {
+    try { vlog(`[VFG] chara_enabled chara=${formGet(f, "enabled_chara")}`); } catch {}
+    sendXml(c, xml_response(`<chara_enabled><is_gacha_enabled>1</is_gacha_enabled><end_date>2099-12-31T23:59:59+09:00</end_date></chara_enabled>`));
+  },
 };
 
 

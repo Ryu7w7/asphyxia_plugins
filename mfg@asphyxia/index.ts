@@ -83,6 +83,30 @@ export function register(): void {
       default: "",
     });
   } catch {}
+  try {
+    R.Config("VFG_GACHA_SAFE", {
+      name: "Safe Gacha Pool (freeze bisection)",
+      desc: "If enabled, gacha rolls only Chara01-09 items to isolate freezes caused by newer-chara assets. Temporary diagnostic.",
+      type: "boolean",
+      default: false,
+    });
+  } catch {}
+  try {
+    R.Config("VFG_GACHA_CHARAS", {
+      name: "Gacha Chara Filter (freeze bisection)",
+      desc: "Comma-separated chara numbers to roll (e.g. 10,11,12). Empty = all. Bisect halves (10-15, 16-21, then thirds) to isolate the freeze-causing asset.",
+      type: "string",
+      default: "",
+    });
+  } catch {}
+  try {
+    R.Config("VFG_GACHA_EXCLUDE", {
+      name: "Gacha OID Exclude (freeze bisection)",
+      desc: "Comma-separated OIDs to never roll (e.g. OID_20NakiA01,OID_20NakiA02). Empty = none. Use once the suspect items are isolated.",
+      type: "string",
+      default: "",
+    });
+  } catch {}
 
   registerEamuseRoutes();
   registerAogRoutes();
