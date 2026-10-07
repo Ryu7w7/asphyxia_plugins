@@ -115,7 +115,17 @@ function matchingPlayerHuman(index: number, zaseki: number, profile: any, name: 
 
 function matchingPlayerCpu(index: number, zaseki: number, chara1based: number, level: number = 1): string {
   const oid = `OID_CHARACTER_${chara1based}`;
-  return `<player_${index} ptype="3"><cpu_level>${level}</cpu_level><zaseki>${zaseki}</zaseki><cpu_name>${xml_escape(oid)}</cpu_name></player_${index}>`;
+  // cpu_level doubles as the CPU's displayed dan (DanLevelType int: 6=KYU5
+  // ..15=DAN5). cpu_variant is only read for Clear (Chara12) with the pro
+  // event active; harmless otherwise (client null-checks it).
+  const variant = chara1based === 12 ? `<cpu_variant>0</cpu_variant>` : "";
+  return `<player_${index} ptype="3"><cpu_level>${level}</cpu_level><zaseki>${zaseki}</zaseki><cpu_name>${xml_escape(oid)}</cpu_name>${variant}</player_${index}>`;
+}
+
+// CPU dan badge: deterministic per table+seat so rematches look stable.
+// Range KYU5(6)..DAN5(15): believable arcade opponents, never Newbie.
+function cpuDanFor(tid: number, seat: number): number {
+  return 6 + (((Number(tid) || 0) + seat * 3) % 10);
 }
 
 function mgresultXml(table: Table | null | undefined, match: any): string {
@@ -175,7 +185,7 @@ function matchingXml(tid: number, seats: number, myPindex: number, players: Arra
         cpuChara = (cpuChara % 19) + 1;
       }
       usedChars.add(cpuChara);
-      playersXml.push(matchingPlayerCpu(i, i, cpuChara, 1));
+      playersXml.push(matchingPlayerCpu(i, i, cpuChara, cpuDanFor(tid, i)));
     }
   }
   
@@ -363,6 +373,31 @@ export async function handle_login(form: Record<string, string>, ctx: any): Prom
   (profile as any).is_guest = guest;
   // saveProfile also updates the in-memory cache (and evicts the old pcuid)
   await saveProfile(profile.refid, profile);
+  // Daily login bonus (the client has no daily system): once per JST day,
+  // append an auto-apply present. The client claims it on load and saves
+  // back; last_daily + the dated PresentID make it exactly-once.
+  try {
+    const today = new Date(Date.now() + 9 * 3600 * 1000).toISOString().slice(0, 10);
+    if ((profile as any).last_daily !== today) {
+      const pid = 91000000 + Number(today.slice(2).replace(/-/g, ""));
+      const st = (profile as any).states || ((profile as any).states = {});
+      let list: any[] = [];
+      try {
+        const cur = String(st.present_box_game || "");
+        if (cur) {
+          const obj = JSON.parse(cur);
+          if (obj && Array.isArray((obj as any).PresentInfos)) list = (obj as any).PresentInfos;
+        }
+      } catch { list = []; }
+      if (!list.some((p: any) => Number((p as any)?.PresentID) === pid)) {
+        list.push({ PresentID: pid, Title: "Daily Bonus", Text: "Daily login bonus", Content: "OID_CharaExpUpPresent", Count: 3, LimitDate: "", ReceivedDate: "", IsReceived: false, IsAutoApply: true, IsHideHistory: false });
+        st.present_box_game = JSON.stringify({ DataVersion: 1, PresentInfos: list });
+      }
+      (profile as any).last_daily = today;
+      await saveProfile(profile.refid, profile);
+      vlog(`[VFG] daily bonus mid=${(profile as any).player_id} day=${today}`);
+    }
+  } catch { }
   vlog(`[VFG] login refid=${userId} guest=${guest} mid=${(profile as any).player_id} session=${session.slice(0, 8)}... keys=${Object.keys(form).join(",")}`);
   const xml = xml_response(`<auth><session_id>${session}</session_id></auth>`);
   sendXml(ctx, xml);
@@ -586,7 +621,109 @@ export async function handle_client_state_read(form: Record<string, string>, ctx
   if (healed && profile) {
     try { await saveProfile((profile as any).refid, profile); } catch { }
   }
+  // Friend list is server-synthesized: the client has no friend-request API,
+  // FriendInfos only arrive via the friend_game state. Serve every other
+  // profile as a lender (odekake_id = player_id). Serve-time only, never
+  // persisted, so it stays fresh as players join/unlock.
+  if (profile && (!one || one === "friend_game")) {
+    try {
+      const fg = await buildFriendGameJson(profile);
+      if (fg) {
+        let b64 = "";
+        try { b64 = Buffer.from(fg, "utf-8").toString("base64"); } catch { b64 = ""; }
+        // Replace any stored snapshot so the client never sees stale lenders.
+        const idx = chunks.findIndex(c => c.includes('kind="friend_game"'));
+        const chunk = `<state kind="friend_game"><data>${b64}</data></state>`;
+        if (idx >= 0) chunks[idx] = chunk; else chunks.push(chunk);
+      }
+    } catch { }
+  }
+  // Welcome presents (one-time): append any missing 9001-9003 entries.
+  // Flag-based, so the daily grant in handle_login (which may create the
+  // state first) never suppresses them, and already-claimed accounts never
+  // get doubles. The client auto-applies them on load and saves back.
+  if (profile && (!one || one === "present_box_game")) {
+    try {
+      if (!(profile as any).welcome_gifts) {
+        const st = (profile as any).states || ((profile as any).states = {});
+        let list: any[] = [];
+        try {
+          const cur = String(st.present_box_game || "");
+          if (cur) {
+            const obj = JSON.parse(cur);
+            if (obj && Array.isArray((obj as any).PresentInfos)) list = (obj as any).PresentInfos;
+          }
+        } catch { list = []; }
+        const have = new Set(list.map((p: any) => Number((p as any)?.PresentID)));
+        const want = [
+          { PresentID: 9001, Title: "Welcome", Text: "Welcome gacha tickets", Content: "OID_GachaTicket", Count: 2, LimitDate: "", ReceivedDate: "", IsReceived: false, IsAutoApply: true, IsHideHistory: false },
+          { PresentID: 9002, Title: "Welcome", Text: "Presents for your fight girls", Content: "OID_CharaExpUpPresent", Count: 10, LimitDate: "", ReceivedDate: "", IsReceived: false, IsAutoApply: true, IsHideHistory: false },
+          { PresentID: 9003, Title: "Welcome", Text: "Spirits to unlock costumes", Content: "OID_FightSpirit_Wildcard", Count: 10, LimitDate: "", ReceivedDate: "", IsReceived: false, IsAutoApply: true, IsHideHistory: false },
+        ];
+        let added = false;
+        for (const w of want) {
+          if (!have.has(w.PresentID)) { list.push(w); added = true; }
+        }
+        (profile as any).welcome_gifts = true;
+        st.present_box_game = JSON.stringify({ DataVersion: 1, PresentInfos: list });
+        healed = true; // persisted by the single save at the end of the handler
+        if (added) {
+          const seedStr = String(st.present_box_game);
+          let b64 = "";
+          try { b64 = Buffer.from(seedStr, "utf-8").toString("base64"); } catch { b64 = ""; }
+          const idx = chunks.findIndex(c => c.includes('kind="present_box_game"'));
+          const chunk = `<state kind="present_box_game"><data>${b64}</data></state>`;
+          if (idx >= 0) chunks[idx] = chunk; else chunks.push(chunk);
+          vlog(`[VFG] seeded welcome presents mid=${mid}`);
+        }
+      }
+    } catch { }
+  }
   sendXml(ctx, xml_response(...chunks));
+}
+
+// Build FriendGameData JSON for the given viewer: all other profiles as
+// usable friends. Field names must stay PascalCase (Unity JsonUtility).
+async function buildFriendGameJson(viewer: any): Promise<string | null> {
+  const myRef = String((viewer as any)?.refid || "");
+  let all: any[] = [];
+  try {
+    // @ts-ignore
+    all = await DB.Find(null, { collection: "profile" }) || [];
+  } catch { return null; }
+  const infos: any[] = [];
+  for (const p of all) {
+    if (!p || String((p as any).refid || "") === myRef) continue;
+    const pid = Number((p as any).player_id || 0);
+    if (!pid) continue;
+    let name = String((p as any).name || "GUEST");
+    let dan = 1;
+    let chara = 0;
+    try {
+      const pgRaw = String(((p as any).states || {}).player_game || "");
+      if (pgRaw) {
+        const pg = JSON.parse(pgRaw);
+        if (pg && typeof pg === "object") {
+          if (typeof pg.PlayerName === "string" && pg.PlayerName.trim()) name = pg.PlayerName.trim();
+          const d = Number((pg as any).m_danLevel);
+          if (Number.isInteger(d) && d >= 0) dan = d;
+          const c = Number((pg as any).SelectChara);
+          if (Number.isInteger(c) && c >= 0 && c <= 20) chara = c;
+        }
+      }
+    } catch { }
+    if (!name || name === "GUEST" || name === "PLAYER") continue;
+    infos.push({
+      OdekakeDataID: pid,
+      FriendID: String((p as any).refid || ""),
+      PlayerName: name,
+      Dan: dan,
+      IsUsable: true,
+      CharaType: chara,
+    });
+    if (infos.length >= 20) break;
+  }
+  return JSON.stringify({ DataVersion: 1, FriendInfos: infos });
 }
 
 export async function handle_client_state_write(form: Record<string, string>, ctx: any): Promise<void> {
@@ -812,6 +949,34 @@ function sendDiscordWebhook(url: string, payload: any) {
 
     if (!lobby.pcuids.includes(pcuid)) {
       lobby.pcuids.push(pcuid);
+      const joinedIdx = lobby.pcuids.length;
+      if (joinedIdx > 1) {
+        try {
+          // @ts-ignore
+          const webhookUrl = typeof U !== "undefined" && U.GetConfig("VFG_DISCORD_WEBHOOK");
+          if (webhookUrl && webhookUrl.startsWith("http")) {
+            let modeName = `Mode ${gmode}`;
+            if (gmode === 1) modeName = "Tonpuusen (東)";
+            else if (gmode === 2) modeName = "Hanchan (東南)";
+            else if (gmode === 3) modeName = "Sanma (東)";
+            else if (gmode === 4) modeName = "Nima (東南)";
+
+            sendDiscordWebhook(webhookUrl, {
+              embeds: [
+                {
+                  title: "👥 Player Joined Lobby!",
+                  color: 3066993, // green
+                  fields: [
+                    { name: "Player", value: name || "Unknown", inline: true },
+                    { name: "Mode", value: modeName, inline: true },
+                    { name: "Seats Filled", value: `${joinedIdx}/${seats}`, inline: true }
+                  ]
+                }
+              ]
+            });
+          }
+        } catch { }
+      }
     }
 
     pindex = lobby.pcuids.indexOf(pcuid);
@@ -1085,7 +1250,10 @@ export async function handle_end_or_kiken(form: Record<string, string>, ctx: any
           gmode,
           seats,
           timestamp: Date.now(),
-          players: playersInfo
+          players: playersInfo,
+          // Full cell stream for get_haifu_data replay: same
+          // cell_data_N format the live client already parses.
+          cells: Array.isArray((table as any).cells) ? [...(table as any).cells] : [],
         }).catch((e: any) => console.error(e));
       }
     }
@@ -1480,8 +1648,8 @@ export async function handle_player_record(form: Record<string, string>, ctx: an
   };
   let docs: any[] = [];
   try {
-    // @ts-ignore - global scan: refid=null matches all PluginSpace docs
-    docs = await DB.Find(null, { collection: 'match_archive' }) || [];
+    // @ts-ignore - PluginSpace scan (object-form query targets __s='plugins')
+    docs = await DB.Find({ collection: 'match_archive' }) || [];
   } catch { docs = []; }
   const mine = docs
     .filter(d => mineRow((d as any).players))
@@ -1525,9 +1693,86 @@ export async function handle_player_record(form: Record<string, string>, ctx: an
 }
 
 export async function handle_get_haifu_list(form: Record<string, string>, ctx: any): Promise<void> {
-  sendXml(ctx, xml_response("<haifu_list></haifu_list>"));
+  const pcuid = formGet(form, "pcuid");
+  const me = await getProfileBySession(pcuid);
+  if (!me) {
+    sendXml(ctx, xml_response("<haifu_list></haifu_list>"));
+    return;
+  }
+  const myRef = String((me as any).refid || "");
+  const myMid = Number((me as any).player_id || 0);
+  const myPindex = (players: any[]): number => {
+    if (!Array.isArray(players)) return 0;
+    for (const p of players) {
+      if (myRef && String((p as any).refid || "") === myRef) return Number((p as any).pindex || 0);
+      if (!(p as any).refid && myMid && Number((p as any).mid) === myMid) return Number((p as any).pindex || 0);
+    }
+    return 0;
+  };
+  let docs: any[] = [];
+  try {
+    // @ts-ignore - PluginSpace scan (object-form query targets __s='plugins')
+    docs = await DB.Find({ collection: 'match_archive' }) || [];
+  } catch { docs = []; }
+  const mine = docs
+    .filter(d => {
+      const ps = (d as any).players;
+      if (!Array.isArray(ps)) return false;
+      return ps.some((p: any) =>
+        (myRef && String((p as any).refid || "") === myRef) ||
+        (!(p as any).refid && myMid && Number((p as any).mid) === myMid));
+    })
+    .sort((a, b) => (Number((b as any).timestamp) || 0) - (Number((a as any).timestamp) || 0))
+    .slice(0, 50);
+  const rows = mine.map(d => {
+    const gmode = Number((d as any).gmode || 1) || 1;
+    const tid = Number((d as any).tid || 0) || 0;
+    const endSec = Math.floor((Number((d as any).timestamp) || 0) / 1000);
+    const bySeat = new Map<number, any>();
+    for (const p of ((d as any).players || [])) bySeat.set(Number((p as any).pindex || 0), p);
+    // Client always reads 4 seats (name0-3/rank0-3/score0-3); pad short tables.
+    let infos = "";
+    for (let i = 0; i < 4; i++) {
+      const p = bySeat.get(i);
+      const nm = p ? String((p as any).name || "CPU") : "CPU";
+      const rk = p ? Number((p as any).rank || 0) : i;
+      const sc = p ? Number((p as any).score || 0) : 0;
+      infos += `<name${i}>${xml_escape(nm)}</name${i}><rank${i}>${rk}</rank${i}><score${i}>${sc}</score${i}>`;
+    }
+    return `<haifu><gmode>${gmode}</gmode><taku_class>1</taku_class><tid>${tid}</tid>` +
+      `<pindex>${myPindex((d as any).players)}</pindex><end_date>${endSec}</end_date>${infos}</haifu>`;
+  }).join("");
+  sendXml(ctx, xml_response(`<haifu_list>${rows}</haifu_list>`));
 }
 export async function handle_get_haifu_data(form: Record<string, string>, ctx: any): Promise<void> {
+  const tid = Number(formGet(form, "tid") || 0) || 0;
+  if (tid) {
+    try {
+      // @ts-ignore
+      const docs: any[] = await DB.Find({ collection: 'match_archive' }) || [];
+      const doc = docs.find(d => Number((d as any).tid) === tid);
+      const cells: string[] = (doc && Array.isArray((doc as any).cells)) ? (doc as any).cells : [];
+      if (doc && cells.length) {
+        const gmode = Number((doc as any).gmode || 1) || 1;
+        const seats = Number((doc as any).seats || 4) || 4;
+        // HaifuData.Parse reads: core_io[0] in/tmake (gmode, pnum),
+        // core_io[1] out/tmake (zaseki per seat) + taikyoku/cell_info with
+        // the recorded cell_data_N stream. pnum=seats keeps all seats human
+        // (no random CPU fill); zaseki emitted for 4 seats covers every taku.
+        let zas = "";
+        for (let i = 0; i < 4; i++) zas += `<zaseki_${i}>${i}</zaseki_${i}>`;
+        const body =
+          `<core_io><in><tmake><play_mode><gmode>${gmode}</gmode></play_mode><pnum>${seats}</pnum></tmake></in></core_io>` +
+          `<core_io><out><tmake>${zas}</tmake><taikyoku><cell_info>` +
+          `<cell_sno count="${cells.length}"></cell_sno>` + cells.join("") +
+          `</cell_info></taikyoku></out></core_io>`;
+        vlog(`[VFG] haifu_data tid=${tid} cells=${cells.length}`);
+        sendXml(ctx, xml_response(body));
+        return;
+      }
+      vlog(`[VFG] haifu_data tid=${tid} has no recorded cells (pre-fix archive)`);
+    } catch { }
+  }
   sendXml(ctx, xml_response());
 }
 
@@ -1609,8 +1854,51 @@ export const AOG_HANDLER_MAP: Record<string, (f: any, c: any) => Promise<void>> 
   janpon_log: handle_log_only,
   notice_done: async (f: any, c: any) => sendXml(c, xml_response()),
   important_notice_done: async (f: any, c: any) => sendXml(c, xml_response()),
-  set_favorite_character: async (f: any, c: any) => sendXml(c, xml_response()),
-  odekake_done: async (f: any, c: any) => sendXml(c, xml_response()),
+  set_favorite_character: async (f: any, c: any) => {
+    try {
+      const oid = formGet(f, "object_id");
+      const p = await getProfileBySession(formGet(f, "pcuid"));
+      if (p && oid) {
+        (p as any).favorite_character = String(oid).slice(0, 64);
+        await saveProfile((p as any).refid, p);
+      }
+    } catch { }
+    sendXml(c, xml_response());
+  },
+  odekake_done: async (f: any, c: any) => {
+    // TEMP-DISABLED odekake (friend borrow): changing back mid-borrow
+    // confuses players. Fail cleanly until re-enabled (client aborts borrow).
+    // To re-enable, delete this early return.
+    sendXml(c, xml_response(`<odekake><id></id><success>0</success></odekake>`));
+    return;
+    // Borrow a lender's chara: odekake_id is the lender's player_id (see
+    // friend_game synthesis). Return their live customize_item + player_game
+    // states so the borrower plays with the lender's build. Missing lender
+    // or states -> success 0 (client catches it and aborts the borrow).
+    try {
+      const oid = Number(formGet(f, "odekake_id") || 0) || 0;
+      const lender = oid ? await getProfileByPlayerId(oid) : null;
+      const states = (lender as any)?.states || {};
+      const cust = states.customize_item ? String(states.customize_item) : "";
+      const pg = states.player_game ? String(states.player_game) : "";
+      if (lender && cust && pg) {
+        let cb = "", pb = "";
+        try { cb = Buffer.from(cust, "utf-8").toString("base64"); } catch { cb = ""; }
+        try { pb = Buffer.from(pg, "utf-8").toString("base64"); } catch { pb = ""; }
+        if (cb && pb) {
+          vlog(`[VFG] odekake_done lender=${(lender as any).refid} borrower_ok=1`);
+          sendXml(c, xml_response(
+            `<odekake><id>${xml_escape(String((lender as any).refid || ""))}</id><success>1</success>` +
+            `<state kind="customize_item"><data>${cb}</data></state>` +
+            `<state kind="player_game"><data>${pb}</data></state></odekake>`
+          ));
+          return;
+        }
+      }
+      vlog(`[VFG] odekake_done no lender data for odekake_id=${oid}`);
+    } catch { }
+    sendXml(c, xml_response(`<odekake><id></id><success>0</success></odekake>`));
+  },
   coop_done: async (f: any, c: any) => sendXml(c, xml_response()),
   eashop_done: async (f: any, c: any) => sendXml(c, xml_response()),
   chara_enabled: async (f: any, c: any) => {

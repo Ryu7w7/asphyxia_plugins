@@ -1,5 +1,5 @@
 //DATA//
-  archives: DB.Find(null, { collection: 'match_archive' })
+  archives: DB.Find({ collection: 'match_archive' })
 
 -
   var MODE_NAMES = { 1: "Tonpuusen (4P)", 2: "Hanchan (4P)", 3: "Sanma (3P)", 4: "Nima (2P)" };
@@ -19,7 +19,19 @@
     return v.toLocaleString();
   }
 
+  // Optional ?refid= filter (per-account view). query is provided by the core.
+  var fref = "";
+  try { fref = String((typeof query !== "undefined" && query && query.refid) || ""); } catch (e) { fref = ""; }
   var matches = (archives || []).slice().sort(function(a, b) { return (b.timestamp || 0) - (a.timestamp || 0); });
+  if (fref) {
+    matches = matches.filter(function(m) {
+      if (!m.players) return false;
+      for (var k = 0; k < m.players.length; k++) {
+        if (String(m.players[k].refid || "") === fref) return true;
+      }
+      return false;
+    });
+  }
 
 .card
   .card-header
@@ -29,6 +41,8 @@
       | &nbsp;Match Archive
       span.has-text-grey-light.is-size-7(style="font-weight:normal;margin-left:.5rem")
         | &nbsp;— #{matches.length} matches recorded
+        if fref
+          span.tag.is-info.is-light(style="margin-left:.5rem") filtered: #{fref}
   .card-content(style="padding:.75rem")
     if !matches.length
       .notification.is-info.is-light

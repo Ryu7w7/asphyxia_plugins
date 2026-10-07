@@ -1,20 +1,21 @@
 //DATA//
   profiles: DB.Find(null, { collection: 'profile' })
-  archives: DB.Find(null, { collection: 'match_archive' })
+  archives: DB.Find({ collection: 'match_archive' })
 
 -
   var MODE_NAMES = { 1: "Tonpuusen (4P)", 2: "Hanchan (4P)", 3: "Sanma (3P)", 4: "Nima (2P)" };
 
-  // Build stats per player_id from match history
+  // Build stats per player (keyed by refid when present: player_id can be
+  // repaired on collision, refid is stable; mid-0 slots are CPU seats)
   var stats = {};
   for (var i = 0; i < (archives || []).length; i++) {
     var m = archives[i];
     if (!m.players) continue;
     for (var j = 0; j < m.players.length; j++) {
       var pl = m.players[j];
-      if (!pl.mid || pl.mid === 0) continue;
-      var key = String(pl.mid);
-      if (!stats[key]) stats[key] = { mid: pl.mid, name: pl.name || "PLAYER", games: 0, wins: 0, top2: 0, sumRank: 0, sumUma: 0, busts: 0 };
+      if ((!pl.refid || pl.refid === "") && (!pl.mid || pl.mid === 0)) continue;
+      var key = (pl.refid && pl.refid !== "") ? ("r:" + pl.refid) : ("m:" + String(pl.mid));
+      if (!stats[key]) stats[key] = { mid: pl.mid, refid: pl.refid || "", name: pl.name || "PLAYER", games: 0, wins: 0, top2: 0, sumRank: 0, sumUma: 0, busts: 0 };
       stats[key].games++;
       if (pl.rank === 0) stats[key].wins++;
       if (pl.rank <= 1) stats[key].top2++;
@@ -24,11 +25,12 @@
     }
   }
 
-  // Index profiles by player_id
+  // Index profiles by refid and by player_id
   var profMap = {};
   for (var pi = 0; pi < (profiles || []).length; pi++) {
     var p = profiles[pi];
-    if (p.player_id) profMap[String(p.player_id)] = p;
+    if (p.refid && p.refid !== "") profMap["r:" + p.refid] = p;
+    if (p.player_id) profMap["m:" + String(p.player_id)] = p;
   }
 
   // Build rows — players with match history first
@@ -54,11 +56,15 @@
     });
   }
   // Also include profiles with no history
-  for (var pid in profMap) {
-    if (!seenMids[pid]) {
-      var pp = profMap[pid];
-      rows.push({ mid: pp.player_id, refid: pp.refid || "", name: pp.name || "PLAYER", games: 0, wins: 0, top2: 0, winRate: "0.0%", avgRank: "-", avgUma: "0", avgUmaNum: 0, busts: 0 });
-    }
+  var addedProfs = {};
+  for (var pi = 0; pi < (profiles || []).length; pi++) {
+    var pp = profiles[pi];
+    var rKey = pp.refid ? ("r:" + pp.refid) : "";
+    var mKey = pp.player_id ? ("m:" + String(pp.player_id)) : "";
+    if ((rKey && seenMids[rKey]) || (mKey && seenMids[mKey])) continue;
+    if (addedProfs[pp._id]) continue;
+    addedProfs[pp._id] = true;
+    rows.push({ mid: pp.player_id, refid: pp.refid || "", name: pp.name || "PLAYER", games: 0, wins: 0, top2: 0, winRate: "0.0%", avgRank: "-", avgUma: "0", avgUmaNum: 0, busts: 0 });
   }
   rows.sort(function(a, b) {
     if (b.wins !== a.wins) return b.wins - a.wins;
@@ -95,7 +101,7 @@
               td= idx + 1
               td
                 if r.refid
-                  a(href="/plugin/mfg@asphyxia/profile?refid=" + r.refid)= r.name
+                  a(href="/plugin/mfg@asphyxia/profile_overview?refid=" + r.refid)= r.name
                 else
                   = r.name
               td.has-text-grey-light= r.mid

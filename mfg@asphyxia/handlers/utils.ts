@@ -1029,6 +1029,8 @@ export const BASE_EVENTS: Array<[string, string]> = [
   ["DecorationSticker", ""],
   ["ChaosUsable", ""],
   ["ChaosAppearance", ""],
+  ["ClearProCpuEvent", ""],
+  ["IyoProCpuEvent", ""],
   ["ClearAppearance", ""],
   ["IyoAppearance", ""],
   ["GrimAroeAppearance", ""],
@@ -1045,7 +1047,10 @@ export const BASE_EVENTS: Array<[string, string]> = [
   ["ToukaAppearance", ""],
   ["PremiumStartEnable", ""],
   ["RevengeContinueEnable", ""],
-  ["EnableOdekake", ""],
+  // TEMP-DISABLED odekake (friend borrow): changing back mid-borrow confuses
+  // players (client only releases on match/costume change). Re-enable by
+  // uncommenting once the UX is sorted.
+  // ["EnableOdekake", ""],
   ["ItemGainLogEnable", ""],
   ["FavoBonusEvent", ""],
   ["FanBonusEvent", ""],
