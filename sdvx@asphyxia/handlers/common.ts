@@ -513,8 +513,13 @@ export const common: EPR = async (info, data, send) => {
       console.log("Highest music id: " + songNum)
     }
 
+    const musicMap = new Map();
+    for (let i = 0; i < mdb.mdb.music.length; i++) {
+      musicMap.set(mdb.mdb.music[i]['id'].toString(), i);
+    }
+
     for (let id = 1; id <= songNum; ++id) {
-      const foundSongIndex = mdb.mdb.music.map(function(x) { return x['id']; }).indexOf(id.toString());
+      const foundSongIndex = musicMap.has(id.toString()) ? musicMap.get(id.toString()) : -1;
       if (foundSongIndex != -1) {
         const songData = mdb.mdb.music[foundSongIndex]
         songs.push(...parseSongData(songData))
