@@ -78,14 +78,9 @@ $('#change-platinum').on('click', () => {
 
 $('#customsave').on('click', () => {
   let selected = []
-  let ranSel = []
   
   for(const elem of customList) {
-    if(parseInt($(`#${elem[0]} option:selected`).val()) === 9999) {
-      ranSel = $(`.${elem[0]}-ran input[type=checkbox]:checked`).map(function() { return parseInt(this.value); }).get()
-    }
-    selected.push([elem[1], parseInt($(`#${elem[0]} option:selected`).val()), elem[2], ranSel])
-    ranSel = []
+    selected.push([elem[1], parseInt($(`#${elem[0]} option:selected`).val()), elem[2], []])
   }
   console.log(selected)
 
@@ -126,37 +121,90 @@ $(document).ready(function(){
           for(const item of ap['items'])
             $(`#${cust[0]}`).append('<option value=' + item.id + ((custInd >= 0 && item.id === customizeData[custInd].key) ? " selected" : " ") + ">" + item.name + "</option>")
         }
-        if(customizeData[custInd].key === 9999) {
-          populateRandomSelect(cust)
-        }
       }
     }
+    updateCustomizationPreviews();
   })
 
   $('#appeal, #character-left, #character-right, #bg-system, #bg-play, #lanebg-s, #lanebg-d, #lanecv-s, #lanecv-d').on('change', function() {
-    if(parseInt($(`#${this.id} option:selected`).val()) === 9999) {
-      const elem = customList.find(c => c[0] === this.id)
-      populateRandomSelect(elem)
-    } else {
-      $(`.${this.id}-div`).attr('style', 'display: none')
-      $(`.${this.id}-ran`).empty()
-    }
+    updateCustomizationPreviews();
   })
 })
 
-function populateRandomSelect(elem) {
-  let list = customJson[elem[3]].flatMap(item => item.items.filter(i => i.id !== 9999) || [])
-  $(`.${elem[0]}-div`).removeAttr('style')
-  for(const item of list) {
-    const plyCust = customizeData.find(c => c.category === elem[1] && c.pattern === elem[2])
-    $(`.${elem[0]}-ran`).append(
-      `
-        <div class="column is-4 form-check form-check-inline">
-          <input class="form-check-input" type="checkbox" ${(plyCust.random?.includes(item.id)) ? 'checked' : ''} id="ran${elem[0]}${item.id}" value="${item.id}">
-          <label class="form-check-label" for="ran${elem[0]}${item.id}">${item.name}</label>
-        </div>
-      `
-    )
-  }
-  $(`.${elem[0]}-ran`).append('<br><br><br>')
+function updateCustomizationPreviews() {
+  const getVal = (id) => {
+    const v = parseInt($(`#${id} option:selected`).val() || $(`#${id}`).val());
+    return isNaN(v) ? null : v;
+  };
+
+  const setImg = (elemId, path) => {
+    const $img = $(elemId);
+    if (!path) {
+      $img.hide().removeAttr('src');
+    } else {
+      $img.off('error').on('error', function() {
+        $(this).hide().removeAttr('src');
+      });
+      $img.attr('src', path).show();
+    }
+  };
+
+  const updateBgMedia = (videoSelector, imgSelector, bgId) => {
+    const $video = $(videoSelector);
+    const $img = $(imgSelector);
+    if (!bgId || bgId === 9999) {
+      $video.hide().removeAttr('src');
+      $img.hide().removeAttr('src');
+      return;
+    }
+    const mp4Url = `static/images/customize/backgrounds/${bgId}.mp4`;
+    const pngUrl = `static/images/customize/backgrounds/${bgId}.png`;
+
+    $img.off('error').on('error', function() {
+      $(this).hide().removeAttr('src');
+    });
+
+    $video.off('loadeddata canplay').on('loadeddata canplay', function() {
+      $img.hide().removeAttr('src');
+      $(this).show();
+      const playPromise = this.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(function() {});
+      }
+    });
+
+    $video.off('error').on('error', function() {
+      $(this).hide().removeAttr('src');
+      $img.attr('src', pngUrl).show();
+    });
+
+    $video.attr('src', mp4Url);
+  };
+
+  // 1. Appeal Board
+  const appealId = getVal('appeal');
+  setImg('#preview-appeal-img', (appealId && appealId !== 9999) ? `static/images/customize/appeal_boards/${appealId}.png` : null);
+
+  // 2. System Preview
+  const sysBgId = getVal('bg-system');
+  const charLId = getVal('character-left');
+  const charRId = getVal('character-right');
+  updateBgMedia('#preview-system-bg-video', '#preview-system-bg', sysBgId);
+  setImg('#preview-system-char-left', (charLId && charLId !== 9999) ? `static/images/customize/characters/${charLId}_left.png` : null);
+  setImg('#preview-system-char-right', (charRId && charRId !== 9999) ? `static/images/customize/characters/${charRId}_right.png` : null);
+
+  // 3. Game Play Preview
+  const playBgId = getVal('bg-play');
+  updateBgMedia('#preview-gameplay-bg-single-video', '#preview-gameplay-bg-single', playBgId);
+  updateBgMedia('#preview-gameplay-bg-double-video', '#preview-gameplay-bg-double', playBgId);
+
+  const laneBgSId = getVal('lanebg-s');
+  const laneCvSId = getVal('lanecv-s');
+  setImg('#preview-lanebg-single', (laneBgSId && laneBgSId !== 9999) ? `static/images/customize/lane_backgrounds_sp/${laneBgSId}.png` : null);
+  setImg('#preview-lanecv-single', (laneCvSId && laneCvSId !== 9999) ? `static/images/customize/lane_covers_sp/${laneCvSId}.png` : null);
+
+  const laneBgDId = getVal('lanebg-d');
+  const laneCvDId = getVal('lanecv-d');
+  setImg('#preview-lanebg-double', (laneBgDId && laneBgDId !== 9999) ? `static/images/customize/lane_backgrounds_dp/${laneBgDId}.png` : null);
+  setImg('#preview-lanecv-double', (laneCvDId && laneCvDId !== 9999) ? `static/images/customize/lane_covers_dp/${laneCvDId}.png` : null);
 }

@@ -34,7 +34,7 @@ $(document).ready(async function () {
           )
         )
         .append($("<td style='vertical-align: middle;'>").append(riv.rivalCode))
-        .append($("<td style='vertical-align: middle;'>").append($(`<a class="button is-danger jb-modal data-delete-button" id="deleteRival" value="${riv.rivalCode}" ${riv.rivalCode == '-' ? 'disabled' : ''}>`)
+        .append($("<td style='vertical-align: middle;'>").append($(`<a class="button is-danger jb-modal data-delete-button" value="${riv.rivalCode}" ${riv.rivalCode == '-' ? 'disabled' : ''}>`)
           .append($(`<span class="icon"><i class="mdi mdi-trash-can mdi-18px">`))
         ))
     );
@@ -53,25 +53,60 @@ $(document).ready(async function () {
     );
   }
 
+  // Populate datalist for autocomplete with other dancers on server
+  const otherProfiles = profiles_data.filter(p => p && p['__refid'] !== refid && p.dancerName);
+  $('#profiles-datalist').empty();
+  for (const p of otherProfiles) {
+    $('#profiles-datalist').append(
+      $('<option>').attr('value', p.dancerName).text(`Code: ${p.ddrCode || ''}`)
+    );
+  }
+
   $("#addrival").click(async function () {
+    const query = $("#rival-search").val().trim();
+    if (!query) {
+      alert("Please enter a Dancer Name or DDR Code.");
+      return;
+    }
+
+    const queryLower = query.toLowerCase();
+    const matched = profiles_data.find(p =>
+      p && p['__refid'] !== refid && (
+        (p.dancerName && p.dancerName.toLowerCase() === queryLower) ||
+        (p.ddrCode && p.ddrCode.toString() === query)
+      )
+    );
+
     await emit("addRival", {
-      ddrCode: $("[name=ddrcode]").val(),
+      ddrCode: matched ? matched.ddrCode : (parseInt(query) || 0),
+      name: query,
+      refid: refid,
+    }).then(function (response) {
+      alert(response.data.alert);
+      if (response.data.success) {
+        location.reload();
+      }
+    });
+  });
+
+  $("#rival-search").on("keypress", function (e) {
+    if (e.which === 13) {
+      $("#addrival").click();
+    }
+  });
+
+  $(document).on("click", ".data-delete-button", async function() {
+    const code = $(this).attr('value');
+    if (!code || code === '-') return;
+    if (!confirm("Are you sure you want to remove this rival?")) return;
+    await emit("deleteRival", {
+      ddrCode: parseInt(code),
       refid: refid,
     }).then(function (response) {
       alert(response.data.alert);
       location.reload();
     });
   });
-
-  $("#deleteRival").click(async function() {
-    await emit("deleteRival", {
-      ddrCode: $(this).attr('value'),
-      refid: refid,
-    }).then(function (response) {
-      alert(response.data.alert);
-      location.reload();
-    });
-  })
 
   $("#rival1,#rival2,#rival3").change(async function () {
     const curSlot = parseInt(this.id.slice(5,6))

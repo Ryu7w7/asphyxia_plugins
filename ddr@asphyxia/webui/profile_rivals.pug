@@ -9,15 +9,22 @@ div(style="display:flex;justify-content:center")
       .card-header
         p.card-header-title
           span.icon
-            i.mdi.mdi-account-edit
-          | Add rival
+            i.mdi.mdi-account-plus
+          | Add Rival
       .card-content
         .field
-          .control
-            input.input(type="text" name="ddrcode" placeholder="Enter DDR Code")
-        .field
-          button.button.is-primary(type="submit" id="addrival") 
-            span(id="rival-button") Add Rival
+          label.label Dancer Name or DDR Code
+          .field.has-addons
+            .control.is-expanded.has-icons-left
+              input.input(type="text" id="rival-search" list="profiles-datalist" placeholder="Enter Dancer Name or DDR Code...")
+              span.icon.is-small.is-left
+                i.mdi.mdi-magnify
+              datalist#profiles-datalist
+            .control
+              button.button.is-primary(type="button" id="addrival") 
+                span.icon
+                  i.mdi.mdi-account-plus
+                span#rival-button Add Rival
 
     .card
       .card-header

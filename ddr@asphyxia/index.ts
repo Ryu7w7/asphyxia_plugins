@@ -252,20 +252,36 @@ export function register() {
   });
 
   R.WebUIEvent("addRival", async (data: any, send: WebUISend) => {
-    const ddrCode = parseInt(data?.ddrCode) ?? ''
-    if(!ddrCode) return send.json({success: false, alert: "Enter a DDR code."})
-    if(await DB.Count<RivalWorld>(data.refid, {collection: "rival3"}) >= 10) return send.json({success: false, alert: "Rival list is full."})
-    if(await DB.Count<RivalWorld>(data.refid, {collection: "rival3", ddrCode}) > 0) return send.json({success: false, alert: "Profile already registered as rival."})
-    const search = await DB.FindOne<ProfileWorld>(null, {collection: "profile3", ddrCode})
-    if(!search) return send.json({success: false, alert: "Dancer not found."})
-    else if(search['__refid'] === data.refid) return send.json({success: false, alert: "You can't add yourself as rival."})
-    await DB.Insert<RivalWorld>(data.refid, {collection: "rival3", slot: 0, rivalCode: ddrCode})
+    let search: ProfileWorld | null = null;
+    const rawCode = parseInt(data?.ddrCode);
+    const searchName = data?.name?.toString().trim() || (!isNaN(rawCode) ? null : data?.ddrCode?.toString().trim());
+
+    if (!isNaN(rawCode) && rawCode > 0) {
+      search = await DB.FindOne<ProfileWorld>(null, { collection: "profile3", ddrCode: rawCode });
+    }
+
+    if (!search && searchName) {
+      const escaped = searchName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      search = await DB.FindOne<ProfileWorld>(null, {
+        collection: "profile3",
+        dancerName: { $regex: new RegExp(`^${escaped}$`, 'i') }
+      });
+    }
+
+    if (!search) return send.json({ success: false, alert: "Dancer not found. Check the name or DDR code." });
+    if (search['__refid'] === data.refid) return send.json({ success: false, alert: "You cannot add yourself as a rival." });
+
+    const ddrCode = search.ddrCode;
+    if (await DB.Count<RivalWorld>(data.refid, { collection: "rival3" }) >= 10) return send.json({ success: false, alert: "Rival list is full (max 10)." });
+    if (await DB.Count<RivalWorld>(data.refid, { collection: "rival3", ddrCode }) > 0) return send.json({ success: false, alert: `Dancer ${search.dancerName} is already registered as a rival.` });
+
+    await DB.Insert<RivalWorld>(data.refid, { collection: "rival3", slot: 0, rivalCode: ddrCode });
     send.json({
       success: true,
-      alert: 'Success',
+      alert: `Success! Added ${search.dancerName} (${search.ddrCode}) as rival.`,
       search
-    })
-  })
+    });
+  });
 
   R.WebUIEvent("deleteRival", async (data: any, send: WebUISend) => {
     const ddrCode = parseInt(data?.ddrCode) ?? ''

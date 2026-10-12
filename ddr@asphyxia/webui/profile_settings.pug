@@ -214,6 +214,7 @@ else if profile3
               a.button.is-primary#change-platinum Change
   br
   div
+    link(rel="stylesheet", href="static/css/customize.css")
     .card
       .card-header
         p.card-header-title
@@ -222,134 +223,117 @@ else if profile3
           | Customization
 
       .card-content
+        //- General Section
+        .customize-section
+          .customize-section-header
+            h3.customize-section-title General
+          .columns.is-desktop.is-vcentered
+            .column.is-6
+              .field
+                label.label Appeal Board
+                .control
+                  .select.is-fullwidth
+                    select#appeal
+            .column.is-6
+              .preview-appeal-box
+                img#preview-appeal-img(style="display: none;", alt="", onerror="this.style.display='none'", onload="this.style.display='block'")
+
+        hr.customize-divider
+
+        //- System Section
+        .customize-section
+          .customize-section-header
+            h3.customize-section-title System
+          .columns.is-desktop.is-vcentered
+            .column.is-6
+              .field
+                label.label Background
+                .control
+                  .select.is-fullwidth
+                    select#bg-system
+
+              .field
+                label.label Character (Left)
+                .control
+                  .select.is-fullwidth
+                    select#character-left
+
+              .field
+                label.label Character (Right)
+                .control
+                  .select.is-fullwidth
+                    select#character-right
+
+            .column.is-6
+              .preview-aspect-container#preview-system-container
+                video#preview-system-bg-video.preview-bg-layer(autoplay loop muted playsinline style="display: none;")
+                img#preview-system-bg.preview-bg-layer(style="display: none;", alt="", onerror="this.style.display='none'", onload="this.style.display='block'")
+                img#preview-system-char-left.preview-char-left-layer(style="display: none;", alt="", onerror="this.style.display='none'", onload="this.style.display='block'")
+                img#preview-system-char-right.preview-char-right-layer(style="display: none;", alt="", onerror="this.style.display='none'", onload="this.style.display='block'")
+
+        hr.customize-divider
+
+        //- Game Play Section
+        .customize-section
+          .customize-section-header
+            h3.customize-section-title Game Play
+          .columns.is-desktop
+            .column.is-6
+              .field
+                label.label Background
+                .control
+                  .select.is-fullwidth
+                    select#bg-play
+
+              .field
+                label.label Song Movie Display
+                .control
+                  .select.is-fullwidth
+                    select#bg-vid
+
+              .field
+                label.label Lane Background (Single)
+                .control
+                  .select.is-fullwidth
+                    select#lanebg-s
+
+              .field
+                label.label Lane Cover (Single)
+                .control
+                  .select.is-fullwidth
+                    select#lanecv-s
+
+              .field
+                label.label Lane Background (Double)
+                .control
+                  .select.is-fullwidth
+                    select#lanebg-d
+
+              .field
+                label.label Lane Cover (Double)
+                .control
+                  .select.is-fullwidth
+                    select#lanecv-d
+
+            .column.is-6
+              .preview-aspect-container#preview-gameplay-single-container
+                video#preview-gameplay-bg-single-video.preview-bg-layer(autoplay loop muted playsinline style="display: none;")
+                img#preview-gameplay-bg-single.preview-bg-layer(style="display: none;", alt="", onerror="this.style.display='none'", onload="this.style.display='block'")
+                .preview-lanestage-sp
+                img#preview-lanebg-single.preview-lanebg-sp(style="display: none;", alt="", onerror="this.style.display='none'", onload="this.style.display='block'")
+                img#preview-lanecv-single.preview-lanecv-sp(style="display: none;", alt="", onerror="this.style.display='none'", onload="this.style.display='block'")
+
+              .preview-aspect-container#preview-gameplay-double-container(style="margin-top: 1rem;")
+                video#preview-gameplay-bg-double-video.preview-bg-layer(autoplay loop muted playsinline style="display: none;")
+                img#preview-gameplay-bg-double.preview-bg-layer(style="display: none;", alt="", onerror="this.style.display='none'", onload="this.style.display='block'")
+                .preview-lanestage-dp
+                img#preview-lanebg-double.preview-lanebg-dp(style="display: none;", alt="", onerror="this.style.display='none'", onload="this.style.display='block'")
+                img#preview-lanecv-double.preview-lanecv-dp(style="display: none;", alt="", onerror="this.style.display='none'", onload="this.style.display='block'")
+
+        hr.customize-divider
         .field
-          .field.is-horizontal.has-addons
-            .field-label.is-normal
-              label.label Character (P1 side)
-            .field-body
-              p.control
-                .select
-                  select#character-left
-          .field.is-horizontal.has-addons.character-left-div(style="display: none;")
-            .field-label.is-normal
-              label.label 
-            .field-body.character-left-ran.columns.is-multiline
-
-        .field
-          .field.is-horizontal.has-addons
-            .field-label.is-normal
-              label.label Character (P2 side)
-            .field-body
-              p.control
-                .select
-                  select#character-right
-          .field.is-horizontal.has-addons.character-right-div(style="display: none;")
-            .field-label.is-normal
-              label.label 
-            .field-body.character-right-ran.columns.is-multiline
-
-        .field
-          .field.is-horizontal.has-addons
-            .field-label.is-normal
-              label.label Appeal Board
-            .field-body
-              p.control
-                .select
-                  select#appeal
-          .field.is-horizontal.has-addons.appeal-div(style="display: none;")
-            .field-label.is-normal
-              label.label 
-            .field-body.appeal-ran.columns.is-multiline
-
-        .field
-          .field.is-horizontal.has-addons
-            .field-label.is-normal
-              label.label Lane Background (SINGLE)
-            .field-body
-              p.control
-                .select
-                  select#lanebg-s
-          .field.is-horizontal.has-addons.lanebg-s-div(style="display: none;")
-            .field-label.is-normal
-              label.label 
-            .field-body.lanebg-s-ran.columns.is-multiline
-
-        .field
-          .field.is-horizontal.has-addons
-            .field-label.is-normal
-              label.label Lane Background (DOUBLE)
-            .field-body
-              p.control
-                .select
-                  select#lanebg-d
-          .field.is-horizontal.has-addons.lanebg-d-div(style="display: none;")
-            .field-label.is-normal
-              label.label 
-            .field-body.lanebg-d-ran.columns.is-multiline
-
-        .field
-          .field.is-horizontal.has-addons
-            .field-label.is-normal
-              label.label Lane Cover (SINGLE)
-            .field-body
-              p.control
-                .select
-                  select#lanecv-s
-          .field.is-horizontal.has-addons.lanecv-s-div(style="display: none;")
-            .field-label.is-normal
-              label.label 
-            .field-body.lanecv-s-ran.columns.is-multiline
-
-        .field
-          .field.is-horizontal.has-addons
-            .field-label.is-normal
-              label.label Lane Cover (DOUBLE)
-            .field-body
-              p.control
-                .select
-                  select#lanecv-d
-          .field.is-horizontal.has-addons.lanecv-d-div(style="display: none;")
-            .field-label.is-normal
-              label.label 
-            .field-body.lanecv-d-ran.columns.is-multiline
-
-        .field
-          .field.is-horizontal.has-addons
-            .field-label.is-normal
-              label.label Game Background (System)
-            .field-body
-              p.control
-                .select
-                  select#bg-system
-          .field.is-horizontal.has-addons.bg-system-div(style="display: none;")
-            .field-label.is-normal
-              label.label 
-            .field-body.bg-system-ran.columns.is-multiline
-
-        .field
-          .field.is-horizontal.has-addons
-            .field-label.is-normal
-              label.label Game Background (During Play)
-            .field-body
-              p.control
-                .select
-                  select#bg-play
-          .field.is-horizontal.has-addons.bg-play-div(style="display: none;")
-            .field-label.is-normal
-              label.label 
-            .field-body.bg-play-ran.columns.is-multiline
-
-        .field.is-horizontal.has-addons
-          .field-label.is-normal
-            label.label Background Video Display
-          .field-body
-            p.control
-              .select
-                select#bg-vid
-
-        p.control
-          a.button.is-primary#customsave Change
-
+          p.control
+            a.button.is-primary#customsave Change
 
 div(hidden id='customize-data') !{JSON.stringify(customize)}
 div(hidden id='platinum-data') !{profile3.subscribed !== undefined ? profile3.subscribed : false}
