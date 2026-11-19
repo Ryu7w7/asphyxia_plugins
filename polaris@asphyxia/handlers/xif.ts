@@ -987,7 +987,7 @@ async function gachaDraw(info: any, data: any, send: any): Promise<void> {
   tx.drawn = [];
   for (let i = 0; i < drawCount; i++) {
     const pick = pickGachaItem(seed);
-    if (pick) tx.drawn.push({ item_id: pick.item_id, count: 1, rarity: pick.rarity });
+    if (pick) tx.drawn.push({ item_id: pick.item_id, count: pick.count, rarity: pick.rarity });
   }
   if (!tx.drawn.length) {
     dlog(`gacha.draw_gacha tx=${txId} -> 145 (no items rolled)`);

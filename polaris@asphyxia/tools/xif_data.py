@@ -34,6 +34,19 @@ GACHA_OPEN, GACHA_CLOSE = "2024-01-01 00:00:00", "2099-12-31 23:59:59"
 # with Version 0 keeps them alive (mst_patch runs before FilterDatabase).
 PLACEHOLDER_VERSION = 1000
 PATCH_TABLES = ["CharacterCardMaster"]
+# Omikuji prizes: rarity 1=N 2=R 3=SR on the reward page (s_rarityTable), count per draw.
+FUKUBIKI_POOL = [
+    {"item_id": "money.mira", "rarity": 1, "count": 1000},
+    {"item_id": "growth.lv.s.normal", "rarity": 1, "count": 3},
+    {"item_id": "growth.slv.s.normal", "rarity": 1, "count": 3},
+    {"item_id": "money.mira", "rarity": 2, "count": 5000},
+    {"item_id": "growth.lv.m.normal", "rarity": 2, "count": 2},
+    {"item_id": "growth.slv.m.normal", "rarity": 2, "count": 2},
+    {"item_id": "growth.lv.l.normal", "rarity": 3, "count": 1},
+    {"item_id": "growth.slv.l.normal", "rarity": 3, "count": 1},
+    {"item_id": "ticket.contenter.general", "rarity": 3, "count": 1},
+    {"item_id": "ticket.supportsnap.general", "rarity": 3, "count": 1},
+]
 
 
 def dump(game, out):
@@ -85,27 +98,44 @@ def build_musics(m):
     return {"musics": musics}
 
 
+def fukubiki_items(m):
+    """Shiba omikuji (Fukubiki) prizes. The shop shows them on the omikuji reward
+    page, whose icon catalog only knows consumables, cosmetics and charts — a
+    character card has no icon there and the client errors out. Only consumables
+    this build defines are offered."""
+    defined = {r["item_id"] for r in table(m, "ConsumableItemMaster")}
+    return [i for i in FUKUBIKI_POOL if i["item_id"] in defined]
+
+
 def build_gacha(m):
     cards = [r for r in table(m, "CharacterCardMaster") if r["CardUsage"] == "ForPlayers"]
     pools = {
         "Contenter": [c for c in cards if c["CardType"] == "Contenter"],
         "Snapshot": [c for c in cards if c["CardType"] == "SupportSnap"],
-        "Fukubiki": cards,
     }
+    # the shop sells the premium omikuji as a "CompleteSSR" set pointing at the gacha id
+    premium = {r["ServerProcessParamter"] for r in table(m, "ChangeItemSetMaster") if r.get("Rarity") == "CompleteSSR"}
+    omikuji = fukubiki_items(m)
     gachas = []
     for r in table(m, "GachaEventMaster"):
         pay = (2 if r["CanPayWithCredit"] == "True" else 0) | (4 if r["CanPayWithPaseli"] == "True" else 0) | (8 if r["CanPayWithItem"] == "True" else 0)
+        if r["Category"] == "Fukubiki":
+            items = omikuji
+            weights = (0, 0, 100) if r["Id"] in premium else (70, 25, 5)
+        else:
+            items = [{"item_id": "chara_card." + c["CharacterCardId"], "rarity": RARITY.get(c["CardRarity"], 1)}
+                     for c in pools.get(r["Category"], cards)]
+            weights = (70, 25, 5)
         gachas.append({
             "id": r["Id"],
             "name": r["Name"],
             "payment_type": pay,
             "consume_item_id": r["UseItemId"],
             "consume_item_count": int(r["UseItemCount"] or 0),
-            "w_r": 70, "w_sr": 25, "w_ssr": 5, "w_pickup": 10,
+            "w_r": weights[0], "w_sr": weights[1], "w_ssr": weights[2], "w_pickup": 10,
             "open_at": GACHA_OPEN,
             "close_at": GACHA_CLOSE,
-            "items": [{"item_id": "chara_card." + c["CharacterCardId"], "rarity": RARITY.get(c["CardRarity"], 1)}
-                      for c in pools.get(r["Category"], cards)],
+            "items": items,
         })
     return {"gachas": gachas}
 

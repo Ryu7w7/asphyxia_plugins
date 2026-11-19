@@ -585,6 +585,12 @@ async function pcbFinish(info: any, data: any, send: any): Promise<void> {
 }
 
 async function pcbSaveErrorLog(info: any, data: any, send: any): Promise<void> {
+  // The client reports its own exceptions here; this is the only place the
+  // server sees why a scene failed (e.g. a reward it cannot display).
+  try {
+    const text = JSON.stringify(data, (k, v) => (k === "@attr" ? undefined : Array.isArray(v) && v.length === 1 ? v[0] : v));
+    console.warn(`[XIF] client error log model=${info?.model || ""}: ${text.length > 4000 ? text.slice(0, 4000) + "..." : text}`);
+  } catch { }
   await send.object({ "@attr": { status: 0 }, now_date: K.ITEM("str", nowDateSpace()) });
 }
 

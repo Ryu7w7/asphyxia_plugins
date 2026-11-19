@@ -418,7 +418,8 @@ export function gachaPurge(): void {
 
 export interface ChartSeed { difficulty: number; open_at?: string; close_at?: string; }
 export interface MusicSeed { music_id: number; charts: ChartSeed[]; }
-export interface GachaItemSeed { item_id: string; rarity: number; pickup?: boolean; }
+// count: quantity granted per draw (consumables, e.g. 1000 mira); cards are always 1.
+export interface GachaItemSeed { item_id: string; rarity: number; pickup?: boolean; count?: number; }
 export interface GachaSeed {
   id: number | string;
   name: string;
@@ -653,7 +654,7 @@ export function alwaysOpenEvents(ver: number = DEFAULT_VERSION): Array<{ id: str
 
 // Weighted single draw within a gacha seed (mirrors C# GachaService.PickOne:
 // rarity bucket R=1/SR=2/SSR=3 by weights, then pickup-weighted item pick).
-export function pickGachaItem(g: GachaSeed): { item_id: string; rarity: string } | null {
+export function pickGachaItem(g: GachaSeed): { item_id: string; rarity: string; count: number } | null {
   const items = g.items || [];
   if (!items.length) return null;
   const wR = g.w_r ?? 70, wSR = g.w_sr ?? 25, wSSR = g.w_ssr ?? 5;
@@ -677,10 +678,10 @@ export function pickGachaItem(g: GachaSeed): { item_id: string; rarity: string }
     let r2 = Math.random() * itotal;
     let pick = bucket[0];
     for (let i = 0; i < bucket.length; i++) { r2 -= iw[i]; if (r2 < 0) { pick = bucket[i]; break; } }
-    return { item_id: String(pick.item_id), rarity: String(pick.rarity) };
+    return { item_id: String(pick.item_id), rarity: String(pick.rarity), count: Math.max(1, Number(pick.count) || 1) };
   }
   const fb = items[0];
-  return { item_id: String(fb.item_id), rarity: String((fb as any).rarity ?? "1") };
+  return { item_id: String(fb.item_id), rarity: String((fb as any).rarity ?? "1"), count: Math.max(1, Number(fb.count) || 1) };
 }
 
 // eacoin sessions (shared with eamuse handler)

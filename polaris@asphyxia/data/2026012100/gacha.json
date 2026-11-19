@@ -14974,496 +14974,54 @@
    "close_at": "2099-12-31 23:59:59",
    "items": [
     {
-     "item_id": "chara_card.00030001",
-     "rarity": 3
+     "item_id": "money.mira",
+     "rarity": 1,
+     "count": 1000
     },
     {
-     "item_id": "chara_card.00030002",
-     "rarity": 3
+     "item_id": "growth.lv.s.normal",
+     "rarity": 1,
+     "count": 3
     },
     {
-     "item_id": "chara_card.00020001",
-     "rarity": 3
+     "item_id": "growth.slv.s.normal",
+     "rarity": 1,
+     "count": 3
     },
     {
-     "item_id": "chara_card.00020002",
-     "rarity": 3
+     "item_id": "money.mira",
+     "rarity": 2,
+     "count": 5000
     },
     {
-     "item_id": "chara_card.00020003",
-     "rarity": 3
+     "item_id": "growth.lv.m.normal",
+     "rarity": 2,
+     "count": 2
     },
     {
-     "item_id": "chara_card.00010001",
-     "rarity": 1
+     "item_id": "growth.slv.m.normal",
+     "rarity": 2,
+     "count": 2
     },
     {
-     "item_id": "chara_card.00010002",
-     "rarity": 1
+     "item_id": "growth.lv.l.normal",
+     "rarity": 3,
+     "count": 1
     },
     {
-     "item_id": "chara_card.00010003",
-     "rarity": 1
+     "item_id": "growth.slv.l.normal",
+     "rarity": 3,
+     "count": 1
     },
     {
-     "item_id": "chara_card.00010004",
-     "rarity": 1
+     "item_id": "ticket.contenter.general",
+     "rarity": 3,
+     "count": 1
     },
     {
-     "item_id": "chara_card.00010005",
-     "rarity": 1
-    },
-    {
-     "item_id": "chara_card.00010006",
-     "rarity": 1
-    },
-    {
-     "item_id": "chara_card.00130001",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00130002",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00210001",
-     "rarity": 1
-    },
-    {
-     "item_id": "chara_card.00210002",
-     "rarity": 1
-    },
-    {
-     "item_id": "chara_card.00210003",
-     "rarity": 1
-    },
-    {
-     "item_id": "chara_card.00210004",
-     "rarity": 1
-    },
-    {
-     "item_id": "chara_card.00230001",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00230002",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00230003",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00230004",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00220001",
-     "rarity": 2
-    },
-    {
-     "item_id": "chara_card.00220002",
-     "rarity": 2
-    },
-    {
-     "item_id": "chara_card.00220003",
-     "rarity": 2
-    },
-    {
-     "item_id": "chara_card.00220004",
-     "rarity": 2
-    },
-    {
-     "item_id": "chara_card.00220006",
-     "rarity": 2
-    },
-    {
-     "item_id": "chara_card.00220007",
-     "rarity": 2
-    },
-    {
-     "item_id": "chara_card.00220008",
-     "rarity": 2
-    },
-    {
-     "item_id": "chara_card.00220005",
-     "rarity": 2
-    },
-    {
-     "item_id": "chara_card.00220009",
-     "rarity": 2
-    },
-    {
-     "item_id": "chara_card.00220010",
-     "rarity": 2
-    },
-    {
-     "item_id": "chara_card.00330001",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00330002",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00320001",
-     "rarity": 2
-    },
-    {
-     "item_id": "chara_card.00320002",
-     "rarity": 2
-    },
-    {
-     "item_id": "chara_card.00320003",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00430001",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00420001",
-     "rarity": 2
-    },
-    {
-     "item_id": "chara_card.00430002",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00420002",
-     "rarity": 2
-    },
-    {
-     "item_id": "chara_card.00530001",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00630001",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00630002",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00730001",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00730002",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00830001",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.01030002",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00930001",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00930002",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00930003",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.01030001",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.01130001",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.01130002",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.01230001",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.01330001",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.01430001",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.01530001",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.01730001",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.01630001",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.01830001",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.01830002",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.01830003",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.01930001",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.02030001",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.02130001",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.02230001",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.02330001",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.02430001",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.02430002",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.02430003",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.02430004",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.02430005",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.02430006",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.02530001",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00060001",
-     "rarity": 1
-    },
-    {
-     "item_id": "chara_card.00080001",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00060003",
-     "rarity": 1
-    },
-    {
-     "item_id": "chara_card.00080004",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00060005",
-     "rarity": 1
-    },
-    {
-     "item_id": "chara_card.00060006",
-     "rarity": 1
-    },
-    {
-     "item_id": "chara_card.00060007",
-     "rarity": 1
-    },
-    {
-     "item_id": "chara_card.00170001",
-     "rarity": 2
-    },
-    {
-     "item_id": "chara_card.00170002",
-     "rarity": 2
-    },
-    {
-     "item_id": "chara_card.00260001",
-     "rarity": 1
-    },
-    {
-     "item_id": "chara_card.00260002",
-     "rarity": 1
-    },
-    {
-     "item_id": "chara_card.00260003",
-     "rarity": 1
-    },
-    {
-     "item_id": "chara_card.00270001",
-     "rarity": 2
-    },
-    {
-     "item_id": "chara_card.00270002",
-     "rarity": 2
-    },
-    {
-     "item_id": "chara_card.00280001",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00280002",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00280003",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00270003",
-     "rarity": 2
-    },
-    {
-     "item_id": "chara_card.00270004",
-     "rarity": 2
-    },
-    {
-     "item_id": "chara_card.00380001",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00380002",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00270005",
-     "rarity": 2
-    },
-    {
-     "item_id": "chara_card.00270006",
-     "rarity": 2
-    },
-    {
-     "item_id": "chara_card.00380003",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00380004",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00380005",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00270007",
-     "rarity": 2
-    },
-    {
-     "item_id": "chara_card.00270008",
-     "rarity": 2
-    },
-    {
-     "item_id": "chara_card.00380006",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00270009",
-     "rarity": 2
-    },
-    {
-     "item_id": "chara_card.00270010",
-     "rarity": 2
-    },
-    {
-     "item_id": "chara_card.00480001",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00480002",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00380007",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00380008",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00380009",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00380010",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00480003",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00480004",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00380011",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00380012",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00380013",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00380014",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00380015",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00380016",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00380017",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00380018",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00380019",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00380020",
-     "rarity": 3
+     "item_id": "ticket.supportsnap.general",
+     "rarity": 3,
+     "count": 1
     }
    ]
   },
@@ -15473,504 +15031,62 @@
    "payment_type": 8,
    "consume_item_id": "ticket.fukubiki.0001",
    "consume_item_count": 10,
-   "w_r": 70,
-   "w_sr": 25,
-   "w_ssr": 5,
+   "w_r": 0,
+   "w_sr": 0,
+   "w_ssr": 100,
    "w_pickup": 10,
    "open_at": "2024-01-01 00:00:00",
    "close_at": "2099-12-31 23:59:59",
    "items": [
     {
-     "item_id": "chara_card.00030001",
-     "rarity": 3
+     "item_id": "money.mira",
+     "rarity": 1,
+     "count": 1000
     },
     {
-     "item_id": "chara_card.00030002",
-     "rarity": 3
+     "item_id": "growth.lv.s.normal",
+     "rarity": 1,
+     "count": 3
     },
     {
-     "item_id": "chara_card.00020001",
-     "rarity": 3
+     "item_id": "growth.slv.s.normal",
+     "rarity": 1,
+     "count": 3
     },
     {
-     "item_id": "chara_card.00020002",
-     "rarity": 3
+     "item_id": "money.mira",
+     "rarity": 2,
+     "count": 5000
     },
     {
-     "item_id": "chara_card.00020003",
-     "rarity": 3
+     "item_id": "growth.lv.m.normal",
+     "rarity": 2,
+     "count": 2
     },
     {
-     "item_id": "chara_card.00010001",
-     "rarity": 1
+     "item_id": "growth.slv.m.normal",
+     "rarity": 2,
+     "count": 2
     },
     {
-     "item_id": "chara_card.00010002",
-     "rarity": 1
+     "item_id": "growth.lv.l.normal",
+     "rarity": 3,
+     "count": 1
     },
     {
-     "item_id": "chara_card.00010003",
-     "rarity": 1
+     "item_id": "growth.slv.l.normal",
+     "rarity": 3,
+     "count": 1
     },
     {
-     "item_id": "chara_card.00010004",
-     "rarity": 1
+     "item_id": "ticket.contenter.general",
+     "rarity": 3,
+     "count": 1
     },
     {
-     "item_id": "chara_card.00010005",
-     "rarity": 1
-    },
-    {
-     "item_id": "chara_card.00010006",
-     "rarity": 1
-    },
-    {
-     "item_id": "chara_card.00130001",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00130002",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00210001",
-     "rarity": 1
-    },
-    {
-     "item_id": "chara_card.00210002",
-     "rarity": 1
-    },
-    {
-     "item_id": "chara_card.00210003",
-     "rarity": 1
-    },
-    {
-     "item_id": "chara_card.00210004",
-     "rarity": 1
-    },
-    {
-     "item_id": "chara_card.00230001",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00230002",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00230003",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00230004",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00220001",
-     "rarity": 2
-    },
-    {
-     "item_id": "chara_card.00220002",
-     "rarity": 2
-    },
-    {
-     "item_id": "chara_card.00220003",
-     "rarity": 2
-    },
-    {
-     "item_id": "chara_card.00220004",
-     "rarity": 2
-    },
-    {
-     "item_id": "chara_card.00220006",
-     "rarity": 2
-    },
-    {
-     "item_id": "chara_card.00220007",
-     "rarity": 2
-    },
-    {
-     "item_id": "chara_card.00220008",
-     "rarity": 2
-    },
-    {
-     "item_id": "chara_card.00220005",
-     "rarity": 2
-    },
-    {
-     "item_id": "chara_card.00220009",
-     "rarity": 2
-    },
-    {
-     "item_id": "chara_card.00220010",
-     "rarity": 2
-    },
-    {
-     "item_id": "chara_card.00330001",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00330002",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00320001",
-     "rarity": 2
-    },
-    {
-     "item_id": "chara_card.00320002",
-     "rarity": 2
-    },
-    {
-     "item_id": "chara_card.00320003",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00430001",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00420001",
-     "rarity": 2
-    },
-    {
-     "item_id": "chara_card.00430002",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00420002",
-     "rarity": 2
-    },
-    {
-     "item_id": "chara_card.00530001",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00630001",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00630002",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00730001",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00730002",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00830001",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.01030002",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00930001",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00930002",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00930003",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.01030001",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.01130001",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.01130002",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.01230001",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.01330001",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.01430001",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.01530001",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.01730001",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.01630001",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.01830001",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.01830002",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.01830003",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.01930001",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.02030001",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.02130001",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.02230001",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.02330001",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.02430001",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.02430002",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.02430003",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.02430004",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.02430005",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.02430006",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.02530001",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00060001",
-     "rarity": 1
-    },
-    {
-     "item_id": "chara_card.00080001",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00060003",
-     "rarity": 1
-    },
-    {
-     "item_id": "chara_card.00080004",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00060005",
-     "rarity": 1
-    },
-    {
-     "item_id": "chara_card.00060006",
-     "rarity": 1
-    },
-    {
-     "item_id": "chara_card.00060007",
-     "rarity": 1
-    },
-    {
-     "item_id": "chara_card.00170001",
-     "rarity": 2
-    },
-    {
-     "item_id": "chara_card.00170002",
-     "rarity": 2
-    },
-    {
-     "item_id": "chara_card.00260001",
-     "rarity": 1
-    },
-    {
-     "item_id": "chara_card.00260002",
-     "rarity": 1
-    },
-    {
-     "item_id": "chara_card.00260003",
-     "rarity": 1
-    },
-    {
-     "item_id": "chara_card.00270001",
-     "rarity": 2
-    },
-    {
-     "item_id": "chara_card.00270002",
-     "rarity": 2
-    },
-    {
-     "item_id": "chara_card.00280001",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00280002",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00280003",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00270003",
-     "rarity": 2
-    },
-    {
-     "item_id": "chara_card.00270004",
-     "rarity": 2
-    },
-    {
-     "item_id": "chara_card.00380001",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00380002",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00270005",
-     "rarity": 2
-    },
-    {
-     "item_id": "chara_card.00270006",
-     "rarity": 2
-    },
-    {
-     "item_id": "chara_card.00380003",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00380004",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00380005",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00270007",
-     "rarity": 2
-    },
-    {
-     "item_id": "chara_card.00270008",
-     "rarity": 2
-    },
-    {
-     "item_id": "chara_card.00380006",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00270009",
-     "rarity": 2
-    },
-    {
-     "item_id": "chara_card.00270010",
-     "rarity": 2
-    },
-    {
-     "item_id": "chara_card.00480001",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00480002",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00380007",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00380008",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00380009",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00380010",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00480003",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00480004",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00380011",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00380012",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00380013",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00380014",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00380015",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00380016",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00380017",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00380018",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00380019",
-     "rarity": 3
-    },
-    {
-     "item_id": "chara_card.00380020",
-     "rarity": 3
+     "item_id": "ticket.supportsnap.general",
+     "rarity": 3,
+     "count": 1
     }
    ]
   },
