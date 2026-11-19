@@ -427,6 +427,7 @@ export const updateCustomSettings = async (data) => {
     note_size: Number(data.note_size),
     cn_color: Number(data.cn_color),
     cn_size: Number(data.cn_size),
+    djl_v: StoB(data.djl_v),
 
     rank_folder: StoB(data.rank_folder),
     clear_folder: StoB(data.clear_folder),

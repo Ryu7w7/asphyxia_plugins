@@ -17,6 +17,7 @@ export const gssysteminfo: EPR = async (info, data, send) => {
   }
 
   switch (version) {
+    case 34:
     case 33:
     case 32:
       result.arena_schedule.phase = K.ITEM("u8", 3);
@@ -232,6 +233,13 @@ export const gssysteminfo: EPR = async (info, data, send) => {
             miss_onemore: String()
           }),*/
         }
+      });
+      break;
+    case 34:
+      result = Object.assign(result, {
+        isNewSongAnother12OpenFlg: K.ATTR({ val: String(Number(U.GetConfig("NewSongAnother12"))) }),
+        // 0 - hidden, 1~2 - only when operator option is enabled, 3~ - always available (1P only) //
+        OldBPLBattleOpenPhase: K.ATTR({ val: String(3) }),
       });
       break;
 

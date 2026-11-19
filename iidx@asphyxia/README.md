@@ -30,6 +30,7 @@ Supported Versions
   - beatmaniaIIDX 31 EPOLIS (2024082600)
   - beatmaniaIIDX 32 Pinky Crush (2025082500)
   - beatmaniaIIDX 33 Sparkle Shower (2026081900)
+  - beatmaniaIIDX 34 ZINRAI (2026091600)
 
 ---
 
@@ -201,3 +202,7 @@ Changelogs
   - Fixed where unable to login after playing a while on old versions
   - Improved WebUI customization settings with descriptive dropdown menus (@COLV9)
   - Improved WebUI score viewer with song title mapping, detailed difficulty breakdown and sorting (@COLV9)
+  - Added Initial support for ZINRAI (2026091600) [IIDX 34]
+  - Fixed where CLEAR RATE, FULL COMBO RATE displays 0% or 100%
+  - Random Lane Ticket now stores ticket on database rather than give 100 temporarily batches on login
+  - Added Music Retry Ticket support

@@ -1,4 +1,4 @@
-import { pccommon, pcreg, pcget, pcgetname, pctakeover, pcvisit, pcsave, pcoldget, pcgetlanegacha, pcdrawlanegacha, pcshopregister, pcmethod } from "./handlers/pc";
+import { pccommon, pcreg, pcget, pcgetname, pctakeover, pcvisit, pcsave, pcoldget, pcgetlanegacha, pcdrawlanegacha, pcshopregister, pcmethod, pcbuymusicretryticket } from "./handlers/pc";
 import { shopgetname, shopsavename, shopgetconvention, shopsetconvention, shopmethod } from "./handlers/shop";
 import { musicreg, musicgetrank, musicappoint, musicarenacpu, musiccrate, musicbreg, musicgetralive, musicgetranksub, musicmethod } from "./handlers/music";
 import { grademethod, graderaised } from "./handlers/grade";
@@ -10,6 +10,7 @@ import { userdataread, userdatawrite } from "./handlers/userdata";
 
 import { streamingcommon, streaminggetcm } from "./handlers/streaming";
 import { lobbyentry, lobbyupdate, lobbydelete, bplbattle_entry, bplbattle_update, bplbattle_delete } from "./handlers/lobby";
+import { withArenaDebug } from "./handlers/debug";
 
 export function register() {
   if (CORE_VERSION_MAJOR <= 1 && CORE_VERSION_MINOR < 70) {
@@ -39,6 +40,8 @@ export function register() {
   });
 
   const MultiRoute = (method: string, handler: EPR | boolean) => {
+    if (typeof handler == "function") handler = withArenaDebug(method, handler);
+
     R.Route(`${method}`, handler);
     R.Route(`IIDX21${method}`, handler);
     R.Route(`IIDX22${method}`, handler);
@@ -53,6 +56,7 @@ export function register() {
     R.Route(`IIDX31${method}`, handler);
     R.Route(`IIDX32${method}`, handler);
     R.Route(`IIDX33${method}`, handler);
+    R.Route(`IIDX34${method}`, handler);
   };
 
   MultiRoute("pc.common", pccommon);
@@ -67,9 +71,11 @@ export function register() {
   MultiRoute("pc.getLaneGachaTicket", pcgetlanegacha);
   MultiRoute("pc.drawLaneGacha", pcdrawlanegacha);
   MultiRoute("pc.consumeLaneGachaTicket", true);
+  MultiRoute("pc.buyMusicRetryTicket", pcbuymusicretryticket);
+  MultiRoute("pc.consumeMusicRetryTicket", true);
   
   // Dummy handlers for missing PC endpoints
-  const pcDummys = ["playstart", "playend", "locaend", "lcommon", "eaappliresult", "eaappliexpert", "ifinish", "logout", "qrreward", "qrcompe", "qrfollow", "getCompeInfo", "compeOrganize", "compeEntry", "compeSearch", "save2pp", "mygoalcancel", "mygoalclear", "mygoalset", "setBestresult"];
+  const pcDummys = ["playstart", "playend", "locaend", "lcommon", "eaappliresult", "eaappliexpert", "ifinish", "logout", "qrreward", "qrcompe", "qrfollow", "getCompeInfo", "compeOrganize", "compeEntry", "compeSearch", "save2pp", "mygoalcancel", "mygoalclear", "mygoalset", "setBestresult", "delete"];
   pcDummys.forEach(ep => MultiRoute(`pc.${ep}`, true));
 
   MultiRoute("shop.getname", shopgetname);
@@ -91,7 +97,7 @@ export function register() {
   MultiRoute("music.arenaCPU", musicarenacpu);
   
   // Dummy handlers for missing MUSIC endpoints
-  const musicDummys = ["play", "lplay", "nosave", "beginnerplay", "movieinfo", "retry"];
+  const musicDummys = ["play", "lplay", "nosave", "beginnerplay", "movieinfo", "retry", "sc"];
   musicDummys.forEach(ep => MultiRoute(`music.${ep}`, true));
 
   MultiRoute("grade.raised", graderaised);
@@ -157,6 +163,12 @@ export function register() {
     desc: "URL for Top 1 Score Tracker Discord Webhook (leave empty to disable)",
     type: "string",
     default: "",
+  });
+  R.Config("ArenaDebugLog", {
+    name: "Arena Debug Log",
+    desc: "Log every request name, and dump request/response of ARENA / lobby related requests to console",
+    type: "boolean",
+    default: false,
   });
 
   // Q-Pro asset extraction settings //

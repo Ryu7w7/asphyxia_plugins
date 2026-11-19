@@ -61,6 +61,7 @@ function populateFields(data) {
   safeSet("#effect", data["custom"].effect);
   safeSet("#bomb_size", data["custom"].bomb_size);
   $("#disable_hcn_color").prop("checked", data["custom"].disable_hcn_color);
+  $("#djl_v").prop("checked", data["custom"].djl_v ?? true);
   safeSet("#first_note_preview", data["custom"].first_note_preview);
 
   safeSet("#note_size",      data["custom"].note_size      ?? 0);

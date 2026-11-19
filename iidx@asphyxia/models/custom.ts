@@ -29,10 +29,12 @@ export interface custom {
   lift_cover: number;
   note_beam_size: number;
 
-  cn_color: number; // sparkle shower//
+  cn_color: number; // Sparkle Shower //
   cn_size: number;
 
-  // appendsettings
+  djl_v: boolean; // ZINRAI - this seems has 3 modes (enabled, display previous version lamp, disabled) but since we're using universal score database uses boolean //
+
+  // appendsettings //
   rank_folder: boolean;
   clear_folder: boolean;
   diff_folder: boolean;
@@ -84,7 +86,8 @@ export const default_custom = {
   disable_hcn_color: false,
   first_note_preview: 0,
 
-  skin_customize_flg: Array<number>(3).fill(-1),
+  skin_customize_flg: Array<number>(16).fill(-1),
+  vskin_customize_flg: Array<number>(6).fill(-1),
 
   note_size: 0,
   lift_cover: 0,
@@ -92,6 +95,8 @@ export const default_custom = {
 
   cn_color: 0,
   cn_size: 0,
+
+  djl_v: true,
 
   rank_folder: true,
   clear_folder: true,
