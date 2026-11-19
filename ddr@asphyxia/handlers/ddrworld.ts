@@ -1022,29 +1022,39 @@ export const playerdataload: EPR = async (info, data, send) => {
     let lResult = []
 
     let leagueInfo = await DB.FindOne<LeagueWorld>(refid, {collection: 'league3', current: true})
-    if(!leagueInfo) {
+    if(!leagueInfo && await DB.FindOne<LeagueWorld>(refid, {collection: 'league3'})) {
       // if current league data has no 'current,' add it -- atp only one league data exists
       await DB.Upsert<LeagueWorld>(refid, {collection: 'league3'}, {$set: {current: true}})
       leagueInfo = await DB.FindOne<LeagueWorld>(refid, {collection: 'league3', current: true})
     }
-    rank = leagueInfo.rankNum
-    score = leagueInfo.score
-    leagueClass = leagueInfo.class
-    playCount = leagueInfo.playCount
-    resultClass = leagueInfo.class
-    
-    if(leagueInfo.id !== curLeague.id) {
+    if(leagueInfo && leagueInfo.id == null) {
+      // an empty { current: true } doc left by the migration above for a player
+      // with no league data: it has no season, drop it
+      await DB.Remove<LeagueWorld>(refid, {collection: 'league3', id: {$exists: false}} as any)
+      leagueInfo = undefined
+    }
+    if(leagueInfo) {
+      rank = leagueInfo.rankNum
+      score = leagueInfo.score
+      leagueClass = leagueInfo.class
+      playCount = leagueInfo.playCount
+      resultClass = leagueInfo.class
+    }
+
+    if(leagueInfo && leagueInfo.id !== curLeague.id) {
       prevLeague = LEAGUE_WORLD.find(lg => lg.id === leagueInfo.id)
       leagueResultPrev = await DB.FindOne<LeagueResultWorld>({ collection: 'leagueresult3', id: leagueInfo.id, class: leagueClass > 0 ? leagueClass : 1 })
-      
-      if(leagueClass === 1 && leagueInfo.score >= leagueResultPrev.promoteScore) resultClass += 1
+
+      if(!leagueResultPrev) {} // no results stored for that season: keep the class
+      else if(leagueClass === 1 && leagueInfo.score >= leagueResultPrev.promoteScore) resultClass += 1
       else if(leagueClass === 2) {
         if(leagueInfo.score >= leagueResultPrev.promoteScore) resultClass += 1
         else if(leagueInfo.score < leagueResultPrev.demoteScore) resultClass -= 1
       }
       else if(leagueClass === 3 && leagueInfo.score < leagueResultPrev.demoteScore) resultClass -= 1
 
-      if(!leagueInfo.ended) {
+      // prevLeague is missing when the season is no longer listed in LEAGUE_WORLD
+      if(!leagueInfo.ended && prevLeague && leagueResultPrev) {
         lResult.push({
           league_id: K.ITEM("s32", prevLeague.id),
           league_name: K.ITEM("str", Buffer.from(prevLeague.name, 'utf8').toString('base64')),
