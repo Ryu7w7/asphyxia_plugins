@@ -1,6 +1,6 @@
 # beatmaniaIIDX
 
-Plugin Version: **STAGING [e03abf] (Sparkle Shower 2026081900 + 9th Style JAH merged, custom preserved)**
+Plugin Version: **STAGING [766052] (Sparkle Shower 2026081900 + 9th Style JAH merged, custom preserved)**
 
 ---
 
@@ -202,7 +202,29 @@ Changelogs
   - Fixed where unable to login after playing a while on old versions
   - Improved WebUI customization settings with descriptive dropdown menus (@COLV9)
   - Improved WebUI score viewer with song title mapping, detailed difficulty breakdown and sorting (@COLV9)
-  - Added Initial support for ZINRAI (2026091600) [IIDX 34]
-  - Fixed where CLEAR RATE, FULL COMBO RATE displays 0% or 100%
+
+**v0.1.18a**
+  - Fixed where unable to login (9th Style)
+  - Fixed where CYBER LOADER event data get saved incorrectly (Sparkle Shower)
+  - Fixed where Entry background brightness option doesn't get saved (Sparkle Shower)
+  - Fixed where classic\_hispeed option doesn't get saved on WebUI
+  - Fixed where CLEAR RATE, FULL COMBO RATE only displays 0% or 100%
+  - Fixed where Note Size, Note Beam Size, First Note Preview may display wrong data on WebUI
+  - Fixed where Recently Played sorted by song rather than each difficulty (@COLV9)
+    - Added last played time saving for each difficulty
+    - Existing score data without play time will be treated as not recently played until the chart is played again
+  - Added pagination to the WebUI score viewer (@COLV9)
+    - Added options to display 10, 30, or 50 records per page
+  - Updated music title and customization lists (@COLV9) 
   - Random Lane Ticket now stores ticket on database rather than give 100 temporarily batches on login
+
+**STAGING**
+  - Added Initial support for ZINRAI
+  - Added option for save score of nosave request
+    - nosave scores will be send with `_ns` suffix
+  - Added an SP/DP filter to the WebUI score page (@COLV9)
+  - Added distinct identification colors for each difficulty on the WebUI score page (@COLV9)
+  - Fixed DP difficulty labels on the WebUI score page (@COLV9)
+  - Customization lists are no longer baked in pug file
   - Added Music Retry Ticket support
+

@@ -12,6 +12,7 @@ export interface score {
 
   optArray: number[];
   opt2Array: number[];
+  playTimeArray?: number[];
 }
 
 export interface score_top {
@@ -24,6 +25,23 @@ export interface score_top {
   scores: number[];
   clflgs: number[];
   refids: string[]; // refid of the top holder per chart index, for Discord flag lookup //
+}
+
+export interface score_ns {
+  collection: "score_ns";
+
+  mid: number;
+
+  pgArray: number[];
+  gArray: number[];
+  mArray: number[];
+  cArray: number[];
+  rArray: number[];
+  esArray: number[];
+
+  optArray: number[];
+  opt2Array: number[];
+  playTimeArray?: number[];
 }
 
 export interface old_score {

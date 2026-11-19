@@ -7,9 +7,40 @@ function safeSet(selector, val) {
   el.val(val);
 }
 
+// Option lists maintained upstream (static/asset/customize/*.json). Entries the
+// page's own lists do not have yet are appended, keeping the existing names.
+var customizationList = [
+  { field: "turntable", file: "turntable" },
+  { field: "note_skin", file: "note_skin" },
+  { field: "note_burst", file: "note_burst" },
+  { field: "note_beam", file: "note_beam" },
+  { field: "lane_cover", file: "lane_cover" },
+  { field: "lift_cover", file: "lane_cover" },
+  { field: "pacemaker_cover", file: "lane_cover" },
+  { field: "judge_font", file: "judge_font" },
+  { field: "full_combo_splash", file: "fullcombo_splash" },
+];
+
+function mergeCustomizeOptions(field, config) {
+  var $select = $("#" + field);
+  if (!$select.is("select")) return;
+  var options = (config && config["default"]) || [];
+  options.forEach(function (option) {
+    if ($select.find("option[value='" + option.val + "']").length === 0) {
+      $("<option></option>").attr("value", option.val).text(option.name).appendTo($select);
+    }
+  });
+}
+
+var customizeOptionsReady = $.when.apply($, customizationList.map(function (item) {
+  return $.getJSON("static/asset/customize/" + item.file + ".json")
+    .then(function (config) { mergeCustomizeOptions(item.field, config); },
+          function () { return $.Deferred().resolve(); });
+}));
+
 $(document).ready(function() {
   var currentVersion = $("#version").val();
-  if (currentVersion) {
+  if (currentVersion) customizeOptionsReady.always(function () {
     $.ajax({
       type: "post",
       url: "/emit/iidxGetSetting",
@@ -21,7 +52,7 @@ $(document).ready(function() {
         populateFields(data);
       }
     });
-  }
+  });
 });
 
 $("#version").on("change", function () {
