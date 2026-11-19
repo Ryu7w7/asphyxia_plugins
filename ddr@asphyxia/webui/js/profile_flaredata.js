@@ -1,4 +1,4 @@
-let flareData = {}
+let fres = {}
 let totalFlare = 0
 let classicTop30 = []
 let classicFlare = []
@@ -9,21 +9,21 @@ let goldFlare = []
 
 async function populateTables() {
     if(parseInt($('#style_select').val()) === 0) {
-		totalFlare = flareData.totalSgFlare
-		classicTop30 = flareData.classicSgTop30
-		classicFlare = flareData.classicSgFlare
-		whiteTop30 = flareData.whiteSgTop30
-		whiteFlare = flareData.whiteSgFlare
-		goldTop30 = flareData.goldSgTop30
-		goldFlare = flareData.goldSgFlare
+		totalFlare = fres.flareData.totalSgFlare
+		classicTop30 = fres.flareData.classicSgTop30
+		classicFlare = fres.flareData.classicSgFlare
+		whiteTop30 = fres.flareData.whiteSgTop30
+		whiteFlare = fres.flareData.whiteSgFlare
+		goldTop30 = fres.flareData.goldSgTop30
+		goldFlare = fres.flareData.goldSgFlare
 	} else {
-		totalFlare = flareData.totalDbFlare
-		classicTop30 = flareData.classicDbTop30
-		classicFlare = flareData.classicDbFlare
-		whiteTop30 = flareData.whiteDbTop30
-		whiteFlare = flareData.whiteDbFlare
-		goldTop30 = flareData.goldDbTop30
-		goldFlare = flareData.goldDbFlare
+		totalFlare = fres.flareData.totalDbFlare
+		classicTop30 = fres.flareData.classicDbTop30
+		classicFlare = fres.flareData.classicDbFlare
+		whiteTop30 = fres.flareData.whiteDbTop30
+		whiteFlare = fres.flareData.whiteDbFlare
+		goldTop30 = fres.flareData.goldDbTop30
+		goldFlare = fres.flareData.goldDbFlare
 	}
 
 	if(classicTop30.length === 0) $("tbody#classic_flare").append($("<tr>").append($("<td colspan='4' style='text-align: center'>").append('No qualified scores.')))
@@ -73,7 +73,7 @@ async function populateTables() {
 
 $(document).ready(async function() {
 	let scores = JSON.parse(document.getElementById("score-pass").innerText)
-	flareData = await getFlareInfo(scores.filter(sc => !isMcodeCourse(sc.songId)));
+	fres = await getFlareInfo(scores.filter(sc => !isMcodeCourse(sc.songId)));
 	await populateTables()
 	
 	$('#style_select').change(async function() {

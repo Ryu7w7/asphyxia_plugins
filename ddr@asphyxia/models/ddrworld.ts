@@ -85,6 +85,7 @@ export interface LeagueWorld {
   score: number;
   rankNum: number;
   playCount: number;
+  current: boolean;
   ended: boolean;
 }
 
@@ -97,6 +98,7 @@ export interface LeagueResultWorld {
   promoteScore: number;
   demoteRank: number;
   demoteScore: number;
+  topScore: number;
   joinNum: number;
   ended: boolean;
 }

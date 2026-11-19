@@ -792,13 +792,13 @@ export const playerdatasave: EPR = async (info, data, send) => {
         let playCount = leagueData.number("playcount")
         let leagueExist = await DB.FindOne<LeagueWorld>(refid, {collection: 'league3', id: leagueId})
          
-        await DB.Upsert<LeagueWorld>(refid, { collection: "league3" }, {
+        await DB.Upsert<LeagueWorld>(refid, { collection: "league3", id: leagueId }, {
           $set: {
-            id: leagueId,
             class: ((!leagueExist) ? 1 : leagueExist.class),
             score: score,
             playCount: playCount,
-            ended: false
+            ended: false,
+            current: true
           }
         })
       }
@@ -1009,7 +1009,6 @@ export const playerdataload: EPR = async (info, data, send) => {
     let curLeague = LEAGUE_WORLD.find(lg => lg.id === LEAGUE_SEASON)
     let prevLeague
     let leagueData = {}
-    let leagueInfo
     let leagueResult
     let leagueStatus = 0
     
@@ -1022,68 +1021,79 @@ export const playerdataload: EPR = async (info, data, send) => {
     let leagueResultPrev
     let lResult = []
 
-    let playerLeague = await DB.Find<LeagueWorld>(refid, {collection: 'league3'})
-    if(playerLeague.length > 0) {
-      leagueInfo = playerLeague[playerLeague.length - 1]
-      // league data cleanup, keep last data and update for every league season
-      if(playerLeague.length > 1) await DB.Remove<LeagueWorld>(refid, {collection: "league3", $not: {id: leagueInfo.id}})
+    let leagueInfo = await DB.FindOne<LeagueWorld>(refid, {collection: 'league3', current: true})
+    if(!leagueInfo) {
+      // if current league data has no 'current,' add it -- atp only one league data exists
+      await DB.Upsert<LeagueWorld>(refid, {collection: 'league3'}, {$set: {current: true}})
+      leagueInfo = await DB.FindOne<LeagueWorld>(refid, {collection: 'league3', current: true})
+    }
+    rank = leagueInfo.rankNum
+    score = leagueInfo.score
+    leagueClass = leagueInfo.class
+    playCount = leagueInfo.playCount
+    resultClass = leagueInfo.class
+    
+    if(leagueInfo.id !== curLeague.id) {
+      prevLeague = LEAGUE_WORLD.find(lg => lg.id === leagueInfo.id)
+      leagueResultPrev = await DB.FindOne<LeagueResultWorld>({ collection: 'leagueresult3', id: leagueInfo.id, class: leagueClass > 0 ? leagueClass : 1 })
       
-      rank = leagueInfo.rankNum
-      score = leagueInfo.score
-      leagueClass = leagueInfo.class
-      playCount = leagueInfo.playCount
-      resultClass = leagueInfo.class
-      
-      if(leagueInfo.id !== curLeague.id) {
-        prevLeague = LEAGUE_WORLD.find(lg => lg.id === leagueInfo.id)
-        leagueResultPrev = await DB.FindOne<LeagueResultWorld>({ collection: 'leagueresult3', id: leagueInfo.id, class: leagueClass > 0 ? leagueClass : 1 })
-        
-        if(leagueClass === 1 && leagueInfo.score >= leagueResultPrev.promoteScore) resultClass += 1
-        else if(leagueClass === 2) {
-          if(leagueInfo.score >= leagueResultPrev.promoteScore) resultClass += 1
-          else if(leagueInfo.score < leagueResultPrev.demoteScore) resultClass -= 1
-        }
-        else if(leagueClass === 3 && leagueInfo.score < leagueResultPrev.demoteScore) resultClass -= 1
-
-        if(!leagueInfo.ended) {
-          lResult.push({
-            league_id: K.ITEM("s32", prevLeague.id),
-            league_name: K.ITEM("str", Buffer.from(prevLeague.name, 'utf8').toString('base64')),
-            league_name_eng: K.ITEM("str", Buffer.from(prevLeague.nameEng, 'utf8').toString('base64')),
-            starttime: K.ITEM("u64", prevLeague.start),
-            endtime: K.ITEM("u64", prevLeague.end),
-            summarytime: K.ITEM("u64", prevLeague.summary),
-            league_status: K.ITEM("s32", leagueStatus),
-            league_class: K.ITEM("s32", leagueClass),
-            result_league_class: K.ITEM("s32", resultClass),
-            rank: K.ITEM("s32", rank),
-            score: K.ITEM("s32", score),
-            playcount: K.ITEM("s32", playCount),
-            advance_border: K.ITEM("s32", curLeague.advanceBorder[leagueClass > 0 ? leagueClass - 1 : 0]),
-            join_num: K.ITEM("s32", leagueResultPrev.joinNum), 
-            promote_rank: K.ITEM("s32", leagueResultPrev.promoteRank),
-            promote_score: K.ITEM("s32", leagueResultPrev.promoteScore),
-            demote_rank: K.ITEM("s32", leagueResultPrev.demoteRank),
-            demote_score: K.ITEM("s32", leagueResultPrev.demoteScore)
-          })
-        }
-
-        rank = 0
-        score = 0
-        playCount = 0
-        await DB.Upsert<LeagueWorld>(refid, {collection: 'league3'}, 
-          {
-            $set: {
-              id: curLeague.id,
-              class: leagueClass,
-              rankNum: rank,
-              score: score,
-              playCount: playCount,
-              ended: false,
-            }
-          }
-        )
+      if(leagueClass === 1 && leagueInfo.score >= leagueResultPrev.promoteScore) resultClass += 1
+      else if(leagueClass === 2) {
+        if(leagueInfo.score >= leagueResultPrev.promoteScore) resultClass += 1
+        else if(leagueInfo.score < leagueResultPrev.demoteScore) resultClass -= 1
       }
+      else if(leagueClass === 3 && leagueInfo.score < leagueResultPrev.demoteScore) resultClass -= 1
+
+      if(!leagueInfo.ended) {
+        lResult.push({
+          league_id: K.ITEM("s32", prevLeague.id),
+          league_name: K.ITEM("str", Buffer.from(prevLeague.name, 'utf8').toString('base64')),
+          league_name_eng: K.ITEM("str", Buffer.from(prevLeague.nameEng, 'utf8').toString('base64')),
+          starttime: K.ITEM("u64", prevLeague.start),
+          endtime: K.ITEM("u64", prevLeague.end),
+          summarytime: K.ITEM("u64", prevLeague.summary),
+          league_status: K.ITEM("s32", leagueStatus),
+          league_class: K.ITEM("s32", leagueClass),
+          result_league_class: K.ITEM("s32", resultClass),
+          rank: K.ITEM("s32", rank),
+          score: K.ITEM("s32", score),
+          playcount: K.ITEM("s32", playCount),
+          advance_border: K.ITEM("s32", curLeague.advanceBorder[leagueClass > 0 ? leagueClass - 1 : 0]),
+          join_num: K.ITEM("s32", leagueResultPrev.joinNum), 
+          promote_rank: K.ITEM("s32", leagueResultPrev.promoteRank),
+          promote_score: K.ITEM("s32", leagueResultPrev.promoteScore),
+          demote_rank: K.ITEM("s32", leagueResultPrev.demoteRank),
+          demote_score: K.ITEM("s32", leagueResultPrev.demoteScore)
+        })
+      }
+
+      rank = 0
+      score = 0
+      playCount = 0
+      await DB.Upsert<LeagueWorld>(refid, {collection: 'league3', id: leagueInfo.id}, 
+        {
+          $set: {
+            class: resultClass,
+            current: false
+          }
+        }
+      )
+      await DB.Upsert<LeagueWorld>(refid, {collection: 'league3', id: curLeague.id}, 
+        {
+          $set: {
+            class: resultClass,
+            rankNum: rank,
+            score: score,
+            playCount: playCount,
+            ended: false,
+            current: true
+          }
+        }
+      )
+      leagueInfo = await DB.FindOne<LeagueWorld>(refid, {collection: 'league3', id: leagueInfo.id})
+      leagueClass = leagueInfo.class
+      resultClass = leagueInfo.class
+      console.log(JSON.stringify(leagueInfo))
     }
     leagueResult = await DB.FindOne<LeagueResultWorld>({ collection: 'leagueresult3', id: curLeague.id, class: leagueClass > 0 ? leagueClass : 1 })
     if(leagueInfo) {
@@ -1096,7 +1106,6 @@ export const playerdataload: EPR = async (info, data, send) => {
       ended = (leagueInfo.ended !== undefined) ? leagueInfo.ended : false
     }
 
-    
     if(BigInt(Date.now()) >= curLeague.start) leagueStatus = 1 
     if(BigInt(Date.now()) >= curLeague.end) leagueStatus = 2
     if(BigInt(Date.now()) >= curLeague.summary) {
@@ -1122,7 +1131,7 @@ export const playerdataload: EPR = async (info, data, send) => {
           demote_rank: K.ITEM("s32", leagueResult.demoteRank),
           demote_score: K.ITEM("s32", leagueResult.demoteScore)
         })
-        await DB.Upsert<LeagueWorld>(refid, {collection: 'league3'}, {$set: {ended: true}})
+        await DB.Upsert<LeagueWorld>(refid, {collection: 'league3', id: leagueInfo.id}, {$set: {ended: true}})
       }
     }
 
@@ -1155,13 +1164,13 @@ export const playerdataload: EPR = async (info, data, send) => {
     let userCustomize = []
     let customize = await DB.Find<CustomizeWorld>(refid, {collection: 'customize3'})
     const defCustIds = [
-      Array.from({ length: 96 }, (_, index) => index + 1).concat([100001, 100002, 100003, 100004, 100005, 100006, 100007]),
-      Array.from({ length: 52 }, (_, index) => index + 1),
-      Array.from({ length: 49 }, (_, index) => index + 1),
-      Array.from({ length: 68 }, (_, index) => index + 1),
-      Array.from({ length: 83 }, (_, index) => index + 1),
-      Array.from({ length: 81 }, (_, index) => index + 1),
-      Array.from({ length: 98 }, (_, index) => index + 1)
+      Array.from({ length: 102 }, (_, index) => index + 1).concat([100001, 100002, 100003, 100004, 100005, 100006, 100007]),
+      Array.from({ length: 58 }, (_, index) => index + 1),
+      Array.from({ length: 51 }, (_, index) => index + 1),
+      Array.from({ length: 74 }, (_, index) => index + 1),
+      Array.from({ length: 90 }, (_, index) => index + 1),
+      Array.from({ length: 87 }, (_, index) => index + 1),
+      Array.from({ length: 105 }, (_, index) => index + 1)
     ]
 
     customize.forEach(cus => {

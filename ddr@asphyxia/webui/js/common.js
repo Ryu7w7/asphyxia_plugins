@@ -111,6 +111,8 @@ async function getFlareInfo(scores) {
 	let goldDbTop30 = []
 	let goldDbFlare = 0
 
+	let missingCnt = 0
+
 	await emit('getMDB', {}).then(
 		function(response) {
 			mdbData = response.data.mdb
@@ -120,20 +122,25 @@ async function getFlareInfo(scores) {
 		for(const score of scores) {
 			let songIndex = mdbData.findIndex(m => m.mcode === score.songId)
 			if(songIndex > -1 && score.songId != 38707 && score.flareForce >= 0) {
-				if(score.style === 0) {
-					flareTopScores.sg.push({
-						flare: flareMatrix[mdbData[songIndex]['diffLv'][score.difficulty]][score.flareForce],
-						title: mdbData[songIndex]['title'],
-						difficulty: mdbData[songIndex]['diffLv'][score.difficulty],
-						series: mdbData[songIndex]['series']
-					})
-				} else {
-					flareTopScores.db.push({
-						flare: flareMatrix[mdbData[songIndex]['diffLv'][score.difficulty]][score.flareForce],
-						title: mdbData[songIndex]['title'],
-						difficulty: mdbData[songIndex]['diffLv'][score.difficulty + 5],
-						series: mdbData[songIndex]['series']
-					})
+				try{
+					if(score.style === 0) {
+						flareTopScores.sg.push({
+							flare: flareMatrix[mdbData[songIndex]['diffLv'][score.difficulty]][score.flareForce],
+							title: mdbData[songIndex]['title'],
+							difficulty: mdbData[songIndex]['diffLv'][score.difficulty],
+							series: mdbData[songIndex]['series']
+						})
+					} else {
+						flareTopScores.db.push({
+							flare: flareMatrix[mdbData[songIndex]['diffLv'][score.difficulty]][score.flareForce],
+							title: mdbData[songIndex]['title'],
+							difficulty: mdbData[songIndex]['diffLv'][score.difficulty + 5],
+							series: mdbData[songIndex]['series']
+						})
+					}
+				} catch(e) {
+					console.log(`missing chart data: songId ${score.songId} | chart ${score.difficulty}`)
+					missingCnt++
 				}
 			}
 		}
@@ -167,7 +174,7 @@ async function getFlareInfo(scores) {
 
 		flareData.totalDbFlare = flareData.classicDbTop30.concat(flareData.whiteDbTop30, flareData.goldDbTop30).reduce((n, {flare}) => n + flare, 0)
 
-		return flareData
+		return {flareData, missingCnt}
 	}
 }
 

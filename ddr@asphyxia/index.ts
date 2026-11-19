@@ -380,18 +380,20 @@ async function updateWorldLeague() {
         let demoteRank = 0
         let leagueSorted = leagueAll.sort((a, b) => b.score - a.score)
         let leagueScores = leagueSorted.map(a => a.score)
+        let topScore = 0
         if(leagueScores[0] > 0) {
+          topScore = leagueScores[0]
           if(leagueClass === 1) {
             promoteScore = Math.round(leagueScores[0] / 2)
             leagueScores = leagueScores.concat([promoteScore]).sort((a, b) => b - a)
             promoteRank = leagueScores.findIndex(s => s === promoteScore) + 1
             joinNum += ((joinNum < 2) ? 2 : 1)
           } else if(leagueClass === 2) {
-            promoteScore = Math.round(leagueScores[0] - (leagueScores[0] - (35 / 100 * leagueScores[0])))
-            demoteScore = Math.round(leagueScores[0] - (leagueScores[0] - (85 / 100 * leagueScores[0])))
+            promoteScore = Math.round(leagueScores[0] - (leagueScores[0] - (85 / 100 * leagueScores[0])))
+            demoteScore = Math.round(leagueScores[0] - (leagueScores[0] - (35 / 100 * leagueScores[0])))
             leagueScores = leagueScores.concat([promoteScore, demoteScore]).sort((a, b) => b - a)
             promoteRank = leagueScores.findIndex(s => s === promoteScore) + 1
-            demoteScore = leagueScores.findIndex(s => s === demoteScore) + 1
+            demoteRank = leagueScores.findIndex(s => s === demoteScore) + 1
             joinNum += 2
           } else if(leagueClass === 3) {
             demoteScore = Math.round(leagueScores[0] - (leagueScores[0] - (85 / 100 * leagueScores[0])))
@@ -408,6 +410,7 @@ async function updateWorldLeague() {
             promoteScore: promoteScore,
             demoteRank: demoteRank,
             demoteScore: demoteScore,
+            topScore: topScore,
             joinNum: joinNum,
             ended: BigInt(Date.now()) >= league.summary
           }

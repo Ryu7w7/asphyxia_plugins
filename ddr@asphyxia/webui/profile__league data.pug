@@ -1,0 +1,129 @@
+//DATA//
+  league: DB.Find(refid, { collection: "league3" })
+  leagueresult: DB.Find({ collection: "leagueresult3", id: {$gte: 11}})
+-
+div
+  .card
+    .card-header
+      p.card-header-title
+        span.icon
+          i.mdi.mdi-form-dropdown
+        | League Data
+    .card-content
+      .field.is-horizontal.has-addons
+        .field-label.is-normal
+          label.label League Season
+        .field-body
+          .control
+            .select
+              select(id="league_select" value=0)
+  .card
+    .card-header
+      p.card-header-title
+        span.icon
+          i.mdi.mdi-trophy
+        | Your Ranking
+    .card-content
+      table.player_rank
+        tr
+          td Class
+          td#class --
+        tr
+          td Rank
+          td#rank --
+        tr
+          td Score
+          td#score --
+  .card
+    .card-header
+      p.card-header-title
+        span.icon
+          i.mdi.mdi-counter
+        | Global Stats
+    .card-content
+      table.league_result
+        tr
+          td
+          td BRONZE
+          td SILVER
+          td GOLD
+        //- tr
+        //-   td Advance Border Score
+        //-   td#advbord_b --
+        //-   td#advbord_s --
+        //-   td#advbord_g --
+        tr
+          td Top Score
+          td#score_b --
+          td#score_s --
+          td#score_g --
+        tr
+          td Promotion Line 
+          td#prom_b --
+          td#prom_s --
+          td#prom_g --
+        tr
+          td Demotion Line 
+          td#dem_b --
+          td#dem_s --
+          td#dem_g --
+div(hidden id='league-data') !{JSON.stringify(league)}
+div(hidden id='leagueresult-data') !{JSON.stringify(leagueresult)}
+script.
+  function getOrdinal(n) {
+    if (n % 10 == 1 && n % 100 != 11) return 'st';
+    else if (n % 10 == 2 && n % 100 != 12) return 'nd';
+    else if (n % 10 == 3 && n % 100 != 13) return 'rd';
+    return 'th';
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const leagueResPop = (selId) => {
+      const suf = {'1': 'b', '2': 's', '3': 'g'}
+      // global data
+      for(const lr of leagueResult.filter(l => l.id === selId)) {
+        $(`#score_${suf[lr.class]}`).text('0')
+        $(`#prom_${suf[lr.class]}`).text('0')
+        $(`#dem_${suf[lr.class]}`).text('0')
+
+        $(`#score_${suf[lr.class]}`).text(lr.topScore)
+        if(lr.class !== 3) $(`#prom_${suf[lr.class]}`).text(lr.promoteScore)
+        else $(`#prom_${suf[lr.class]}`).text('--')
+        if(lr.class !== 1) $(`#dem_${suf[lr.class]}`).text(lr.demoteScore)
+        else $(`#dem_${suf[lr.class]}`).text('--')
+      }
+    }
+
+    const yourRankPop = (selId) => {
+      const sznData = leagueData.find(l => l.id === selId)
+      const rankStr = ['NONE', 'BRONZE', 'SILVER', 'GOLD']
+      if(sznData) {
+        $('#class').text(rankStr[sznData.class])
+        $('#rank').text(`${sznData.rankNum}${getOrdinal(sznData.rankNum)}`)
+        $('#score').text(sznData.score)
+      } else {
+        $('#class').text('NONE')
+        $('#rank').text('--')
+        $('#score').text('--')
+      }
+    }
+    const leagueData = JSON.parse(document.getElementById("league-data").innerText)
+    const leagueResult = JSON.parse(document.getElementById("leagueresult-data").innerText)
+    const current = leagueResult.find(l => !l.ended).id
+    for(const l of [...new Map(leagueResult.map(item => [item.id, item])).values()]) {
+      $('#league_select').append(`
+        <option value=${l.id}>THE ${l.id}${getOrdinal(l.id)} WORLD LEAGUE ${l.ended ? "(ended)" : ""}</option>
+      `)
+    }
+
+    $('#league_select').val(current)
+    leagueResPop(current)
+    yourRankPop(current)
+    
+    $('#league_select').change(function() {
+      const selId = Number($(this).val())
+      leagueResPop(selId)
+      yourRankPop(selId)
+    })
+  })
+

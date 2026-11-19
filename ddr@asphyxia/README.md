@@ -1,6 +1,6 @@
 # DanceDanceRevolution
 
-**Plugin Version:** 3.2.1
+**Plugin Version:** 3.2.1a
 - Check for newer plugin versions [here](https://github.com/22vv0/asphyxia_plugins/releases?q=mdx&expanded=true).
 
 **Supported game versions:** WORLD (2026032400)
@@ -16,25 +16,22 @@ Changelog
 
 ### WORLD
 
-- Added event data: DAN RANK — requires uploaded `coursedb.xml`
-- Added event data: BEMANI PRO LEAGUE -SEASON 5- Triple Tribe Append
-- Added event data: DAN RANK song unlock — 足神様ノ復活祭
-- Added event data: EXTRA SAVIOR WORLD - The 4th MUSIC CREATOR AUDITION
-- Updated songs list
-- Added PREMIUM CUSTOMIZER 「秋のコナステ大感謝祭2024」
+- WORLD LEAGUE 14 (Duration: 11/14-12/12)
 
-### Misc
+### WORLD LEAGUE fixes
 
-- Data upload for `coursedb.xml` to populate course data and for use in WebUI
-- Added block to score saving if mcode is `-1` during saveKind 2 (a case for Dan courses)
-- Added Dan Course saving during saveKind 3
-- Added ex-score to `score_str`
-- `loadEventData` update to check for Dan 
+- Player's season data are now being kept instead of being overwritten every time a new season starts
+- Fixed bug where players' previous class aren't carried over to the next running season
+- Fixed silver class demotion rank border not being set properly
+- Fixed silver class promotion and demotion score borders being swapped
+
+### Fixes
+
+- Fixed World/Area/Machine chart hiscores not saving for non-existent records
 
 ### WebUI
 
-- Added Dan Rankings section to `Profile > Details` page
-- Added `Profile > Course Data` page — check your Dan course data
+- Added `Profile > League Data` page — check your League data from seasons 11 and above (**that is** if they haven't been overwritten yet)
 
 musicdb.xml Usage Guide
 ===========

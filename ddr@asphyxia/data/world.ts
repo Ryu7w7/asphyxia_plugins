@@ -1293,7 +1293,7 @@ export const EVENTS_WORLD = [
 	{ id: 670, no: 3, cond: 2000000, rwrd: 38910, type: 25 },
 ]
 
-export const LEAGUE_SEASON = 11
+export const LEAGUE_SEASON = 14
 export const LEAGUE_GOLD_BORDER_MCODE = 0
 export const LEAGUE_WORLD = [
 	{
@@ -1366,6 +1366,24 @@ export const LEAGUE_WORLD = [
 		start: BigInt(Date.parse('15 Jun 2026 01:00:00 GMT')),
 		end: BigInt(Date.parse('14 Jul 2026 08:00:00 GMT')),
 		summary: BigInt(Date.parse('14 Jul 2026 09:00:00 GMT')),
+		advanceBorder: [150000, 175000, 500000]
+	},
+	{
+		id: 13,
+		name: "第13回 WORLD LEAGUE",
+		nameEng: "The 13th WORLD LEAGUE",
+		start: BigInt(Date.parse('1 Oct 2026 01:00:00 GMT')),
+		end: BigInt(Date.parse('28 Oct 2026 08:00:00 GMT')),
+		summary: BigInt(Date.parse('28 Oct 2026 09:00:00 GMT')),
+		advanceBorder: [150000, 175000, 500000]
+	},
+	{
+		id: 14,
+		name: "第14回 WORLD LEAGUE",
+		nameEng: "The 14th WORLD LEAGUE",
+		start: BigInt(Date.parse('14 Nov 2026 01:00:00 GMT')),
+		end: BigInt(Date.parse('12 Dec 2026 08:00:00 GMT')),
+		summary: BigInt(Date.parse('12 Dec 2026 09:00:00 GMT')),
 		advanceBorder: [150000, 175000, 500000]
 	}
 ]
