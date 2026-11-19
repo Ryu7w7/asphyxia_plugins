@@ -1,0 +1,46 @@
+{
+ "events": [
+  {
+   "id": 1,
+   "open_at": "2024-01-01T00:00:00",
+   "close_at": "2099-12-31T00:00:00",
+   "goods": [
+    {
+     "id": 1,
+     "weight": 100,
+     "name": "Kurumi & Noah Campaign",
+     "stock": 0
+    }
+   ]
+  },
+  {
+   "id": 2,
+   "open_at": "2024-01-01T00:00:00",
+   "close_at": "2099-12-31T00:00:00",
+   "goods": [
+    {
+     "id": 1,
+     "weight": 100,
+     "name": "Kaga & Sumire Campaign",
+     "stock": 0
+    }
+   ]
+  },
+  {
+   "id": 3,
+   "campaign": "draw",
+   "lose_weight": 0,
+   "expire_days": 30,
+   "open_at": "2024-01-01T00:00:00",
+   "close_at": "2099-12-31T00:00:00",
+   "goods": [
+    {
+     "id": 1,
+     "weight": 100,
+     "name": "Asumi Sena Campaign",
+     "stock": 999
+    }
+   ]
+  }
+ ]
+}

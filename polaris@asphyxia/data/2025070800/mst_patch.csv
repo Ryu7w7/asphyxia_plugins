@@ -1,0 +1,5 @@
+CharacterCardMaster
+CharacterCardId,CardName,CharacterId,CostumeId,CardRarity,CardUsage,CardType,InitialLimitBreakCount,MinPowerValue,MaxPowerValue,SkillId,DefaultPoseId,DefaultFrameId,AvailablePoses,AvailableFrames,Version
+00080001,綿間瀬 わたこ【チアフルコード】,0,11,SSR,ForPlayers,Contenter,0,25000,55000,10303,90000001,90000001,Any,Any,0
+00080004,日下 育彦【チアフルコード】,1,11,SSR,ForPlayers,Contenter,0,25000,55000,10403,90000002,90000001,Any,Any,0
+

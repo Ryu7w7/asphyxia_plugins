@@ -32,6 +32,11 @@ import {
   isUnlockSongs,
   getShopGoods,
   getDemos,
+  getMstPatch,
+  xifVersion,
+  isProtocol2026,
+  FACILITY_NAME,
+  ShopGoodsEventSeed,
 } from "./utils";
 
 // ---------------------------------------------------------------------------
@@ -60,11 +65,11 @@ function okErr(): any {
 // Full song unlock list: every chart of every song in the served catalog
 // (plus event songs), unlock_type 0. Merged over the echo on every get so
 // songs never gate behind missing unlock rows.
-function fullUnlockMusic(): any[] {
+function fullUnlockMusic(ver: number): any[] {
   const ids = new Set<number>(UNLOCK_MUSIC_IDS);
   const diffs = new Map<number, number[]>();
   try {
-    for (const m of getMusics()) {
+    for (const m of getMusics(ver)) {
       const mid = Number(m.music_id);
       ids.add(mid);
       diffs.set(mid, (m.charts || []).map(c => Number(c.difficulty)));
@@ -97,7 +102,7 @@ function truthyLeaf(v: any): boolean {
 // Build the usr.get / end_gacha.player_data body from the stored echo.
 // Mirrors C# PlayDataResponseBuilder.Build: ids + now_date + everything the
 // client last saved. Unknown future fields survive automatically (echo).
-function playerDataBody(profile: any): any {
+function playerDataBody(profile: any, ver: number): any {
   const data = (profile && (profile as any).data) || {};
   const out: any = {
     result: K.ITEM("s32", 0),
@@ -195,9 +200,42 @@ function playerDataBody(profile: any): any {
     }
   } catch { }
   if (isUnlockSongs()) {
-    out.usr_unlock_music = { music: fullUnlockMusic() };
+    out.usr_unlock_music = { music: fullUnlockMusic(ver) };
+  }
+  // Goods campaign wins (2026012100+). The client never uploads this list;
+  // it is server state written by usr.draw_goods_gacha and decides whether
+  // the Continue draw campaign is offered again (no entry = NotWon).
+  if (isProtocol2026(ver)) {
+    out.usr_shop_goods_history = { history: goodsHistory(profile).map(h => ({
+      goods_event_id: K.ITEM("s32", h.goods_event_id),
+      goods_id: K.ITEM("s32", h.goods_id),
+      acquired_at: K.ITEM("str", h.acquired_at),
+      expired_at: K.ITEM("str", h.expired_at),
+      exchanged_at: K.ITEM("str", h.exchanged_at || ""),
+      shop_name: K.ITEM("str", h.shop_name || ""),
+    })) };
   }
   return out;
+}
+
+interface GoodsHistoryRec {
+  goods_event_id: number;
+  goods_id: number;
+  acquired_at: string;
+  expired_at: string;
+  exchanged_at: string;
+  shop_name: string;
+}
+
+function goodsHistory(profile: any): GoodsHistoryRec[] {
+  const h = profile && (profile as any).goods_history;
+  return Array.isArray(h) ? h : [];
+}
+
+// ISO 8601 (client parses these with DateTimeUtil.ParseISO8601OrNull).
+function isoDate(d: Date): string {
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -283,7 +321,7 @@ async function usrGet(info: any, data: any, send: any): Promise<void> {
     try { await saveProfile((profile as any).refid, profile); } catch { }
     dlog(`usr.get refid=${(profile as any).refid} healed card indices`);
   }
-  await send.object(playerDataBody(profile));
+  await send.object(playerDataBody(profile, xifVersion(info)));
 }
 
 // ---------------------------------------------------------------------------
@@ -607,9 +645,10 @@ async function usrSave(info: any, data: any, send: any): Promise<void> {
   } catch { }
   (profile as any).data = jsonSafe(next);
   await saveProfile((profile as any).refid, profile);
-  const lottery = rollShopLottery();
+  const ver = xifVersion(info);
+  const lottery = rollShopLottery(ver);
   dlog(`usr.save usr_id=${usrId} fields=${Object.keys(next).length} +items=${appliedItems} +actions=${appliedActions} lotto=${lottery.map(w => `${w.event_id}:${w.goods_id}`).join(",") || "-"} -> ok`);
-  await send.object({
+  const res: any = {
     "@attr": { status: 0 },
     now_date: K.ITEM("str", nowDateSpace()),
     usr_goods_lottery: {
@@ -618,7 +657,11 @@ async function usrSave(info: any, data: any, send: any): Promise<void> {
         goods_id: K.ITEM("s32", w.goods_id),
       })),
     },
-  });
+  };
+  // 2026012100+: the Continue scene offers a draw campaign only when this
+  // response lists it with stock (ShopGoodsCampaignParamGenerator.CanDraw).
+  if (isProtocol2026(ver)) res.mst_shop_goods_event = { event: goodsEventRows(ver) };
+  await send.object(res);
 }
 
 // ---------------------------------------------------------------------------
@@ -669,6 +712,7 @@ async function usrSaveMusicscore(info: any, data: any, send: any): Promise<void>
       combo: X.numOf(l, "combo"),
       combo_rank: X.numOf(l, "combo_rank"),
       clear_status: X.numOf(l, "clear_status"),
+      played_at: X.strOf(l, "played_at") || nowDateSpace(), // sent by 2026012100+
     });
   }
   if ((profile as any).scores.length > 3000) {
@@ -695,6 +739,7 @@ async function usrGetUsrMusic(info: any, data: any, send: any): Promise<void> {
     await send.object({ "@attr": { status: 0 }, usr_music_highscore: {} });
     return;
   }
+  const withPlayedAt = isProtocol2026(xifVersion(info));
   const groups = new Map<string, any[]>();
   for (const s of scores) {
     const mid = X.numOf(s, "music_id");
@@ -715,7 +760,7 @@ async function usrGetUsrMusic(info: any, data: any, send: any): Promise<void> {
     const clearCount = arr.filter(e => normCs(e) >= 2).length; // 2 = Clear (not failed)
     const fcCount    = arr.filter(e => normCs(e) >= 3).length; // 3 = Full Combo
     const pcCount    = arr.filter(e => normCs(e) >= 4).length; // 4 = Perfect
-    rows.push({
+    const row: any = {
       music_id: K.ITEM("s32", Number(midS)),
       chart_difficulty_type: K.ITEM("s32", Number(diffS)),
       achievement_rate: K.ITEM("s32", maxNum("achievement_rate")),
@@ -728,7 +773,13 @@ async function usrGetUsrMusic(info: any, data: any, send: any): Promise<void> {
       clear_count: K.ITEM("s32", clearCount),
       perfect_clear_count: K.ITEM("s32", pcCount),
       full_combo_count: K.ITEM("s32", fcCount),
-    });
+    };
+    if (withPlayedAt) {
+      // latest play of this chart; rows stored before played_at existed have none
+      const last = arr.map(e => String((e as any).played_at || "")).sort().pop() || "";
+      row.played_at = K.ITEM("str", last);
+    }
+    rows.push(row);
   }
   await send.object({ "@attr": { status: 0 }, usr_music_highscore: { music: rows } });
 }
@@ -740,7 +791,8 @@ async function usrGetUsrMusic(info: any, data: any, send: any): Promise<void> {
 // ---------------------------------------------------------------------------
 
 async function mstGetCommon(info: any, data: any, send: any): Promise<void> {
-  const musics = getMusics();
+  const ver = xifVersion(info);
+  const musics = getMusics(ver);
   const musicRows = musics.map(m => ({
     music_id: K.ITEM("s32", Number(m.music_id)),
     charts: {
@@ -752,15 +804,43 @@ async function mstGetCommon(info: any, data: any, send: any): Promise<void> {
       })),
     },
   }));
-  const events = alwaysOpenEvents().map(e => ({
+  const events = alwaysOpenEvents(ver).map(e => ({
     id: K.ITEM("str", e.id),
     param: K.ITEM("str", e.param),
     open_at: K.ITEM("str", "2020-01-01T00:00:00"),
     close_at: K.ITEM("str", "2099-01-01T00:00:00"),
   }));
-  // Continue-lottery goods events (server-rolled in usr.save; the client
-  // matches them by id and shows the entry banners while stock lasts).
-  const goodsEvents = getShopGoods().map(g => ({
+  const goodsEvents = goodsEventRows(ver);
+  const patch = getMstPatch(ver);
+  vlog(`[XIF] mst.get_common ver=${ver} musics=${musicRows.length} events=${events.length} goods=${goodsEvents.length} patch=${patch.length}`);
+  const res: any = {
+    "@attr": { status: 0 },
+    now_date: K.ITEM("str", nowDateT()),
+    mst_music: { music: musicRows },
+    mst_demo: {
+      demo_item: getDemos(ver).map(d => ({
+        demo_type: K.ITEM("s32", Number(d.demo_type)),
+        path: K.ITEM("str", d.path),
+      })),
+    },
+    mst_event: { event_item: events },
+    mst_shop_goods_event: { event: goodsEvents },
+    // version is only used for matching compatibility (patch_version in
+    // sync_matching_room) and the version overlay; the CSV is what matters.
+    mst_patch: { version: K.ITEM("s32", patch ? ver : 0), patch: K.ITEM("str", patch) },
+    mst_official_accounts: {},
+  };
+  // 2026012100+: per-song play statistics (popularity sort). Optional; an
+  // empty list leaves every song at zero plays.
+  if (isProtocol2026(ver)) res.mst_music_stats = {};
+  await send.object(res);
+}
+
+// Goods events as mst_shop_goods_event rows (mst.get_common and, from
+// 2026012100, usr.save). The client matches them by id and shows the entry
+// banners while stock lasts.
+function goodsEventRows(ver: number): any[] {
+  return getShopGoods(ver).map(g => ({
     goods_event_id: K.ITEM("s32", Number(g.id)),
     open_at: K.ITEM("str", g.open_at || "2024-01-01T00:00:00"),
     close_at: K.ITEM("str", g.close_at || "2099-12-31T00:00:00"),
@@ -773,41 +853,31 @@ async function mstGetCommon(info: any, data: any, send: any): Promise<void> {
       })),
     },
   }));
-  vlog(`[XIF] mst.get_common musics=${musicRows.length} events=${events.length} goods=${goodsEvents.length}`);
-  await send.object({
-    "@attr": { status: 0 },
-    now_date: K.ITEM("str", nowDateT()),
-    mst_music: { music: musicRows },
-    mst_demo: {
-      demo_item: getDemos().map(d => ({
-        demo_type: K.ITEM("s32", Number(d.demo_type)),
-        path: K.ITEM("str", d.path),
-      })),
-    },
-    mst_event: { event_item: events },
-    mst_shop_goods_event: { event: goodsEvents },
-    mst_patch: { version: K.ITEM("s32", 0), patch: K.ITEM("str", "") },
-    mst_official_accounts: {},
-  });
+}
+
+// Weighted pick among in-stock goods; `loseWeight` adds a "nothing" slot.
+function rollGoods(g: ShopGoodsEventSeed, loseWeight: number = 0): number | null {
+  const pool = (g.goods || []).filter(it => Number(it.stock ?? 0) > 0);
+  if (!pool.length) return null;
+  const weight = (it: any) => Math.max(0, Number(it.weight ?? 1));
+  let roll = Math.random() * ((pool.reduce((a, it) => a + weight(it), 0) + Math.max(0, loseWeight)) || 1);
+  for (const it of pool) {
+    roll -= weight(it);
+    if (roll < 0) return Number(it.id);
+  }
+  return loseWeight > 0 ? null : Number(pool[0].id);
 }
 
 // Weighted roll of the Continue-lottery winners, one goods per served
 // event (client checks (event 1, goods 1) and (event 2, goods 1) to show
 // the campaign views). Stock is display-only; weights decide.
-function rollShopLottery(): Array<{ event_id: number; goods_id: number }> {
+function rollShopLottery(ver: number): Array<{ event_id: number; goods_id: number }> {
   const wins: Array<{ event_id: number; goods_id: number }> = [];
   try {
-    for (const g of getShopGoods()) {
-      const pool = (g.goods || []).filter(it => Number(it.stock ?? 0) > 0);
-      if (!pool.length) continue;
-      const total = pool.reduce((a, it) => a + Math.max(0, Number(it.weight ?? 1)), 0) || 1;
-      let roll = Math.random() * total;
-      let pick = pool[0];
-      for (const it of pool) {
-        roll -= Math.max(0, Number(it.weight ?? 1));
-        if (roll < 0) { pick = it; break; }
-      }
-      wins.push({ event_id: Number(g.id), goods_id: Number(pick.id) });
+    for (const g of getShopGoods(ver)) {
+      if (g.campaign === "draw") continue;
+      const goodsId = rollGoods(g);
+      if (goodsId != null) wins.push({ event_id: Number(g.id), goods_id: goodsId });
     }
   } catch { }
   return wins;
@@ -819,7 +889,7 @@ function rollShopLottery(): Array<{ event_id: number; goods_id: number }> {
 // ---------------------------------------------------------------------------
 
 async function gachaGetInfo(info: any, data: any, send: any): Promise<void> {
-  const seeds = getGachas();
+  const seeds = getGachas(xifVersion(info));
   const rows = seeds.map(g => ({
     // NOTE: gacha_id is XrpcInt on the wire (client parses it as int; a str
     // node NREs downstream — seen live as "String reference not set").
@@ -898,7 +968,7 @@ async function gachaDraw(info: any, data: any, send: any): Promise<void> {
     await send.object(errObj(145, "Transaction not found or not drawn."));
     return;
   }
-  const seed = getGachas().find(g => String(g.id) === String(gachaId));
+  const seed = getGachas(xifVersion(info)).find(g => String(g.id) === String(gachaId));
   if (!seed) {
     dlog(`gacha.draw_gacha gacha=${gachaId} -> 145 (unknown gacha)`);
     await send.object(errObj(145, "No gacha events found."));
@@ -1149,7 +1219,61 @@ async function gachaEnd(info: any, data: any, send: any): Promise<void> {
       item_params: { param: tx.drawn.map(d => K.ITEM("str", String(d.rarity ?? "1"))) },
       ...okErr(),
     },
-    player_data: playerDataBody(profile),
+    player_data: playerDataBody(profile, xifVersion(info)),
+  });
+}
+
+// ---------------------------------------------------------------------------
+// usr.draw_goods_gacha (2026012100+) — Continue-scene goods campaign
+// (ShopGoodsCampaignRunner V2 views). The client sends the campaign's
+// goods_event_id; it shows "won" when the reply lists that event with the
+// goods it advertised. A win is recorded in usr_shop_goods_history so the
+// campaign is not offered again until the prize expires.
+// ---------------------------------------------------------------------------
+
+async function usrDrawGoodsGacha(info: any, data: any, send: any): Promise<void> {
+  const ver = xifVersion(info);
+  const usrId = X.numOf(data, "usr_id");
+  const holder = (data as any).draw_list;
+  const raw = holder != null && typeof holder === "object" && !Array.isArray(holder) && (holder as any).draw != null
+    ? (holder as any).draw : holder;
+  const draws = raw == null ? [] : Array.isArray(raw) ? raw : [raw];
+  const profile: any = usrId ? await getProfileByUsrId(usrId) : null;
+  const seeds = getShopGoods(ver);
+  const won: Array<{ goods_event_id: number; goods_id: number }> = [];
+  for (const d of draws) {
+    const eventId = X.numOf(d, "goods_event_id");
+    const seed = seeds.find(g => Number(g.id) === eventId);
+    const goodsId = seed ? rollGoods(seed, Number(seed.lose_weight ?? 0)) : null;
+    if (goodsId == null) continue;
+    won.push({ goods_event_id: eventId, goods_id: goodsId });
+    if (profile) {
+      const now = new Date();
+      const expire = new Date(now.getTime() + Math.max(1, Number(seed!.expire_days ?? 30)) * 86400000);
+      const history = goodsHistory(profile).filter(h => h.goods_event_id !== eventId);
+      history.push({
+        goods_event_id: eventId,
+        goods_id: goodsId,
+        acquired_at: isoDate(now),
+        expired_at: isoDate(expire),
+        exchanged_at: "",
+        shop_name: FACILITY_NAME,
+      });
+      (profile as any).goods_history = history;
+    }
+  }
+  if (profile && won.length) await saveProfile((profile as any).refid, profile);
+  dlog(`usr.draw_goods_gacha usr_id=${usrId} draws=${draws.map(d => X.numOf(d, "goods_event_id")).join(",") || "-"} -> won=${won.map(w => `${w.goods_event_id}:${w.goods_id}`).join(",") || "-"}`);
+  await send.object({
+    gacha_result: {
+      items: {
+        item: won.map(w => ({
+          goods_event_id: K.ITEM("s32", w.goods_event_id),
+          goods_id: K.ITEM("s32", w.goods_id),
+        })),
+      },
+      error_code: K.ITEM("s32", 0),
+    },
   });
 }
 
@@ -1188,6 +1312,7 @@ export function registerXifRoutes(): void {
   xroute("usr.save", usrSave);
   xroute("usr.save_musicscore", usrSaveMusicscore);
   xroute("usr.get_usr_music", usrGetUsrMusic);
+  xroute("usr.draw_goods_gacha", usrDrawGoodsGacha);
   xroute("mst.get_common", mstGetCommon);
   xroute("gacha.begin_gacha", gachaBeginH);
   xroute("gacha.draw_gacha", gachaDraw);
