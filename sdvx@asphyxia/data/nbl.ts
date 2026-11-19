@@ -29,7 +29,7 @@ export const FLAGS7 = [
   'BEGINNER_MUSIC_FOLDER\t1961,1962,2029,2028,2030,2031,2035,2036,1905,1882,2058,2073,2070,2069,2074,2075,2067,2068,2066,2165,2166',
   'BEGINNER_MUSIC_FOLDER\t2174,2175,2193,2195,2196,2213,2216,2214,2215,2205,2206,2224,2229,2228,2230,2241,2244,2243,2242,2245,2240',
   'BEGINNER_MUSIC_FOLDER\t2251,2252,2220,2221,2289,2288,2291,2287,2290,2343,2344,2348,2353,2352,2345,2234,2351,2350,2209,2354,2388',
-  'BEGINNER_MUSIC_FOLDER\t2389,2390,2391',
+  'BEGINNER_MUSIC_FOLDER\t2389,2390,2391,2405,2404',
   'SKILL_ANALYZER_ABLE',
   'BLASTER_ABLE',
   'PREMIUM_TIME_ENABLE',
@@ -113,7 +113,7 @@ export const BLASTER_GATE7 = [
 export const LICENSED_SONGS7 = LICENSED_SONGS6.concat([
   2348, 2344, 2343, 2352, 2353, 2345, 2234, 2354, 2350, 2351, 2209, 2376, 2377,
   2384, 2385, 2386, 2388, 2389, 2390, 2391, 2392, 2333, 2334, 2335, 2336, 2337,
-  2405
+  2405, 2404, 2432
 ])
 
 export const UNLOCK_EVENTS7 = {
@@ -877,6 +877,61 @@ export const UNLOCK_EVENTS7 = {
           stmpHd: '[sz:22][c:DAC491]SPECIAL STAMP BONUS',
           stmpFt: '[sz:22]YOU CAN GET A STAMP AND BONUS! :)[br:5]TERM: 10/26～11/1',
           stprwrd: '0:r:x133 1:p:1000 5:b:500 10:r:206 11:p:1000 15:b:500 20:p:5000 21:p:1000 25:b:500 30:p:5000'
+        },
+        {
+          stmpid: 135,
+          stps: 10030,
+          version: 20261027,
+          start: 20261102,
+          stmpHdJ: '[sz:22][c:DAC491]▽ウィークリースタンプボーナス!',
+          stmpFtJ: '[sz:22]11/2~11/8の間、ポルテを遊ぶとスタンプを獲得できます',
+          stmpHd: '[sz:22][c:DAC491]SPECIAL STAMP BONUS',
+          stmpFt: '[sz:22]YOU CAN GET A STAMP AND BONUS! :)[br:5]TERM: 11/2～11/8',
+          stprwrd: '0:r:x134 1:p:1000 5:b:500 10:d:31 11:p:1000 15:b:500 20:p:5000 21:p:1000 25:b:500 30:p:5000'
+        },
+        {
+          stmpid: 136,
+          stps: 10030,
+          version: 20261027,
+          start: 20261109,
+          stmpHdJ: '[sz:22][c:DAC491]▽ウィークリースタンプボーナス!',
+          stmpFtJ: '[sz:22]11/9~11/15の間、ポルテを遊ぶとスタンプを獲得できます',
+          stmpHd: '[sz:22][c:DAC491]SPECIAL STAMP BONUS',
+          stmpFt: '[sz:22]YOU CAN GET A STAMP AND BONUS! :)[br:5]TERM: 11/9～11/15',
+          stprwrd: '0:r:x135 1:p:1000 5:b:500 10:r:207 11:p:1000 15:b:500 20:p:5000 21:p:1000 25:b:500 30:p:5000'
+        },
+        {
+          stmpid: 137,
+          stps: 10030,
+          version: 20261027,
+          start: 20261116,
+          stmpHdJ: '[sz:22][c:DAC491]▽ウィークリースタンプボーナス!',
+          stmpFtJ: '[sz:22]11/16~11/22の間、ポルテを遊ぶとスタンプを獲得できます',
+          stmpHd: '[sz:22][c:DAC491]SPECIAL STAMP BONUS',
+          stmpFt: '[sz:22]YOU CAN GET A STAMP AND BONUS! :)[br:5]TERM: 11/16～11/22',
+          stprwrd: '0:r:x136 1:p:1000 5:b:500 10:r:208 11:p:1000 15:b:500 20:p:5000 21:p:1000 25:b:500 30:p:5000'
+        },
+        {
+          stmpid: 138,
+          stps: 10030,
+          version: 20261027,
+          start: 20261123,
+          stmpHdJ: '[sz:22][c:DAC491]▽ウィークリースタンプボーナス!',
+          stmpFtJ: '[sz:22]11/23~11/29の間、ポルテを遊ぶとスタンプを獲得できます',
+          stmpHd: '[sz:22][c:DAC491]SPECIAL STAMP BONUS',
+          stmpFt: '[sz:22]YOU CAN GET A STAMP AND BONUS! :)[br:5]TERM: 11/23～11/29',
+          stprwrd: '0:r:x137 1:p:1000 5:b:500 10:r:209 11:p:1000 15:b:500 20:p:5000 21:p:1000 25:b:500 30:p:5000'
+        },
+        {
+          stmpid: 139,
+          stps: 10030,
+          version: 20261027,
+          start: 20261130,
+          stmpHdJ: '[sz:22][c:DAC491]▽ウィークリースタンプボーナス!',
+          stmpFtJ: '[sz:22]11/30~12/6の間、ポルテを遊ぶとスタンプを獲得できます',
+          stmpHd: '[sz:22][c:DAC491]SPECIAL STAMP BONUS',
+          stmpFt: '[sz:22]YOU CAN GET A STAMP AND BONUS! :)[br:5]TERM: 11/30～12/6',
+          stprwrd: '0:r:x138 1:p:1000 5:b:500 10:r:210 11:p:1000 15:b:500 20:p:5000 21:p:1000 25:b:500 30:p:5000'
         }
       ]
     }
@@ -1031,6 +1086,13 @@ export const VALGENE7 = {
       valgene_id: 21,
       version: 20260901,
       start: 20260903
+    },
+    {
+      valgene_name: "ヴァルキリージェネレーター 「ホロライブドリームス × BEMANI」",
+      valgene_name_english: "Valkyrie Generator (hololive Dreams x BEMANI)",
+      valgene_id: 22,
+      version: 20260915,
+      start: 20260920
     }
   ],
   rarity: {
@@ -1101,6 +1163,15 @@ export const VALGENE7 = {
         {
           type: 20,
           item_ids: [59]
+        }
+      ]
+    },
+    {
+      volume: 22,
+      items: [
+        {
+          type: 18,
+          item_ids: [947, 948, 949, 950, 951, 952, 953, 954, 955, 956, 957, 958, 959, 960, 961, 962, 963, 964]
         }
       ]
     }
@@ -1674,7 +1745,8 @@ export const MEGAMIX_SONGS_5 = [
   2254, 2255, 2256, 2257, 2258, 2259, 2314, 2315, 2316, 2317,
   2318, 2319, 2320, 2321, 2322, 2323, 2324, 2325, 2326, 2327,
   2328, 2329, 2330, 2331, 2363, 2364, 2365, 2366, 2367, 2368,
-  2369, 2383, 2393, 2394, 2395, 2396, 2397
+  2369, 2383, 2393, 2394, 2395, 2396, 2397, 2388, 2389, 2390,
+  2391, 2404, 2405
 ]
 
 export const EXTENDS7 = [

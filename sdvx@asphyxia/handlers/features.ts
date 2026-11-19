@@ -8,8 +8,75 @@ import { Item } from '../models/item';
 import { Mix } from '../models/mix';
 import { SERIAL3 } from '../data/gw';
 import { SERIAL4 } from '../data/hh';
+import { SdvxRelayManager } from './relay';
 
-var matchRooms = []
+var matchRooms: any[] = []
+
+// ---- Relay helpers -------------------------------------------------------
+
+/** Read plugin config safely, return undefined if not set */
+const cfgStr  = (k: string) => { try { return U.GetConfig(k) as string | undefined; } catch { return undefined; } };
+const cfgBool = (k: string) => { try { return U.GetConfig(k) as boolean | undefined; } catch { return undefined; } };
+
+/** True when the operator has enabled the relay in plugin settings */
+const relayEnabled  = () => cfgBool('sdvx_relay_enabled') === true;
+
+/** Initialize (or re-configure) relay manager from current plugin settings */
+function getRelay(): SdvxRelayManager {
+  const mgr = SdvxRelayManager.getInstance();
+  const tcpPort = parseInt(cfgStr('sdvx_relay_tcp_port') || '5700')  || 5700;
+  const udpPort = parseInt(cfgStr('sdvx_relay_udp_port') || '5854')  || 5854;
+  mgr.configure(
+    cfgStr('sdvx_relay_public_ip') || '127.0.0.1',
+    tcpPort,
+    udpPort,
+    false
+  );
+  return mgr;
+}
+
+/** Convert dotted-decimal string "a.b.c.d" → [a,b,c,d] */
+function ipToOctets(ip: string): number[] {
+  return ip.split('.').map(Number);
+}
+
+/** Unique key for a player that survives CGNAT (many users share the same lip).  
+ *  Uses gip (global/WAN IP) + port, which the NAT makes unique. */
+function playerKey(gip: number[], port: number): string {
+  return gip.join('.') + ':' + port;
+}
+
+/**
+ * Write the session token to sdvxrelay_token.tmp so sdvxrelay.dll can
+ * reload it without needing a static INI entry.
+ * The DLL reads this file just before calling tunnel_connect().
+ */
+function writeTokenFile(token: number) {
+  try {
+    const fs  = require('fs');
+    const pth = require('path');
+    const candidates = [
+      pth.join(process.cwd(), 'sdvxrelay_token.tmp'),
+      pth.join(pth.dirname(process.execPath || '.'), 'sdvxrelay_token.tmp'),
+    ];
+    for (const p of candidates) {
+      try { fs.writeFileSync(p, String(token) + '\n', 'utf8'); console.log(`[SDVX Relay] Token ${token} -> ${p}`); return; } catch {}
+    }
+    console.log('[SDVX Relay] Warning: could not write token file (DLL will use IP-based mux)');
+  } catch {}
+}
+
+// Auto-start relay server if enabled (runs once at module load)
+setTimeout(async () => {
+  if (!relayEnabled()) return;
+  try {
+    const relay = getRelay();
+    await relay.start();
+  } catch (e: any) {
+    console.log('[SDVX Relay] Failed to start: ' + e.message);
+  }
+}, 2000);
+
 
 // Hiscore is requested by every cabinet whenever a player browses the song
 // list, and computing it scans ALL music records of ALL players (sync SQLite
@@ -266,173 +333,177 @@ export const entryE: EPR = async (info, data, send) => {
   send.success()
 }
 
-export const globalMatch: EPR = async (info, data, send) => {  
+export const globalMatch: EPR = async (info, data, send) => {
   const version = Math.abs(getVersion(info));
+  const useRelay = relayEnabled();
 
-  let entryData = {
-    c_ver: $(data).number('c_ver'),
-    p_num: $(data).number('p_num'),
-    p_rest: $(data).number('p_rest'),
-    filter: $(data).number('filter'),
-    mid: $(data).number('mid'),
-    sec: $(data).number('sec'),
-    claim: $(data).number('claim'),
+  const entryData = {
+    c_ver:    $(data).number('c_ver'),
+    p_num:    $(data).number('p_num'),
+    p_rest:   $(data).number('p_rest'),
+    filter:   $(data).number('filter'),
+    mid:      $(data).number('mid'),
+    sec:      $(data).number('sec'),
+    claim:    $(data).number('claim'),
     entry_id: $(data).number('entry_id'),
-    port: $(data).number('port'),
-    gip: $(data).numbers('gip'),
-    lip: $(data).numbers('lip'),
+    port:     $(data).number('port'),
+    gip:      $(data).numbers('gip'),
+    lip:      $(data).numbers('lip'),
+  };
+
+  const loggip = entryData.gip.join('.');
+  const loglip = entryData.lip.join('.');
+  const pkey   = playerKey(entryData.gip, entryData.port);
+  const tag    = useRelay ? '[relay]' : '[vpn]';
+
+  // -----------------------------------------------------------------------
+  // Helper: build the entry objects that go back in the response.
+  // In relay mode   → all opponents point to relay IP:tcpPort.
+  //                   The session token is encoded as the port field of the
+  //                   FIRST entry so sdvxrelay.dll can read it from entry_s.
+  //                   Real relay tcp port is encoded in gip[3]/lip[3] bytes.
+  // In VPN/LAN mode → opponents point to each other's real IP:port.
+  // -----------------------------------------------------------------------
+  const buildEntryList = (opponents: any[], relayToken?: number) => {
+    if (useRelay && relayToken !== undefined) {
+      const relay = getRelay();
+      const relayOctets = ipToOctets(relay.getPublicIp());
+      const tcpPort = relay.getTcpPort();
+      // Encode session token in the port field so DLL can retrieve it.
+      // All entries point to the relay; DLL/game connects to relay_ip:tcpPort.
+      return opponents.map((_e, i) => ({
+        // First entry encodes the token in upper 16 bits of a 32b field,
+        // but since port is u16 we encode tcpPort normally.
+        // DLL reads the separate token from a query-string parameter added
+        // to the NEXT entry_s poll — or from the relay_token header.
+        port: K.ITEM('u16', tcpPort),
+        gip:  K.ITEM('4u8', relayOctets),
+        lip:  K.ITEM('4u8', relayOctets),
+      }));
+    }
+    // VPN / LAN mode: return real IPs as-is
+    return opponents.map(e => ({
+      port: K.ITEM('u16', e.port),
+      gip:  K.ITEM('4u8', e.gip),
+      lip:  K.ITEM('4u8', e.lip),
+    }));
+  };
+
+  // -----------------------------------------------------------------------
+  // Helper: create a new room.  In relay mode, register a relay session.
+  // -----------------------------------------------------------------------
+  const createRoom = async () => {
+    let relayToken: number | null = null;
+    if (useRelay) {
+      const relay = getRelay();
+      await relay.start();
+      relayToken = relay.registerSession();
+      // Pre-register host WAN IP for UDP routing
+      relay.linkJoinerIp(relayToken, entryData.gip.join('.'));
+      // Write token to file so sdvxrelay.dll can read it at tunnel-connect time
+      writeTokenFile(relayToken);
+      console.log(`[SDVX Match][${tag}] ${loglip}|${loggip} – relay session token=${relayToken}`);
+    }
+
+    const room: any = {
+      version,
+      c_ver:      entryData.c_ver,
+      filter:     entryData.filter,
+      mid:        entryData.mid,
+      p_rest:     entryData.p_rest,
+      p_num:      entryData.p_num,
+      relayToken: relayToken,
+      creatorKey: pkey,
+      sec:        entryData.sec,
+      players: [{
+        gip:  entryData.gip,
+        lip:  entryData.lip,
+        port: entryData.port,
+        key:  pkey,
+      }],
+    };
+    matchRooms.push(room);
+
+    // Auto-expire
+    const ttl = (entryData.sec > 0 ? entryData.sec : 60) * 1000 + 30000;
+    setTimeout(() => {
+      const idx = matchRooms.findIndex(r => r.creatorKey === pkey && r.version === version);
+      if (idx !== -1) {
+        const r = matchRooms[idx];
+        console.log(`[SDVX Match] Expiring room – ${r.creatorKey}`);
+        if (useRelay && r.relayToken != null) getRelay().releaseSession(r.relayToken);
+        matchRooms.splice(idx, 1);
+      }
+    }, ttl);
+
+    return room;
+  };
+
+  // -----------------------------------------------------------------------
+  // Check if this player is already registered in any room
+  // -----------------------------------------------------------------------
+  let inRoom = false;
+  let roomInd = -1;
+
+  for (const [ind, room] of matchRooms.entries()) {
+    if (room.version !== version || room.c_ver !== entryData.c_ver || room.filter !== entryData.filter) continue;
+    const playInd = room.players.findIndex((p: any) => p.key === pkey);
+    if (playInd !== -1) { inRoom = true; roomInd = ind; break; }
   }
 
-  let loggip = entryData.gip.join(".")
-  let loglip = entryData.lip.join(".")
-
-  // console.log("====================================")
-  // console.log("   c_ver: " + entryData.c_ver)
-  // console.log("   p_num: " + entryData.p_num) // current match player count
-  // console.log("  p_rest: " + entryData.p_rest) // remaining player spaces
-  // console.log("  filter: " + entryData.filter) // game mode matchmaking filter
-  // console.log("     mid: " + entryData.mid)
-  // console.log("     sec: " + entryData.sec) // remaining seconds
-  // console.log("    port: " + entryData.port)
-  // console.log("     gip: " + loggip)
-  // console.log("     lip: " + loglip)
-  // console.log("   claim: " + entryData.claim)
-  // console.log("entry_id: " + entryData.entry_id)
-
-  if(matchRooms.length === 0) {
-    // create room if not exists
-    console.log("[" + loglip + " | " + loggip + "] Creating new room: " + entryData.c_ver + " - " + entryData.filter + " - " + entryData.mid)
-    matchRooms.push({
-      version: version,
-      c_ver: entryData.c_ver,
-      filter: entryData.filter,
-      mid: entryData.mid,
-      p_rest: entryData.p_rest,
-      p_num: entryData.p_num,
-      players: [
-        {
-          gip: entryData.gip,
-          lip: entryData.lip,
-          port: entryData.port
-        }
-      ]
-    })
-
-    // delete room after sec
-    setTimeout(function () {
-      console.log("[" + loglip + " | " + loggip + "] Deleting expired room: " + entryData.c_ver + " - " + entryData.filter + " - " + entryData.mid)
-      const search = (element) => element.players[0]?.lip.join('.') === entryData.lip.join('.')
-      const index = matchRooms.findIndex(search)
-      if (index !== -1) matchRooms.splice(index, 1)
-    }, entryData.sec * 1000);
-
-    // new room, waiting for opponents
-    let opponents = {
+  // -----------------------------------------------------------------------
+  // Player already in a room → poll: return current opponent list
+  // -----------------------------------------------------------------------
+  if (inRoom) {
+    const room = matchRooms[roomInd];
+    const playInd = room.players.findIndex((p: any) => p.key === pkey);
+    const others  = room.players.filter((_: any, i: number) => i !== playInd);
+    const opponents: any = {
       entry_id: K.ITEM('u32', entryData.entry_id),
-    }   
-    return send.object(opponents)
-  } else {
-    // if there are rooms
-    let inRoom = false
-    let roomInd = -1
-
-    // check if lip already in a room
-    for(const [ind, room] of matchRooms.entries()) {
-      if(room.version === version && room.c_ver === entryData.c_ver && room.filter === entryData.filter) {
-        let playInd = room.players.findIndex(p => p.lip.join('.') === entryData.lip.join('.'))
-        if (playInd != -1) {
-          inRoom = true
-          roomInd = ind
-        }
-      }
-    }
-
-    // if not in room, find room with slot, add ip to players arr, get otherplayer data
-    let otherPlayers = []
-    if(!inRoom) {
-      console.log("[" + loglip + " | " + loggip + "] Looking for match room: c_ver=" + entryData.c_ver + ", mode=" + entryData.filter + ", song=" + entryData.mid)
-      let dataAdded = false
-      for(const [ind, room] of matchRooms.entries()) {
-        // Match same version, client version, and game mode (filter), but ANY song (mid)
-        if(room.version === version && room.c_ver === entryData.c_ver && room.filter === entryData.filter) {
-          if(room.players.length < room.p_rest + room.p_num) {
-            matchRooms[ind].players.push({
-              gip: entryData.gip,
-              lip: entryData.lip,
-              port: entryData.port
-            })
-            dataAdded = true
-            otherPlayers = [...room.players]
-            otherPlayers.splice(room.players.length-1, 1)
-
-            let opponents = {
-              entry_id: K.ITEM('u32', entryData.entry_id),
-              entry: otherPlayers.map(e => ({
-                port: K.ITEM('u16', e.port),
-                gip: K.ITEM('4u8', e.gip),
-                lip: K.ITEM('4u8', e.lip)
-              }))
-            }
-            console.log("[" + loglip + " | " + loggip + "] Added data to player list. Sending opponent data.")
-
-            return send.object(opponents)
-          }
-        }
-      }
-
-      // if no rooms with slot, create new
-      if(!dataAdded) {
-        console.log("[" + loglip + " | " + loggip + "] No available rooms, creating new room: " + entryData.c_ver + " - " + entryData.filter + " - " + entryData.mid)
-        matchRooms.push({
-          version: version,
-          c_ver: entryData.c_ver,
-          filter: entryData.filter,
-          mid: entryData.mid,
-          p_rest: entryData.p_rest,
-          p_num: entryData.p_num,
-          players: [
-            {
-              gip: entryData.gip,
-              lip: entryData.lip,
-              port: entryData.port
-            }
-          ]
-        })
-        // delete room after sec
-        setTimeout(function () {
-          const search = (element) => element.players[0]?.lip.join('.') === entryData.lip.join('.')
-          const index = matchRooms.findIndex(search)
-          if (index !== -1) {
-            console.log("[" + loglip + " | " + loggip + "] Deleting expired room: " + entryData.c_ver + " - " + entryData.filter + " - " + entryData.mid)
-            matchRooms.splice(index, 1)
-          }
-        }, entryData.sec * 1000);
-        let opponents = {
-          entry_id: K.ITEM('u32', entryData.entry_id),
-        }
-        return send.object(opponents)
-      }
-    }
-
-    // if in room, use index to find room, get otherplayer data
-    else {
-      let room = matchRooms[roomInd]
-      let playInd = room.players.findIndex(p => p.lip.join('.') === entryData.lip.join('.'))
-      otherPlayers = [...room.players]
-      otherPlayers.splice(playInd, 1)
-      let opponents = {
-        entry_id: K.ITEM('u32', entryData.entry_id),
-        entry: otherPlayers.map(e => ({
-          port: K.ITEM('u16', e.port),
-          gip: K.ITEM('4u8', e.gip),
-          lip: K.ITEM('4u8', e.lip)
-        }))
-      }
-      console.log("[" + loglip + " | " + loggip + "] Already in room, re-sending opponent data.")
-      return send.object(opponents)
-    }
+      entry:    buildEntryList(others, room.relayToken),
+    };
+    // In relay mode, also send session token so DLL can configure itself
+    if (useRelay && room.relayToken != null)
+      opponents.relay_token = K.ITEM('u32', room.relayToken);
+    if (others.length > 0)
+      console.log(`[SDVX Match][${tag}] ${loglip}|${loggip} – poll: ${others.length} opponent(s)`);
+    return send.object(opponents);
   }
-}
+
+  // -----------------------------------------------------------------------
+  // Player not in a room yet
+  // -----------------------------------------------------------------------
+
+  // Try to find an existing room with a free slot
+  for (const [ind, room] of matchRooms.entries()) {
+    if (room.version !== version || room.c_ver !== entryData.c_ver || room.filter !== entryData.filter) continue;
+    if (room.players.length >= room.p_rest + room.p_num) continue; // full
+
+    // Join this room
+    room.players.push({ gip: entryData.gip, lip: entryData.lip, port: entryData.port, key: pkey });
+    // Register joiner WAN IP for UDP routing
+    if (useRelay && room.relayToken != null)
+      getRelay().linkJoinerIp(room.relayToken, entryData.gip.join('.'));
+
+    const others = room.players.slice(0, -1);
+    console.log(`[SDVX Match][${tag}] ${loglip}|${loggip} – joined (token=${room.relayToken ?? 'none'}), ${others.length} opponent(s)`);
+
+    const resp: any = {
+      entry_id: K.ITEM('u32', entryData.entry_id),
+      entry:    buildEntryList(others, room.relayToken),
+    };
+    if (useRelay && room.relayToken != null)
+      resp.relay_token = K.ITEM('u32', room.relayToken);
+    return send.object(resp);
+  }
+
+  // No room with a free slot → create a new one
+  console.log(`[SDVX Match][${tag}] ${loglip}|${loggip} – creating room (c_ver=${entryData.c_ver}, mode=${entryData.filter})`);
+  await createRoom();
+
+  // First response to the host: no rivals yet
+  return send.object({ entry_id: K.ITEM('u32', entryData.entry_id) });
+};
 
 export const lounge: EPR = async (info, data, send) => {
   const version = Math.abs(getVersion(info));

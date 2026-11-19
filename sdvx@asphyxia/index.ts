@@ -229,5 +229,35 @@ export function register() {
   R.Config('sdvx_drive_oauth_refresh_token', { type: 'string', needRestart: false, default: '', name: 'Drive OAuth Refresh Token', desc: 'Populated automatically after authorization.'});
   R.Config('sdvx_drive_folder_id', { type: 'string', needRestart: false, default: '', name: 'Drive Folder ID', desc: 'Target Google Drive folder ID.'});
 
+  // Online Match Relay (no-VPN, no-port-forward)
+  R.Config('sdvx_relay_enabled', {
+    type: 'boolean',
+    default: false,
+    needRestart: true,
+    name: 'Online Match Relay',
+    desc: 'Enable the built-in TCP/UDP relay so players can do Online Match / Arena / Megamix without VPN or port forwarding. Requires sdvxrelay.dll loaded via spice2x -k on the HOST side.'
+  });
+  R.Config('sdvx_relay_public_ip', {
+    type: 'string',
+    default: '127.0.0.1',
+    needRestart: true,
+    name: 'Relay Public IP',
+    desc: 'The public IP address of THIS server reachable by all players. Example: 203.0.113.42'
+  });
+  R.Config('sdvx_relay_tcp_port', {
+    type: 'string',
+    default: '5700',
+    needRestart: true,
+    name: 'Relay TCP Port',
+    desc: 'TCP port for match relay (game default: 5700). Open this port TCP in your firewall/router.'
+  });
+  R.Config('sdvx_relay_udp_port', {
+    type: 'string',
+    default: '5854',
+    needRestart: true,
+    name: 'Relay UDP Port',
+    desc: 'UDP port for game-state relay (game default: 5854). Open this port UDP in your firewall/router.'
+  });
+
   dataUpdate()
 }
