@@ -1,6 +1,6 @@
 SOUND VOLTEX
 ===
-**Plugin Version:** fork-7.2.2b
+**Plugin Version:** fork-7.2.3
 - Check for newer plugin versions [here](https://github.com/22vv0/asphyxia_plugins/releases?q=kfc&expanded=true).
 
 **Supported game versions:**
@@ -10,7 +10,7 @@ SOUND VOLTEX
 - HEAVENLY HAVEN (2019020600)
 - VIVID WAVE (2020122200)
 - EXCEED GEAR (2025120900)
-- ∇ (2026102700)
+- ∇ (2026111000)
 
 **Required Asphyxia Core version** [1.50d](https://github.com/asphyxia-core/asphyxia-core.github.io/releases/tag/v1.50d) or above
 
@@ -64,6 +64,13 @@ SOUND VOLTEX
 - Updated licensed songs list
 - Added new weekly stamp sheets
 - Better appeal title/akaname string sanitation on WebUI asset update
+
+#### 2026111000
+
+- Added VALKYRIE GENERATOR Vol.21
+- Added ability to change crew voice
+- Added datecodes to PE lookup func
+- Added new datecode customization item id limits for 261110
 
 ---
 ## Todo:
