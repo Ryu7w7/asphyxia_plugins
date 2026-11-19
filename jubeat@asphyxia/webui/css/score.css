@@ -1,0 +1,56 @@
+.cell-bsc{
+    background-color: #E8F5E9; /* light green */
+    color: #2E7D32;            /* green text */
+    font-weight: 700;
+}
+.cell-adv{
+    background-color: #FFF8E1; /* light yellow */
+    color: #8D6E00;            /* dark yellow/brown text */
+    font-weight: 700;
+}
+.cell-ext{
+    background-color: #FFEBEE; /* light red */
+    color: #C62828;            /* red text */
+    font-weight: 700;
+}
+
+/* 점수 3칸 동일 너비 */
+col.col-score{
+    width: 8rem;
+}
+
+/* 숫자 표시 가독성 */
+.cell-bsc, .cell-adv, .cell-ext{
+    white-space: nowrap;
+    text-align: right !important;
+}
+
+th.sortable{
+    cursor: pointer;
+    user-select: none;
+    position: relative;
+}
+th.sortable::after{
+    content: '';
+    display: inline-block;
+    width: 0;
+    height: 0;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    margin-left: 5px;
+    opacity: 0.3;
+    position: absolute;
+    right: .75rem;
+    top: 50%;
+    transform: translateY(-50%);
+}
+th.sortable.asc::after{
+    content: '';
+    border-bottom: 5px solid;
+    opacity: 1;
+}
+th.sortable.desc::after{
+    content: '';
+    border-top: 5px solid;
+    opacity: 1;
+}

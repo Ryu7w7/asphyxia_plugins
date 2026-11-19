@@ -1,0 +1,58 @@
+//-
+    scores with client-side pagination
+
+//DATA//
+    profile: DB.FindOne(refid, { collection: 'profile' })
+
+//- Helpers
+-
+    const seqLabel = (n) => (n === 0 ? 'BASIC' : n === 1 ? 'ADVANCED' : n === 2 ? 'EXTREME' : String(n))
+    const modeLabel = (b) => (b ? 'HARD' : 'NORMAL')
+
+link(rel="stylesheet" href="static/css/score.css")
+
+.container.is-fluid
+    h1.title.is-4
+        span 플레이어: #{profile.name}
+    .paginated-container
+        .level
+            .level-left
+                .level-item
+                    label(style="font-weight: bold") 항목 개수
+                    input.input.page-size(type="number" min="1" value="20" style="width: 6rem; margin-left: .75rem;")
+            .level-right
+                .level-item.pagination-controls
+                    button.button.pagination-previous 이전
+                    .pagination-info(style="margin: 0 0.75rem; display: flex; align-items: center;")
+                        input.input.current-page(type="text", style="width: 4rem; text-align: center;")
+                        span &nbsp;/&nbsp;
+                        span.total-pages
+                    button.button.pagination-next 다음
+
+        .table-container
+            table.table.is-striped.is-hoverable.is-fullwidth
+                colgroup
+                    col
+                    col.col-score
+                    col.col-score
+                    col.col-score
+                thead
+                    tr
+                        th.sortable(data-sort-type="name") 이름
+                        th.sortable(data-sort-type="bsc") BASIC
+                        th.sortable(data-sort-type="adv") ADVANCED
+                        th.sortable(data-sort-type="ext") EXTREME
+                tbody
+                    tr.paginated-content
+                        td(colspan="5")  준비중
+        // 하단 페이지네이션 바
+        .pagination-controls.is-flex.is-justify-content-center(style="margin-top: 1.5rem")
+            button.button.pagination-previous 이전
+            .pagination-info(style="margin: 0 0.75rem; display: flex; align-items: center;")
+                input.input.current-page(type="text", style="width: 4rem; text-align: center;")
+                span &nbsp;/&nbsp;
+                span.total-pages
+            button.button.pagination-next 다음
+
+script(src = "static/js/pagination.js")
+script(src = "static/js/profile_score.js")

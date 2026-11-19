@@ -1,0 +1,157 @@
+//-
+    Recent play history with client-side pagination
+
+//DATA//
+    profiles: DB.Find(null, { collection: 'profile' })
+    scores: DB.Find(null, { collection: 'score.history' })
+
+//- Helpers
+-
+    const profileMap = new Map(profiles.map(p => [p.__refid, p.name]))
+    const seqLabel = (n) => (n === 0 ? 'BASIC' : n === 1 ? 'ADVANCED' : 'EXTREME')
+    const seqClass = (n) => (n === 0 ? 'seq-bsc' : n === 1 ? 'seq-adv' : 'seq-ext')
+    const getTime = (data) => {
+        const date = data.updatedAt || data.createdAt
+        const y = date.getFullYear()
+        const m = String(date.getMonth() + 1).padStart(2, '0')
+        const day = String(date.getDate()).padStart(2, '0')
+        const h24 = date.getHours()
+        const ap = h24 < 12 ? '오전' : '오후'
+        const h12 = (h24 % 12) || 12
+        const mi = String(date.getMinutes()).padStart(2, '0')
+        return `${y}-${m}-${day} ${ap} ${h12}:${mi}`
+    }
+    const sortedScores = scores.slice().sort((a, b) => {
+        return (b.updatedAt || b.createdAt).getTime() - (a.updatedAt || a.createdAt).getTime();
+    })
+
+link(rel="stylesheet" href="static/css/play_history.css")
+
+.container.is-fluid
+    h1.title.is-4 서버 내 플레이 이력
+
+    .box.filter-box
+        .columns.is-multiline.is-variable.is-2
+            .column.is-12-mobile.is-6-tablet.is-3-desktop
+                label.label 플레이어 검색
+                input.input#filter-player(type="text" placeholder="플레이어 이름")
+            .column.is-6-mobile.is-3-tablet.is-2-desktop
+                label.label 난이도
+                .select.is-fullwidth
+                    select#filter-difficulty
+                        option(value="") 전체
+                        option(value="0") BASIC
+                        option(value="1") ADVANCED
+                        option(value="2") EXTREME
+            .column.is-6-mobile.is-3-tablet.is-2-desktop
+                label.label 모드
+                .select.is-fullwidth
+                    select#filter-mode
+                        option(value="") 전체
+                        option(value="hard") HARD만
+            .column.is-6-mobile.is-4-tablet.is-2-desktop
+                label.label 최소 RATE(%)
+                input.input#filter-rate-min(type="number" min="0" max="100" step="0.1" placeholder="예: 90")
+            .column.is-6-mobile.is-4-tablet.is-2-desktop
+                label.label 최대 RATE(%)
+                input.input#filter-rate-max(type="number" min="0" max="100" step="0.1" placeholder="예: 100")
+            .column.is-6-mobile.is-4-tablet.is-2-desktop
+                label.label 시작일
+                input.input#filter-date-from(type="date")
+            .column.is-6-mobile.is-4-tablet.is-2-desktop
+                label.label 종료일
+                input.input#filter-date-to(type="date")
+            .column.is-12-mobile.is-4-tablet.is-2-desktop.is-flex.is-align-items-flex-end
+                button.button.is-light.is-fullwidth#filter-reset(type="button") 필터 초기화
+
+    .paginated-container
+        .level
+            .level-left
+                .level-item
+                    label(style="font-weight: bold") 항목 개수
+                    input.input.page-size(type="number" min="1" value="20" style="width: 6rem; margin-left: .75rem;")
+            .level-right
+                .level-item.pagination-controls
+                    button.button.pagination-previous 이전
+                    .pagination-info(style="margin: 0 0.75rem; display: flex; align-items: center;")
+                        input.input.current-page(type="text", style="width: 4rem; text-align: center;")
+                        span &nbsp;/&nbsp;
+                        span.total-pages
+                    button.button.pagination-next 다음
+
+        .table-container
+            table.table.is-striped.is-hoverable.is-fullwidth
+                thead
+                    tr
+                        th.sortable(data-sort-key="player") 플레이어
+                        th.sortable(data-sort-key="song") 곡 정보
+                        th.sortable(data-sort-key="seq") 난이도
+                        th.sortable(data-sort-key="score") 점수
+                        th.sortable(data-sort-key="rate") rate
+                        th.sortable(data-sort-key="time") 시간
+                        th 상세
+                tbody
+                    each s in sortedScores
+                        - const playerName = profileMap.get(s.__refid) || '알 수 없음'
+                        - const timeText = getTime(s)
+                        - const rawDate = s.updatedAt || s.createdAt
+                        tr.paginated-content.history-row(
+                            class={'hard-mode-row': s.isHardMode},
+                            data-music-id=s.musicId,
+                            data-seq=s.seq,
+                            data-player=playerName,
+                            data-score=s.score,
+                            data-rate=(s.musicRate / 10),
+                            data-time=timeText,
+                            data-timestamp=rawDate.getTime(),
+                            data-is-hard=(s.isHardMode ? '1' : '0')
+                        )
+                            td(data-label="플레이어")= playerName
+                            td.song-name(data-label="곡 정보") 로딩중...
+                            td(data-label="난이도")
+                                span.difficulty-tag(class=seqClass(s.seq))= seqLabel(s.seq)
+                            td(data-label="점수")= s.score.toLocaleString('ko-KR')
+                            td(data-label="rate")= (s.musicRate / 10) + '%'
+                            td(data-label="시간")= timeText
+                            td(data-label="상세")
+                                button.button.is-small.is-info.is-light.detail-trigger(type="button") 보기
+
+        .pagination-controls.is-flex.is-justify-content-center(style="margin-top: 1.5rem;")
+            button.button.pagination-previous 이전
+            .pagination-info(style="margin: 0 0.75rem; display: flex; align-items: center;")
+                input.input.current-page(type="text", style="width: 4rem; text-align: center;")
+                span &nbsp;/&nbsp;
+                span.total-pages
+            button.button.pagination-next 다음
+
+#history-detail-modal.modal
+    .modal-background
+    .modal-card
+        header.modal-card-head
+            p.modal-card-title 플레이 상세
+            button.delete(type="button" aria-label="close")
+        section.modal-card-body
+            .content
+                dl.detail-grid
+                    dt 플레이어
+                    dd#detail-player -
+                    dt 곡
+                    dd#detail-song -
+                    dt 난이도
+                    dd#detail-seq -
+                    dt 점수
+                    dd#detail-score -
+                    dt RATE
+                    dd#detail-rate -
+                    dt 모드
+                    dd#detail-mode -
+                    dt 시간
+                    dd#detail-time -
+        footer.modal-card-foot
+            button.button#detail-filter-song(type="button") 이 곡으로 필터
+            button.button#detail-filter-player(type="button") 이 플레이어로 필터
+            button.button.js-close-modal(type="button") 닫기
+
+script(src = "static/js/music.js")
+script(src = "static/js/pagination.js")
+script(src = "static/js/play_history.js")

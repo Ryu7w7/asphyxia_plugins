@@ -1,0 +1,83 @@
+//-
+  Rival management with in-page search
+
+//DATA//
+    profile: DB.FindOne(refid, {collection: 'profile'})
+
+h2 라이벌 관리
+
+p(style="font-weight: bold") 플레이어: #{profile.name} (JID: #{profile.jubeatId})
+
+// 검색 UI
+h3 라이벌 검색/추가
+.field.has-addons
+    p.control.is-expanded
+        input.input#rival-search(type="text" placeholder="이름 일부 또는 JID 입력")
+    p.control
+        button.button.is-info#rival-search-btn 검색
+p.help 입력 후 Enter 또는 검색 버튼을 누르세요.
+
+// 검색 결과
+.box#rival-search-results(style="display:none;")
+    p.has-text-weight-semibold 검색 결과
+    ul#rival-results-list
+hr
+
+h3 등록된 라이벌
+if (Array.isArray(profile.rivals) && profile.rivals.length > 0)
+    ul
+        each r in profile.rivals
+            li
+                | #{r.name} (JID: #{r.jubeatId})
+                form(method="post" action="/emit/rival_remove" style="display:inline;margin-left:8px;")
+                    input(type="hidden" name="refid" value=refid)
+                    input(type="hidden" name="rival_jid" value=r.jubeatId)
+                    button.button.is-danger.is-small(type="submit") 삭제
+else
+    p 등록된 라이벌이 없습니다.
+
+script.
+    function renderResults(items){
+        var $box = $('#rival-search-results');
+        var $list = $('#rival-results-list');
+        $list.empty();
+        if(!items || !items.length){
+            $list.append($('<li>').text('검색 결과가 없습니다.'));
+        }else{
+            items.forEach(function(it){
+                var $li = $('<li>');
+                $li.text(it.name + ' (JID: ' + it.jubeatId + ') ');
+                var $form = $('<form>', {
+                    method: 'post',
+                    action: '/emit/rival_add',
+                    style: 'display:inline;margin-left:8px;'
+                });
+                $form.append($('<input>', {type: 'hidden', name: 'refid', value: '#{refid}'}));
+                $form.append($('<input>', {type: 'hidden', name: 'rival_jid', value: it.jubeatId}));
+                $form.append($('<button>', {class: 'button is-primary is-small', type: 'submit', text: '추가'}));
+                $li.append($form);
+                $list.append($li);
+            });
+        }
+        $box.show();
+    }
+
+    function doSearch(){
+        var q = $('#rival-search').val();
+        if(!q) return;
+        axios.post('/emit/rival_search', {jubeatId: '#{profile.jubeatId}', q: q})
+            .then(function(res){
+                renderResults(res.data && res.data.results || []);
+            })
+            .catch(function(){
+                renderResults([]);
+            });
+    }
+
+    document.getElementById('rival-search-btn').addEventListener('click', doSearch);
+    document.getElementById('rival-search').addEventListener('keydown', (e) => {
+        if(e.key === 'Enter'){
+            e.preventDefault();
+            doSearch();
+        }
+    })
